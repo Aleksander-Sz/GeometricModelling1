@@ -9,13 +9,15 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 #include <vector>
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 float lastX = 400, lastY = 300;
 bool firstMovement = true;
+bool mouseButtonPressed = false;
 Camera camera;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -42,8 +44,27 @@ void processInput(GLFWwindow* window)
 		camera.cameraPos -= cameraSpeed * glm::normalize(cross(cross(camera.cameraFront, camera.cameraUp), camera.cameraFront));
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		if (!io.WantCaptureMouse) // Check if ImGui wants to capture the mouse input
+		{
+			mouseButtonPressed = true;
+			firstMovement = true; // Reset first movement flag when the button is pressed
+		}
+	}
+	else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
+	{
+		mouseButtonPressed = false;
+	}
+}
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+	if (!mouseButtonPressed)
+		return;
 	if (firstMovement)
 	{
 		firstMovement = false;
@@ -56,7 +77,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastX = xpos;
 	lastY = ypos;
 
-	const float sensitivity = 0.1f;
+	const float sensitivity = 0.2f;
 	xOffset *= sensitivity;
 	yOffset *= sensitivity;
 
@@ -115,19 +136,35 @@ int main()
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
 	int fbWidth, fbHeight;
 	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 	glViewport(0, 0, fbWidth, fbHeight);
+
+	//ImGui
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	(void)io;
+
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+
+
 	camera = Camera(fbWidth, fbHeight);
 
 	// Rendering commands here
-
+	
 	Shader ourShader("Shaders/VertexShader.glsl","Shaders/FragmentShader.glsl");
+	std::vector<Shape*> shapes;
 	Torus torus(1.0f, 0.3f, 100, 100);
+	shapes.push_back(&torus);
 
 	glEnable(GL_DEPTH_TEST);
 	
@@ -138,6 +175,27 @@ int main()
 	{
 		processInput(window);
 
+		//ImGui
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		ImGui::Begin("Menu");
+		ImGui::Text("Use WASD to move, mouse to look around, scroll to zoom.");
+		ImGui::Separator();
+		ImGui::Text("Object parameters:");
+		for (int i = 0; i < shapes.size(); i++)
+		{
+			ImGui::PushID(i);
+			if (ImGui::CollapsingHeader((shapes[i]->Name() + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				shapes[i]->PrintImGuiOptions();
+			}
+			ImGui::PopID();
+		}
+		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+		ImGui::End();
+
 		//rendering commands here
 		glClearColor(0.0f, 0.1f, 0.0f, 1.0f);
 		ourShader.use();
@@ -145,14 +203,15 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		ourShader.setMat4("view", camera.view());
 		ourShader.setMat4("projection", camera.projection());
-		if (frame % 1000 == 0)
-			torus.setSubdivision(frame/10, frame/10);
-		torus.Draw(ourShader);
+		for (int i = 0; i < shapes.size(); i++)
+			shapes[i]->Draw(ourShader);
 
 		// -----
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		frame++;
