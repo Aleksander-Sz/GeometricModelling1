@@ -1,2 +1,2 @@
-**My first project in OpenGL**
-Based on the book Learn OpenGL by Joey De Vries
+**An application for geometric modelling**
+Prepared as a university project
