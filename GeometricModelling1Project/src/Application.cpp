@@ -169,8 +169,11 @@ int main()
 	Torus torus(1.0f, 0.3f, 100, 100);
 	shapes.push_back(&torus);
 	torus.Rotate(90.0f,glm::vec3(1.0f,0.0f,0.0f));
+	Grid grid = Grid::getInstance();
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
 	glViewport(0, 0, windowWidth, windowHeight);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -226,6 +229,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		ourShader.setMat4("view", camera.view());
 		ourShader.setMat4("projection", camera.projection());
+		grid.Draw(camera);
 		for (int i = 0; i < shapes.size(); i++)
 			shapes[i]->Draw(ourShader);
 

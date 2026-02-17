@@ -1,6 +1,16 @@
 #include "Shapes.h"
 
 // Shape class functions
+void Shape::Draw(Shader& shader)
+{
+	if (dirty)
+		Mesh();
+	shader.use();
+	glBindVertexArray(VAO);
+	shader.setMat4("model", model);
+	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+}
 void Shape::Scale(glm::vec3 s)
 {
 	//model = glm::scale(model, s);
@@ -92,16 +102,6 @@ Torus::Torus(float _R, float _r, unsigned int _s1, unsigned int _s2)
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
 	Mesh();
-}
-void Torus::Draw(Shader& shader)
-{
-	if (dirty)
-		Mesh();
-	//shader.use();
-	glBindVertexArray(VAO);
-	shader.setMat4("model", model);
-	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
 }
 void Torus::Mesh()
 {
@@ -198,4 +198,47 @@ void Torus::PrintImGuiOptions()
 	dirty |= ImGui::InputFloat("r", &r, 0.1f, 5.0f, "%.1f");
 	dirty |= ImGui::InputInt("s1", (int*)&s1, 3, 500);
 	dirty |= ImGui::InputInt("s2", (int*)&s2, 3, 500);
+}
+
+Grid::Grid()
+{
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	glBindVertexArray(VAO);
+	float vertices[] = {
+		-1.0f, 0.0f, -1.0f,
+		-1.0f, 0.0f,  1.0f,
+		 1.0f, 0.0f, -1.0f,
+		 1.0f, 0.0f,  1.0f
+	};
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	unsigned int indices[] = {
+		0, 1, 2,
+		1, 2, 3
+	};
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
+}
+Grid Grid::getInstance()
+{
+	static Grid instance;
+	return instance;
+}
+void Grid::Draw(Camera &camera)
+{
+	glBindVertexArray(VAO);
+	gridShader.use();
+	gridShader.setMat4("view", camera.view());
+	gridShader.setMat4("projection", camera.projection());
+	gridShader.setMat4("model", glm::scale(glm::mat4(1.0f),glm::vec3(40.0f)));
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
 }
