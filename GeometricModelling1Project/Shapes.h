@@ -19,6 +19,7 @@ public:
 	void setModel(glm::mat4 m);
 	void resetModel();
 	virtual void PrintImGuiOptions() = 0;
+	void PrintImGuiTransformOptions();
 	virtual std::string Name() = 0;
 protected:
 	bool dirty = true;

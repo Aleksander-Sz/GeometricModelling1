@@ -41,6 +41,46 @@ void Shape::resetModel()
 {
 	model = glm::mat4(1.0f);
 }
+void Shape::PrintImGuiTransformOptions()
+{
+	static glm::vec3 scale(1.0f);
+	static float rotationX = 0.0f;
+	static float rotationY = 0.0f;
+	static float rotationZ = 0.0f;
+	static glm::vec3 translation(0.0f);
+	ImGui::InputFloat3("Scale", glm::value_ptr(scale));
+	if (ImGui::Button("Apply Scale"))
+	{
+		Scale(scale);
+	}
+	ImGui::DragFloat("Rotation X", &rotationX, 1.0f, -180.0f, 180.0f, "%.0f");
+	if(ImGui::Button("Apply Rotation X"))
+	{
+		Rotate(rotationX, glm::vec3(1.0f, 0.0f, 0.0f));
+	}
+	ImGui::DragFloat("Rotation Y", &rotationY, 1.0f, -180.0f, 180.0f, "%.0f");
+	if (ImGui::Button("Apply Rotation Y"))
+	{
+		Rotate(rotationY, glm::vec3(0.0f, 1.0f, 0.0f));
+	}
+	ImGui::DragFloat("Rotation Z", &rotationZ, 1.0f, -180.0f, 180.0f, "%.0f");
+	if (ImGui::Button("Apply Rotation Z"))
+	{
+		Rotate(rotationZ, glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+	ImGui::InputFloat3("Translation", glm::value_ptr(translation));
+	if (ImGui::Button("Apply Translation"))
+	{
+		Translate(translation);
+	}
+	if (ImGui::Button("Reset Transformations"))
+	{
+		resetModel();
+		scale = glm::vec3(1.0f);
+		rotationX = rotationY = rotationZ = 0.0f;
+		translation = glm::vec3(0.0f);
+	}
+}
 // Torus class functions
 Torus::Torus(float _R, float _r, unsigned int _s1, unsigned int _s2)
 {

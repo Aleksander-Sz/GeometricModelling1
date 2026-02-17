@@ -92,6 +92,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureMouse)
+		return;
 	camera.zoom -= (float)yoffset;
 	if (camera.zoom < 1.0f)
 		camera.zoom = 1.0f;
@@ -165,6 +168,7 @@ int main()
 	std::vector<Shape*> shapes;
 	Torus torus(1.0f, 0.3f, 100, 100);
 	shapes.push_back(&torus);
+	torus.Rotate(90.0f,glm::vec3(1.0f,0.0f,0.0f));
 
 	glEnable(GL_DEPTH_TEST);
 	
@@ -189,8 +193,27 @@ int main()
 			if (ImGui::CollapsingHeader((shapes[i]->Name() + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				shapes[i]->PrintImGuiOptions();
+				ImGui::Separator();
+				shapes[i]->PrintImGuiTransformOptions();
 			}
 			ImGui::PopID();
+		}
+		ImGui::Separator();
+		ImGui::Text("Add objects");
+		const char* items[] = { "Torus", "Future objects..." };
+		static int current_item_index = 0;
+		ImGui::Combo("Shapes", &current_item_index, items, IM_ARRAYSIZE(items));
+		if (ImGui::Button("Add Shape"))
+		{
+			switch (current_item_index)
+			{
+			case 0:
+				shapes.push_back(new Torus(1.0f, 0.3f, 100, 100));
+				break;
+			case 1:
+				std::cerr << "Shape not implemented yet.\n";
+				break;
+			}
 		}
 		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
