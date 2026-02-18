@@ -18,6 +18,7 @@ float lastFrame = 0.0f;
 float lastX = 400, lastY = 300;
 bool firstMovement = true;
 bool mouseButtonPressed = false;
+bool shiftPressed = false;
 Camera camera;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -27,21 +28,26 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processInput(GLFWwindow* window)
 {
-	const float cameraSpeed = 2.5f * deltaTime;
+	float cameraSpeed(shiftPressed ? 10.0f : 2.5f);
+	const float cameraDisplacement = cameraSpeed * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		shiftPressed = true;
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
+		shiftPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera.cameraPos += cameraSpeed * glm::normalize(camera.cameraFront);
+		camera.cameraPos += cameraDisplacement * glm::normalize(camera.cameraFront);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera.cameraPos -= cameraSpeed * glm::normalize(camera.cameraFront);
+		camera.cameraPos -= cameraDisplacement * glm::normalize(camera.cameraFront);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.cameraPos -= cameraSpeed * glm::normalize(cross(camera.cameraFront, camera.cameraUp));
+		camera.cameraPos -= cameraDisplacement * glm::normalize(cross(camera.cameraFront, camera.cameraUp));
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera.cameraPos += cameraSpeed * glm::normalize(cross(camera.cameraFront, camera.cameraUp));
+		camera.cameraPos += cameraDisplacement * glm::normalize(cross(camera.cameraFront, camera.cameraUp));
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-		camera.cameraPos += cameraSpeed * glm::normalize(cross(cross(camera.cameraFront, camera.cameraUp), camera.cameraFront));
+		camera.cameraPos += cameraDisplacement * glm::normalize(cross(cross(camera.cameraFront, camera.cameraUp), camera.cameraFront));
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-		camera.cameraPos -= cameraSpeed * glm::normalize(cross(cross(camera.cameraFront, camera.cameraUp), camera.cameraFront));
+		camera.cameraPos -= cameraDisplacement * glm::normalize(cross(cross(camera.cameraFront, camera.cameraUp), camera.cameraFront));
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -77,17 +83,31 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastX = xpos;
 	lastY = ypos;
 
-	const float sensitivity = 0.2f;
-	xOffset *= sensitivity;
-	yOffset *= sensitivity;
+	
 
-	camera.yaw += xOffset;
-	camera.pitch -= yOffset;
+	if (shiftPressed)
+	{
+		const float sensitivity = 0.003f;
+		xOffset *= sensitivity;
+		yOffset *= sensitivity;
 
-	if (camera.pitch > 89.0f)
-		camera.pitch = 89.0f;
-	if (camera.pitch < -89.0f)
-		camera.pitch = -89.0f;
+		camera.cameraPos += yOffset * glm::normalize(cross(cross(camera.cameraFront, camera.cameraUp), camera.cameraFront));
+		camera.cameraPos -= xOffset * glm::normalize(cross(camera.cameraFront, camera.cameraUp));
+	}
+	else
+	{
+		const float sensitivity = 0.2f;
+		xOffset *= sensitivity;
+		yOffset *= sensitivity;
+
+		camera.yaw += xOffset;
+		camera.pitch -= yOffset;
+
+		if (camera.pitch > 89.0f)
+			camera.pitch = 89.0f;
+		if (camera.pitch < -89.0f)
+			camera.pitch = -89.0f;
+	}
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -166,7 +186,7 @@ int main()
 	
 	Shader ourShader("Shaders/VertexShader.glsl","Shaders/FragmentShader.glsl");
 	std::vector<Shape*> shapes;
-	Torus torus(1.0f, 0.3f, 100, 100);
+	Torus torus(1.0f, 0.3f, 50, 50);
 	shapes.push_back(&torus);
 	torus.Rotate(90.0f,glm::vec3(1.0f,0.0f,0.0f));
 	Grid grid = Grid::getInstance();
@@ -211,10 +231,11 @@ int main()
 			switch (current_item_index)
 			{
 			case 0:
-				shapes.push_back(new Torus(1.0f, 0.3f, 100, 100));
+				shapes.push_back(new Torus(1.0f, 0.3f, 50, 50));
 				break;
 			case 1:
-				shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 100));
+				shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50)); \
+				break;
 			case 2:
 				std::cerr << "Shape not implemented yet.\n";
 				break;
