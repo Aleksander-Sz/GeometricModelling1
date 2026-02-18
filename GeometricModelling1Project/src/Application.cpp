@@ -203,7 +203,7 @@ int main()
 		}
 		ImGui::Separator();
 		ImGui::Text("Add objects");
-		const char* items[] = { "Torus", "Future objects..." };
+		const char* items[] = { "Torus", "Ellipsoid", "Future objects..." };
 		static int current_item_index = 0;
 		ImGui::Combo("Shapes", &current_item_index, items, IM_ARRAYSIZE(items));
 		if (ImGui::Button("Add Shape"))
@@ -214,6 +214,8 @@ int main()
 				shapes.push_back(new Torus(1.0f, 0.3f, 100, 100));
 				break;
 			case 1:
+				shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 100));
+			case 2:
 				std::cerr << "Shape not implemented yet.\n";
 				break;
 			}
@@ -228,14 +230,15 @@ int main()
 
 		ourShader.use();
 		ourShader.setMat4("view", camera.view());
-		ourShader.setMat4("projection", camera.projection(0.05f));
-		grid.Draw(camera);
+		ourShader.setMat4("projection", camera.projectionRight());
 		glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
+		grid.Draw(camera, 'R');
 		for (int i = 0; i < shapes.size(); i++)
 			shapes[i]->Draw(ourShader);
 		glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		ourShader.setMat4("projection", camera.projection(-0.05f));
+		ourShader.setMat4("projection", camera.projectionLeft());
+		grid.Draw(camera, 'L');
 		for (int i = 0; i < shapes.size(); i++)
 			shapes[i]->Draw(ourShader);
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);

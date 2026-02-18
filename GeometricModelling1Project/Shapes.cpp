@@ -200,6 +200,75 @@ void Torus::PrintImGuiOptions()
 	dirty |= ImGui::InputInt("s2", (int*)&s2, 3, 500);
 }
 
+Ellipsoid::Ellipsoid(float _a, float _b, float _c, unsigned int _s)
+{
+	a = _a;
+	b = _b;
+	c = _c;
+	s = _s;
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+	Mesh();
+}
+void Ellipsoid::Mesh()
+{
+	if (s < 3)
+	{
+		std::cerr << "Subdivision must be at least 1.\n";
+		s = 3;
+	}
+	vertices.clear();
+	indices.clear();
+	dirty = false;
+	for (int i = 0; i <= s; i++)
+	{
+		float phi = (float)i / s * 1.0f * 3.14159265359f;
+		for (int j = 0; j <= s; j++)
+		{
+			// vertices
+			float theta = (float)j / s * 2.0f * 3.14159265359f;
+			float x = a * sin(phi) * cos(theta);
+			float y = b * sin(phi) * sin(theta);
+			float z = c * cos(phi);
+			vertices.push_back(x);
+			vertices.push_back(y);
+			vertices.push_back(z);
+			// indices
+			int v0 = i * (s + 1) + j;
+			int v1 = v0 + 1;
+			int v2 = v0 + (s + 1);
+			int v3 = v2 + 1;
+			indices.push_back(v0);
+			indices.push_back(v1);
+			indices.push_back(v2);
+			indices.push_back(v1);
+			indices.push_back(v2);
+			indices.push_back(v3);
+		}
+	}
+	//prepare for drawing
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
+}
+void Ellipsoid::PrintImGuiOptions()
+{
+	dirty |= ImGui::InputFloat("a", &a, 0.1f, 5.0f, "%.1f");
+	dirty |= ImGui::InputFloat("b", &b, 0.1f, 5.0f, "%.1f");
+	dirty |= ImGui::InputFloat("c", &c, 0.1f, 5.0f, "%.1f");
+	dirty |= ImGui::InputInt("s", (int*)&s, 3, 500);
+}
+
 Grid::Grid()
 {
 	glGenVertexArrays(1, &VAO);
@@ -232,12 +301,25 @@ Grid Grid::getInstance()
 	static Grid instance;
 	return instance;
 }
-void Grid::Draw(Camera &camera)
+void Grid::Draw(Camera &camera, char eye)
 {
 	glBindVertexArray(VAO);
 	gridShader.use();
 	gridShader.setMat4("view", camera.view());
-	gridShader.setMat4("projection", camera.projection());
+	glm::mat4 projection;
+	switch (eye)
+	{
+	case 0:
+		projection = camera.projection();
+		break;
+	case 'R':
+		projection = camera.projectionRight();
+		break;
+	case 'L':
+		projection = camera.projectionLeft();
+		break;
+	}
+	gridShader.setMat4("projection", projection);
 	gridShader.setMat4("model", glm::scale(glm::mat4(1.0f),glm::vec3(40.0f)));
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);

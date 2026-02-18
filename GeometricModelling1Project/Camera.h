@@ -22,6 +22,8 @@ public:
 	Camera(int windowWidth = 800.0f, int windowHeight = 600.0f);
 	glm::mat4 view();
 	glm::mat4 projection(float e = 0.0f);
+	glm::mat4 projectionLeft();
+	glm::mat4 projectionRight();
 };
 
 #endif

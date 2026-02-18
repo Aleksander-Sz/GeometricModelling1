@@ -13,6 +13,7 @@ void main()
     float minorsPerMajor = 5.0;
 
     float distanceFromCamera = length(view * worldPos);
+    
     vec2 coord = gridCoords;
 
     // Anti-aliased grid distance
@@ -35,7 +36,7 @@ void main()
     // Major thicker lines
     if (majorLine < minorLine)
     {
-        color = vec3(1.0);
+        color = vec3(0.8);
         fadeStart = 1.0;
         fadeStop = 20.0;
     }
@@ -43,23 +44,26 @@ void main()
     // Axis lines
     if (abs(coord.x) < fwidth(coord.x))
     {
-        color = vec3(1,0,0);
+        color = vec3(1,1,1);
         fadeStart = 1.0;
         fadeStop = 30.0;
     }
 
     if (abs(coord.y) < fwidth(coord.y))
     {
-        color = vec3(0,1,0);
+        color = vec3(1,1,1);
         fadeStart = 2.0;
         fadeStop = 30.0;
     }
 
     float alpha = 1.0 - clamp(line, 0.0, 1.0);
-
-    if (alpha <= 0.01)
+    
+    if(distanceFromCamera > fadeStop)
         discard;
+
     float fade = 1.0 - smoothstep(fadeStart,fadeStop,distanceFromCamera);
     alpha *= fade;
+    if (alpha <= 0.1)
+        discard;
     FragColor = vec4(color, alpha);
 }

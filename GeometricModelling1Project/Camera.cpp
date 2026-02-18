@@ -24,3 +24,11 @@ glm::mat4 Camera::projection(float e)
 	projection = glm::mat4(glm::vec4(1.0f,0.0f,0.0f,0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(-e/2/r, 0.0f, 0.0f, -1.0f/r), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	return projection;
 }
+glm::mat4 Camera::projectionLeft()
+{
+	return projection(0.05f);
+}
+glm::mat4 Camera::projectionRight()
+{
+	return projection(-0.05f);
+}

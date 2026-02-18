@@ -46,11 +46,24 @@ private:
 	unsigned int s1, s2;
 };
 
+class Ellipsoid : public Shape
+{
+public:
+	Ellipsoid(float _a, float _b, float _c, unsigned int _s);
+	void Mesh() override;
+	// elipsoid specific functions
+	void PrintImGuiOptions() override;
+	std::string Name() override { return "Ellipsoid"; }
+private:
+	float a, b, c;
+	unsigned int s;
+};
+
 
 class Grid
 {
 public:
-	void Draw(Camera &camera);
+	void Draw(Camera &camera, char eye = 0);
 	static Grid getInstance();
 private:
 	Grid();
