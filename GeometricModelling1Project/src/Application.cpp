@@ -224,15 +224,21 @@ int main()
 
 		//rendering commands here
 		glClearColor(0.0f, 0.1f, 0.0f, 1.0f);
-		ourShader.use();
-
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		ourShader.use();
 		ourShader.setMat4("view", camera.view());
-		ourShader.setMat4("projection", camera.projection());
+		ourShader.setMat4("projection", camera.projection(0.05f));
 		grid.Draw(camera);
+		glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
 		for (int i = 0; i < shapes.size(); i++)
 			shapes[i]->Draw(ourShader);
-
+		glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		ourShader.setMat4("projection", camera.projection(-0.05f));
+		for (int i = 0; i < shapes.size(); i++)
+			shapes[i]->Draw(ourShader);
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		// -----
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
