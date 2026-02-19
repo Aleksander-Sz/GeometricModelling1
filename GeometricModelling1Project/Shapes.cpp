@@ -1,13 +1,15 @@
 #include "Shapes.h"
 
 // Shape class functions
-void Shape::Draw(Shader& shader)
+void Meshable::Draw(Shader& shader)
 {
 	if (dirty)
 		Mesh();
 	shader.use();
 	glBindVertexArray(VAO);
 	shader.setMat4("model", model);
+	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
+	shader.setVec3("color", (selected ? glm::vec3(1.0f,1.0f,0.6f) : glm::vec3(1.0f,1.0f,1.0f)));
 	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
@@ -90,6 +92,10 @@ void Shape::PrintImGuiTransformOptions()
 		rotationX = rotationY = rotationZ = 0.0f;
 		translation = glm::vec3(0.0f);
 	}
+}
+bool Shape::Select(bool deselect)
+{
+	return selected = (deselect ? false : !selected);
 }
 // Torus class functions
 Torus::Torus(float _R, float _r, unsigned int _s1, unsigned int _s2)

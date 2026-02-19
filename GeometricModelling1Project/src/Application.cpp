@@ -253,6 +253,7 @@ int main()
 		ourShader.setMat4("view", camera.view());
 		ourShader.setMat4("projection", camera.projectionRight());
 		glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
+		glDepthMask(GL_FALSE);
 		grid.Draw(camera, 'R');
 		for (int i = 0; i < shapes.size(); i++)
 			shapes[i]->Draw(ourShader);

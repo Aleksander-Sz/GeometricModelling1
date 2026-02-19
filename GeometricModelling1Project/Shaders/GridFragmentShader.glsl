@@ -10,6 +10,7 @@ out vec4 FragColor;
 
 void main()
 {
+    /*FragColor = vec4(1.0f,0.0f,1.0f,1.0f);return;*/
     float minorsPerMajor = 5.0;
 
     float distanceFromCamera = length(view * worldPos);
