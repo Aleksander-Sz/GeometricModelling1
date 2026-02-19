@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClCompile Include="..\Dependencies\GLAD\src\gl.c" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Shapes.cpp" />
     <ClCompile Include="src\Application.cpp" />
@@ -158,6 +159,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Shapes.h" />
   </ItemGroup>

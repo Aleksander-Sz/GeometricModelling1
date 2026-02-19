@@ -97,6 +97,14 @@ bool Shape::Select(bool deselect)
 {
 	return selected = (deselect ? false : !selected);
 }
+glm::vec3 Shape::getPosition()
+{
+	return glm::vec3(
+			model[3][0],
+			model[3][1],
+			model[3][2]
+	);
+}
 // Point class functions
 Point::Point(glm::vec3 coords)
 {
@@ -361,4 +369,106 @@ void Grid::Draw(Camera &camera, char eye)
 	gridShader.setMat4("model", glm::scale(glm::mat4(1.0f),glm::vec3(40.0f)));
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+}
+Cursor Cursor::getInstance()
+{
+	static Cursor instance;
+	return instance;
+}
+void Cursor::Draw(Shader &shader, char eye)
+{
+	glBindVertexArray(VAO);
+	shader.use();
+	/*glm::mat4 projection;
+	switch (eye)
+	{
+	case 0:
+		projection = camera.projection();
+		break;
+	case 'R':
+		projection = camera.projectionRight();
+		break;
+	case 'L':
+		projection = camera.projectionLeft();
+		break;
+	}
+	gridShader.setMat4("projection", projection);*/
+	shader.setMat4("model", glm::scale(glm::translate(glm::mat4(1.0f), location), glm::vec3(0.1f, 0.1f, 0.1f)));
+	shader.setVec3("color", glm::vec3(1.0f, 0.0f, 1.0f));
+	glLineWidth(5);
+	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+}
+Cursor::Cursor()
+{
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	glBindVertexArray(VAO);
+	float vertices[] = {
+		-1.0f,  0.0f,  0.0f,
+		 1.0f,  0.0f,  0.0f,
+		 0.0f, -1.0f,  0.0f,
+		 0.0f,  1.0f,  0.0f,
+		 0.0f,  0.0f, -1.0f,
+		 0.0f,  0.0f,  1.0f
+	};
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	unsigned int indices[] = {
+		0, 1,
+		2, 3,
+		4, 5
+	};
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
+}
+void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos)
+{
+	float x_ndc = (2.0f * xpos) / camera.windowWidth - 1.0f;
+	float y_ndc = 1.0f - (2.0f * ypos) / camera.windowHeight;
+
+	glm::vec4 ray_clip = glm::vec4(x_ndc, y_ndc, -1.0f, 1.0f);
+
+	glm::mat4 invVP = camera.inverseViewProjection();
+
+	// Unproject to world space
+	glm::vec4 worldPos = invVP * ray_clip;
+
+	// Perspective divide
+	worldPos /= worldPos.w;
+
+	// Compute ray direction
+	glm::vec3 rayDir = glm::normalize(glm::vec3(worldPos) - camera.cameraPos);
+
+	// Place cursor some fixed distance in front of camera
+	float distance = 5.0f;
+	location = camera.cameraPos + rayDir * distance;
+}
+glm::vec3 Cursor::getPosition()
+{
+	return location;
+}
+void Cursor::Click(std::vector<Shape*> shapes)
+{
+	float minDistance = 1000.0f;
+	int closestObject = 0;
+	for (int i = 0; i < shapes.size(); i++)
+	{
+		glm::vec3 objectPosition = shapes[i]->getPosition();
+		float distance = glm::length(objectPosition - location);
+		if (distance < minDistance)
+		{
+			minDistance = distance;
+			closestObject = i;
+		}
+	}
+	if (minDistance < 1.0f)
+		shapes[closestObject]->Select();
 }

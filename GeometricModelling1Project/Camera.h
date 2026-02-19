@@ -24,6 +24,7 @@ public:
 	glm::mat4 projection(float e = 0.0f);
 	glm::mat4 projectionLeft();
 	glm::mat4 projectionRight();
+	glm::mat4 inverseViewProjection();
 };
 
 #endif

@@ -5,6 +5,7 @@
 #include "../Shader.h"
 #include "../Camera.h"
 #include "../Shapes.h"
+#include "../Scene.h"
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
@@ -13,13 +14,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
-float lastX = 400, lastY = 300;
-bool firstMovement = true;
-bool mouseButtonPressed = false;
-bool shiftPressed = false;
-Camera camera;
+Scene* scene;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -28,26 +23,27 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processInput(GLFWwindow* window)
 {
-	float cameraSpeed(shiftPressed ? 10.0f : 2.5f);
-	const float cameraDisplacement = cameraSpeed * deltaTime;
+	float cameraSpeed(scene->shiftPressed ? 10.0f : 2.5f);
+	const float cameraDisplacement = cameraSpeed * scene->deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		shiftPressed = true;
+		scene->shiftPressed = true;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
-		shiftPressed = false;
+		scene->shiftPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera.cameraPos += cameraDisplacement * glm::normalize(camera.cameraFront);
+		scene->camera.cameraPos += cameraDisplacement * glm::normalize(scene->camera.cameraFront);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera.cameraPos -= cameraDisplacement * glm::normalize(camera.cameraFront);
+		scene->camera.cameraPos -= cameraDisplacement * glm::normalize(scene->camera.cameraFront);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.cameraPos -= cameraDisplacement * glm::normalize(cross(camera.cameraFront, camera.cameraUp));
+		scene->camera.cameraPos -= cameraDisplacement * glm::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera.cameraPos += cameraDisplacement * glm::normalize(cross(camera.cameraFront, camera.cameraUp));
+		scene->camera.cameraPos += cameraDisplacement * glm::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-		camera.cameraPos += cameraDisplacement * glm::normalize(cross(cross(camera.cameraFront, camera.cameraUp), camera.cameraFront));
+		scene->camera.cameraPos += cameraDisplacement * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-		camera.cameraPos -= cameraDisplacement * glm::normalize(cross(cross(camera.cameraFront, camera.cameraUp), camera.cameraFront));
+		scene->camera.cameraPos -= cameraDisplacement * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
+	//scene->UpdateCursorPosition(scene->lastX, scene->lastY);
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -57,42 +53,53 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		ImGuiIO& io = ImGui::GetIO();
 		if (!io.WantCaptureMouse) // Check if ImGui wants to capture the mouse input
 		{
-			mouseButtonPressed = true;
-			firstMovement = true; // Reset first movement flag when the button is pressed
+			scene->mouseButtonPressed = true;
+			scene->firstMovement = true; // Reset first movement flag when the button is pressed
+			scene->mousePressTime = glfwGetTime();
+			scene->mousePressPosition = glm::vec2(scene->lastX, scene->lastY);
 		}
 	}
 	else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
 	{
-		mouseButtonPressed = false;
+		scene->mouseButtonPressed = false;
+		double mouseReleaseTime = glfwGetTime();
+		float movement = glm::length(glm::vec2(scene->lastX, scene->lastY) - scene->mousePressPosition);
+		if (mouseReleaseTime - scene->mousePressTime <= 0.2 && movement < 5.0f)
+		{
+			scene->LeftMouseClick();
+		}
 	}
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	if (!mouseButtonPressed)
-		return;
-	if (firstMovement)
+	if (!scene->mouseButtonPressed)
 	{
-		firstMovement = false;
-		lastX = xpos;
-		lastY = ypos;
+		scene->UpdateCursorPosition(xpos, ypos);
+		return;
 	}
-	float xOffset = xpos - lastX;
-	float yOffset = ypos - lastY;
+	if (scene->firstMovement)
+	{
+		scene->firstMovement = false;
+		scene->lastX = xpos;
+		scene->lastY = ypos;
+	}
+	float xOffset = xpos - scene->lastX;
+	float yOffset = ypos - scene->lastY;
 
-	lastX = xpos;
-	lastY = ypos;
+	scene->lastX = xpos;
+	scene->lastY = ypos;
 
 	
 
-	if (shiftPressed)
+	if (scene->shiftPressed)
 	{
 		const float sensitivity = 0.003f;
 		xOffset *= sensitivity;
 		yOffset *= sensitivity;
 
-		camera.cameraPos += yOffset * glm::normalize(cross(cross(camera.cameraFront, camera.cameraUp), camera.cameraFront));
-		camera.cameraPos -= xOffset * glm::normalize(cross(camera.cameraFront, camera.cameraUp));
+		scene->camera.cameraPos += yOffset * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
+		scene->camera.cameraPos -= xOffset * glm::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
 	}
 	else
 	{
@@ -100,13 +107,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 		xOffset *= sensitivity;
 		yOffset *= sensitivity;
 
-		camera.yaw += xOffset;
-		camera.pitch -= yOffset;
+		scene->camera.yaw += xOffset;
+		scene->camera.pitch -= yOffset;
 
-		if (camera.pitch > 89.0f)
-			camera.pitch = 89.0f;
-		if (camera.pitch < -89.0f)
-			camera.pitch = -89.0f;
+		if (scene->camera.pitch > 89.0f)
+			scene->camera.pitch = 89.0f;
+		if (scene->camera.pitch < -89.0f)
+			scene->camera.pitch = -89.0f;
 	}
 }
 
@@ -115,11 +122,11 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureMouse)
 		return;
-	camera.zoom -= (float)yoffset;
-	if (camera.zoom < 1.0f)
-		camera.zoom = 1.0f;
-	if (camera.zoom > 45.0f)
-		camera.zoom = 45.0f;
+	scene->camera.zoom -= (float)yoffset;
+	if (scene->camera.zoom < 1.0f)
+		scene->camera.zoom = 1.0f;
+	if (scene->camera.zoom > 45.0f)
+		scene->camera.zoom = 45.0f;
 }
 
 int main()
@@ -130,7 +137,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	int windowWidth = 1200; // Your desired width
+	int windowWidth = 900; // Your desired width
 	int windowHeight = 900; // Your desired height
 
 	GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "Geometric Modelling 1", NULL, NULL);
@@ -179,17 +186,16 @@ int main()
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
 
-
-	camera = Camera(fbWidth, fbHeight);
+	Scene sceneObject = Scene(900, 900);
+	scene = &sceneObject;
 
 	// Rendering commands here
 	
 	Shader ourShader("Shaders/VertexShader.glsl","Shaders/FragmentShader.glsl");
-	std::vector<Shape*> shapes;
 	Torus torus(1.0f, 0.3f, 50, 50);
-	shapes.push_back(&torus);
+	scene->shapes.push_back(&torus);
 	Point point(glm::vec3(0.0f, 0.1f, 0.0f));
-	shapes.push_back(&point);
+	scene->shapes.push_back(&point);
 	torus.Rotate(90.0f,glm::vec3(1.0f,0.0f,0.0f));
 	Grid grid = Grid::getInstance();
 
@@ -212,14 +218,14 @@ int main()
 		ImGui::Text("Use WASD to move, mouse to look around, scroll to zoom.");
 		ImGui::Separator();
 		ImGui::Text("Object parameters:");
-		for (int i = 0; i < shapes.size(); i++)
+		for (int i = 0; i < scene->shapes.size(); i++)
 		{
 			ImGui::PushID(i);
-			if (ImGui::CollapsingHeader((shapes[i]->Name() + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader((scene->shapes[i]->Name() + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				shapes[i]->PrintImGuiOptions();
+				scene->shapes[i]->PrintImGuiOptions();
 				ImGui::Separator();
-				shapes[i]->PrintImGuiTransformOptions();
+				scene->shapes[i]->PrintImGuiTransformOptions();
 			}
 			ImGui::PopID();
 		}
@@ -233,13 +239,13 @@ int main()
 			switch (current_item_index)
 			{
 			case 0:
-				shapes.push_back(new Torus(1.0f, 0.3f, 50, 50));
+				scene->shapes.push_back(new Torus(1.0f, 0.3f, 50, 50));
 				break;
 			case 1:
-				shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
+				scene->shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
 				break;
 			case 2:
-				shapes.push_back(new Point(glm::vec3(0.0f, 0.0f, 0.0f)));
+				scene->shapes.push_back(new Point(glm::vec3(0.0f, 0.0f, 0.0f)));
 				break;
 			default:
 				std::cerr << "Shape not implemented yet.\n";
@@ -255,24 +261,26 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		ourShader.use();
-		ourShader.setMat4("view", camera.view());
-		ourShader.setMat4("projection", camera.projectionRight());
+		ourShader.setMat4("view", scene->camera.view());
+		ourShader.setMat4("projection", scene->camera.projectionRight());
 		glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
 		glDepthMask(GL_FALSE);
-		grid.Draw(camera, 'R');
-		for (int i = 0; i < shapes.size(); i++)
-			shapes[i]->Draw(ourShader);
+		grid.Draw(scene->camera, 'R');
+		for (int i = 0; i < scene->shapes.size(); i++)
+			scene->shapes[i]->Draw(ourShader);
+		scene->cursor.Draw(ourShader, 'R');
 		glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		ourShader.setMat4("projection", camera.projectionLeft());
-		grid.Draw(camera, 'L');
-		for (int i = 0; i < shapes.size(); i++)
-			shapes[i]->Draw(ourShader);
+		ourShader.setMat4("projection", scene->camera.projectionLeft());
+		grid.Draw(scene->camera, 'L');
+		for (int i = 0; i < scene->shapes.size(); i++)
+			scene->shapes[i]->Draw(ourShader);
+		scene->cursor.Draw(ourShader, 'L');
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		// -----
 		float currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
+		scene->deltaTime = currentFrame - scene->lastFrame;
+		scene->lastFrame = currentFrame;
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		glfwSwapBuffers(window);

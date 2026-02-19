@@ -22,6 +22,7 @@ public:
 	void PrintImGuiTransformOptions();
 	virtual std::string Name() = 0;
 	bool Select(bool deselect = false);
+	glm::vec3 getPosition();
 protected:
 	bool dirty = true;
 	unsigned int VAO, VBO;
@@ -87,5 +88,19 @@ private:
 	Grid();
 	unsigned int VAO, VBO, EBO;
 	Shader gridShader = Shader("Shaders/GridVertexShader.glsl", "Shaders/GridFragmentShader.glsl");
+};
+
+class Cursor
+{
+public:
+	static Cursor getInstance();
+	void Draw(Shader& shader, char eye = 0);
+	void UpdatePosition(Camera& camera, double xpos, double ypos);
+	void Click(std::vector<Shape*> shapes);
+	glm::vec3 getPosition();
+private:
+	Cursor();
+	glm::vec3 location = glm::vec3(0.0f,0.0f,0.0f);
+	unsigned int VAO, VBO, EBO;
 };
 #endif
