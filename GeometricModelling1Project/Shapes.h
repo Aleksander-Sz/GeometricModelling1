@@ -12,8 +12,7 @@
 class Shape
 {
 public:
-	virtual void Draw(Shader& Shader) = 0;
-	virtual void Mesh() = 0;
+	virtual void Draw(Shader& shader) = 0;
 	void Scale(glm::vec3 s);
 	void Rotate(float angle, glm::vec3 axis);
 	void Translate(glm::vec3 t);
@@ -25,17 +24,28 @@ public:
 	bool Select(bool deselect = false);
 protected:
 	bool dirty = true;
+	unsigned int VAO, VBO;
 	glm::mat4 model = glm::mat4(1.0f);
 	bool selected = false;
 };
 class Meshable : public Shape
 {
 public:
-	void Draw(Shader& Shader);
+	void Draw(Shader& shader) override;
+	virtual void Mesh() = 0;
 protected:
-	unsigned int VAO, VBO, EBO;
+	unsigned int EBO;
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
+};
+
+class Point : public Shape
+{
+public:
+	Point(glm::vec3 coords);
+	void Draw(Shader& shader) override;
+	void PrintImGuiOptions() override;
+	std::string Name() override { return "Point"; }
 };
 
 class Torus : public Meshable

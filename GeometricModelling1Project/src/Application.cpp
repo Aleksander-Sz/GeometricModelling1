@@ -188,6 +188,8 @@ int main()
 	std::vector<Shape*> shapes;
 	Torus torus(1.0f, 0.3f, 50, 50);
 	shapes.push_back(&torus);
+	Point point(glm::vec3(0.0f, 0.1f, 0.0f));
+	shapes.push_back(&point);
 	torus.Rotate(90.0f,glm::vec3(1.0f,0.0f,0.0f));
 	Grid grid = Grid::getInstance();
 
@@ -223,7 +225,7 @@ int main()
 		}
 		ImGui::Separator();
 		ImGui::Text("Add objects");
-		const char* items[] = { "Torus", "Ellipsoid", "Future objects..." };
+		const char* items[] = { "Torus", "Ellipsoid", "Point", "Future objects..." };
 		static int current_item_index = 0;
 		ImGui::Combo("Shapes", &current_item_index, items, IM_ARRAYSIZE(items));
 		if (ImGui::Button("Add Shape"))
@@ -234,9 +236,12 @@ int main()
 				shapes.push_back(new Torus(1.0f, 0.3f, 50, 50));
 				break;
 			case 1:
-				shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50)); \
+				shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
 				break;
 			case 2:
+				shapes.push_back(new Point(glm::vec3(0.0f, 0.0f, 0.0f)));
+				break;
+			default:
 				std::cerr << "Shape not implemented yet.\n";
 				break;
 			}

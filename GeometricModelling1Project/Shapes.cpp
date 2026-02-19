@@ -97,6 +97,38 @@ bool Shape::Select(bool deselect)
 {
 	return selected = (deselect ? false : !selected);
 }
+// Point class functions
+Point::Point(glm::vec3 coords)
+{
+	model = glm::translate(model, coords);
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	float center[] = { 0.0f,0.0f,0.0f };
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), center, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
+}
+void Point::Draw(Shader &shader)
+{
+	shader.use();
+	glBindVertexArray(VAO);
+	shader.setMat4("model", model);
+	glPointSize((selected ? 15.0f : 5.0f)); //alter point size based on selection
+	shader.setVec3("color", (selected ? glm::vec3(1.0f, 1.0f, 0.6f) : glm::vec3(1.0f, 1.0f, 1.0f)));
+	glDrawArrays(GL_POINTS, 0, 1);
+	glBindVertexArray(0);
+}
+void Point::PrintImGuiOptions()
+{
+	ImGui::Text("This is a point, it has no mesh options.");
+}
+
 // Torus class functions
 Torus::Torus(float _R, float _r, unsigned int _s1, unsigned int _s2)
 {
