@@ -4,13 +4,39 @@ Scene::Scene(int windowWidth, int windowHeight)
 {
 	camera = Camera(windowWidth, windowHeight);
 }
+void Scene::toggleGrab()
+{
+	if (selectedShape != NULL)
+    {
+        grabEnabled = !grabEnabled;
+        if(!grabEnabled)
+        {
+            xLocked = false;
+            yLocked = false;
+            zLocked = false;
+		}
+    }
+}
 void Scene::UpdateCursorPosition(double xpos, double ypos)
 {
 	cursor.UpdatePosition(camera, xpos, ypos);
 }
 void Scene::LeftMouseClick()
 {
-	cursor.Click(shapes);
+	Shape* newSelectedShape = cursor.Click(shapes);
+	if (newSelectedShape != NULL)
+    {
+        std::cout << newSelectedShape->Name() << "\n";
+        if (selectedShape != NULL)
+        {
+            ;//selectedShape->Select(true); // Deselect current shape
+        }
+        selectedShape = newSelectedShape;
+    }
+    else
+    {
+		grabEnabled = false;
+    }
 }
 void Scene::DrawCursorOverlay()
 {
@@ -47,4 +73,14 @@ void Scene::DrawCursorOverlay()
 	ImGui::Text("Y: %.2f", cursorPos.y);
 	ImGui::Text("Z: %.2f", cursorPos.z);
     ImGui::End();
+}
+void Scene::moveSelectedObjects(glm::vec3 translation)
+{
+    for (Shape* shape : shapes)
+    {
+        if (shape->isSelected())
+        {
+            shape->Translate(translation);
+        }
+    }
 }

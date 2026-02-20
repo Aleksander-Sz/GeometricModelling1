@@ -23,6 +23,7 @@ public:
 	virtual std::string Name() = 0;
 	bool Select(bool deselect = false);
 	glm::vec3 getPosition();
+	bool isSelected();
 protected:
 	bool dirty = true;
 	unsigned int VAO, VBO;
@@ -96,7 +97,7 @@ public:
 	static Cursor getInstance();
 	void Draw(Shader& shader, char eye = 0);
 	void UpdatePosition(Camera& camera, double xpos, double ypos);
-	void Click(std::vector<Shape*> shapes);
+	Shape* Click(std::vector<Shape*> shapes);
 	glm::vec3 getPosition();
 private:
 	Cursor();

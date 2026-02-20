@@ -13,11 +13,20 @@ public:
 	float lastFrame = 0.0f;
 	float lastX = 400, lastY = 300;
 	bool firstMovement = true;
-	bool Lpressed = false;
+	bool lPressed = false;
+	bool gPressed = false;
+	bool xPressed = false;
+	bool yPressed = false;
+	bool zPressed = false;
 	bool AltPressed = false;
 	bool mouseLeftButtonPressed = false;
 	bool shiftPressed = false;
 	bool cursorLocked = false;
+	bool grabEnabled = false;
+	bool xLocked = false;
+	bool yLocked = false;
+	bool zLocked = false;
+	void toggleGrab();
 	double mouseLeftPressTime;
 	double AltPressTime;
 	glm::vec2 mouseLeftPressPosition;
@@ -27,6 +36,8 @@ public:
 	std::vector<Shape*> shapes;
 	void LeftMouseClick();
 	void DrawCursorOverlay();
+	void moveSelectedObjects(glm::vec3 translation);
+	Shape* selectedShape = NULL;
 };
 
 #endif

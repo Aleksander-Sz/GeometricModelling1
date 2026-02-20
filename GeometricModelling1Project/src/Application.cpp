@@ -45,12 +45,65 @@ void processInput(GLFWwindow* window)
 		scene->camera.cameraPos -= cameraDisplacement * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
 	{
-		if(!scene->Lpressed)
+		if(!scene->lPressed)
 			scene->cursorLocked = !scene->cursorLocked;
-		scene->Lpressed = true;
+		scene->lPressed = true;
 	}
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_RELEASE)
-		scene->Lpressed = false;
+		scene->lPressed = false;
+	if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
+	{
+		if (!scene->gPressed)
+			scene->toggleGrab();
+		scene->gPressed = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_G) == GLFW_RELEASE)
+		scene->gPressed = false;
+	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
+	{
+		if (!scene->xPressed)
+		{
+			if (scene->xLocked = !scene->xLocked)
+			{
+				scene->yLocked = false;
+				scene->zLocked = false;
+				std::cout << "X locked\n";
+			}
+		}
+		scene->xPressed = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_RELEASE)
+		scene->xPressed = false;
+	if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS)
+	{
+		if (!scene->yPressed)
+		{
+			if(scene->yLocked = !scene->yLocked)
+			{
+				scene->xLocked = false;
+				scene->zLocked = false;
+				std::cout << "Y locked\n";
+			}
+		}
+		scene->yPressed = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_RELEASE)
+		scene->yPressed = false;
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+	{
+		if (!scene->zPressed)
+		{
+			if (scene->zLocked = !scene->zLocked)
+			{
+				scene->xLocked = false;
+				scene->yLocked = false;
+				std::cout << "Z locked\n";
+			}
+		}
+		scene->zPressed = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_RELEASE)
+		scene->zPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
 		scene->AltPressed = true;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_RELEASE)
@@ -83,6 +136,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+	float xOffset = xpos - scene->lastX;
+	float yOffset = ypos - scene->lastY;
 	if (scene->mouseLeftButtonPressed)
 	{
 		if (scene->firstMovement)
@@ -91,8 +146,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			scene->lastX = xpos;
 			scene->lastY = ypos;
 		}
-		float xOffset = xpos - scene->lastX;
-		float yOffset = ypos - scene->lastY;
 
 		scene->lastX = xpos;
 		scene->lastY = ypos;
@@ -131,8 +184,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			scene->lastX = xpos;
 			scene->lastY = ypos;
 		}
-		float xOffset = xpos - scene->lastX;
-		float yOffset = ypos - scene->lastY;
 		scene->lastX = xpos;
 		scene->lastY = ypos;
 		const float sensitivity = 0.1f;
@@ -149,6 +200,44 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	}
 	else
 	{
+		if (scene->grabEnabled)
+		{
+			//float sensitivity = 0.003f;
+			//xOffset *= sensitivity;
+			//yOffset *= sensitivity;
+
+			float distance = glm::length(scene->selectedShape->getPosition() - scene->camera.cameraPos);
+
+			float fovRad = glm::radians(scene->camera.zoom); // assuming zoom = FOV
+			float viewHeight = 2.0f * distance * tan(fovRad * 0.5f);
+
+			float worldPerPixel = viewHeight / scene->camera.windowHeight;
+
+			glm::vec3 forward = glm::normalize(scene->camera.cameraFront);
+			glm::vec3 right = glm::normalize(glm::cross(forward, scene->camera.cameraUp));
+			glm::vec3 up = glm::normalize(glm::cross(right, forward));
+
+			glm::vec3 worldDelta =
+				right * (xOffset * worldPerPixel)
+				- up * (yOffset * worldPerPixel);
+			float xLockFactor = 0.0f;
+			float yLockFactor = 0.0f;
+			float zLockFactor = 0.0f;
+			if (scene->xLocked)
+				xLockFactor = 1.0f;
+			else if (scene->yLocked)
+				yLockFactor = 1.0f;
+			else if (scene->zLocked)
+				zLockFactor = 1.0f;
+			else
+			{
+				xLockFactor = 1.0f;
+				yLockFactor = 1.0f;
+				zLockFactor = 1.0f;
+			}
+			worldDelta *= glm::vec3(xLockFactor, yLockFactor, zLockFactor);
+			scene->moveSelectedObjects(worldDelta);
+		}
 		if (!scene->cursorLocked)
 			scene->UpdateCursorPosition(xpos, ypos);
 	}
@@ -347,14 +436,16 @@ int main()
 		grid.Draw(scene->camera, 'R');
 		for (int i = 0; i < scene->shapes.size(); i++)
 			scene->shapes[i]->Draw(ourShader);
-		scene->cursor.Draw(ourShader, 'R');
+		if(!scene->grabEnabled)
+			scene->cursor.Draw(ourShader, 'R');
 		glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		ourShader.setMat4("projection", scene->camera.projectionLeft());
 		grid.Draw(scene->camera, 'L');
 		for (int i = 0; i < scene->shapes.size(); i++)
 			scene->shapes[i]->Draw(ourShader);
-		scene->cursor.Draw(ourShader, 'L');
+		if (!scene->grabEnabled)
+			scene->cursor.Draw(ourShader, 'L');
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		// -----
 		float currentFrame = glfwGetTime();

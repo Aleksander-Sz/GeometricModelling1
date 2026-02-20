@@ -105,6 +105,10 @@ glm::vec3 Shape::getPosition()
 			model[3][2]
 	);
 }
+bool Shape::isSelected()
+{
+	return selected;
+}
 // Point class functions
 Point::Point(glm::vec3 coords)
 {
@@ -455,7 +459,7 @@ glm::vec3 Cursor::getPosition()
 {
 	return location;
 }
-void Cursor::Click(std::vector<Shape*> shapes)
+Shape* Cursor::Click(std::vector<Shape*> shapes)
 {
 	float minDistance = 1000.0f;
 	int closestObject = 0;
@@ -469,6 +473,10 @@ void Cursor::Click(std::vector<Shape*> shapes)
 			closestObject = i;
 		}
 	}
+	bool isSelected = false;
 	if (minDistance < 1.0f)
-		shapes[closestObject]->Select();
+		isSelected = shapes[closestObject]->Select();
+	if(isSelected)
+		return shapes[closestObject];
+	return nullptr;
 }
