@@ -26,7 +26,16 @@ void processInput(GLFWwindow* window)
 	float cameraSpeed(scene->shiftPressed ? 10.0f : 2.5f);
 	const float cameraDisplacement = cameraSpeed * scene->deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
+	{
+		if (!scene->EscPressed)
+		{
+			scene->CancellObjectMovement();
+			scene->grabEnabled = false;
+		}
+		scene->EscPressed = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_RELEASE)
+		scene->EscPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		scene->shiftPressed = true;
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
@@ -67,7 +76,7 @@ void processInput(GLFWwindow* window)
 			{
 				scene->yLocked = false;
 				scene->zLocked = false;
-				std::cout << "X locked\n";
+				scene->CancellObjectMovement();
 			}
 		}
 		scene->xPressed = true;
@@ -82,7 +91,7 @@ void processInput(GLFWwindow* window)
 			{
 				scene->xLocked = false;
 				scene->zLocked = false;
-				std::cout << "Y locked\n";
+				scene->CancellObjectMovement();
 			}
 		}
 		scene->yPressed = true;
@@ -97,7 +106,7 @@ void processInput(GLFWwindow* window)
 			{
 				scene->xLocked = false;
 				scene->yLocked = false;
-				std::cout << "Z locked\n";
+				scene->CancellObjectMovement();
 			}
 		}
 		scene->zPressed = true;
@@ -236,7 +245,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 				zLockFactor = 1.0f;
 			}
 			worldDelta *= glm::vec3(xLockFactor, yLockFactor, zLockFactor);
-			scene->moveSelectedObjects(worldDelta);
+			scene->MoveSelectedObjects(worldDelta);
 		}
 		if (!scene->cursorLocked)
 			scene->UpdateCursorPosition(xpos, ypos);
@@ -361,6 +370,7 @@ int main()
 	Point point(glm::vec3(0.0f, 0.1f, 0.0f));
 	scene->shapes.push_back(&point);
 	torus.Rotate(90.0f,glm::vec3(1.0f,0.0f,0.0f));
+	torus.ConfirmTransformations();
 	Grid grid = Grid::getInstance();
 
 	glEnable(GL_DEPTH_TEST);

@@ -47,11 +47,19 @@ void Shape::Translate(glm::vec3 t)
 }
 void Shape::setModel(glm::mat4 m)
 {
-	model = m;
+	modelBackup = model = m;
 }
 void Shape::resetModel()
 {
-	model = glm::mat4(1.0f);
+	modelBackup = model = glm::mat4(1.0f);
+}
+void Shape::ConfirmTransformations()
+{
+	modelBackup = model;
+}
+void Shape::CancelTransformations()
+{
+	model = modelBackup;
 }
 void Shape::PrintImGuiTransformOptions()
 {
@@ -64,26 +72,31 @@ void Shape::PrintImGuiTransformOptions()
 	if (ImGui::Button("Apply Scale"))
 	{
 		Scale(scale);
+		ConfirmTransformations();
 	}
 	ImGui::DragFloat("Rotation X", &rotationX, 1.0f, -180.0f, 180.0f, "%.0f");
 	if(ImGui::Button("Apply Rotation X"))
 	{
 		Rotate(rotationX, glm::vec3(1.0f, 0.0f, 0.0f));
+		ConfirmTransformations();
 	}
 	ImGui::DragFloat("Rotation Y", &rotationY, 1.0f, -180.0f, 180.0f, "%.0f");
 	if (ImGui::Button("Apply Rotation Y"))
 	{
 		Rotate(rotationY, glm::vec3(0.0f, 1.0f, 0.0f));
+		ConfirmTransformations();
 	}
 	ImGui::DragFloat("Rotation Z", &rotationZ, 1.0f, -180.0f, 180.0f, "%.0f");
 	if (ImGui::Button("Apply Rotation Z"))
 	{
 		Rotate(rotationZ, glm::vec3(0.0f, 0.0f, 1.0f));
+		ConfirmTransformations();
 	}
 	ImGui::InputFloat3("Translation", glm::value_ptr(translation));
 	if (ImGui::Button("Apply Translation"))
 	{
 		Translate(translation);
+		ConfirmTransformations();
 	}
 	if (ImGui::Button("Reset Transformations"))
 	{

@@ -19,6 +19,7 @@ public:
 	bool yPressed = false;
 	bool zPressed = false;
 	bool AltPressed = false;
+	bool EscPressed = false;
 	bool mouseLeftButtonPressed = false;
 	bool shiftPressed = false;
 	bool cursorLocked = false;
@@ -36,8 +37,10 @@ public:
 	std::vector<Shape*> shapes;
 	void LeftMouseClick();
 	void DrawCursorOverlay();
-	void moveSelectedObjects(glm::vec3 translation);
+	void MoveSelectedObjects(glm::vec3 translation);
 	Shape* selectedShape = NULL;
+	void ConfirmObjectMovement(); // TODO add floating axis during locked movement, save the movement for use after axis change
+	void CancellObjectMovement();
 };
 
 #endif

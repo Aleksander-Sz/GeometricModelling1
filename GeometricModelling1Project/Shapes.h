@@ -18,6 +18,8 @@ public:
 	void Translate(glm::vec3 t);
 	void setModel(glm::mat4 m);
 	void resetModel();
+	void ConfirmTransformations();
+	void CancelTransformations();
 	virtual void PrintImGuiOptions() = 0;
 	void PrintImGuiTransformOptions();
 	virtual std::string Name() = 0;
@@ -28,6 +30,7 @@ protected:
 	bool dirty = true;
 	unsigned int VAO, VBO;
 	glm::mat4 model = glm::mat4(1.0f);
+	glm::mat4 modelBackup = glm::mat4(1.0f);
 	bool selected = false;
 };
 class Meshable : public Shape

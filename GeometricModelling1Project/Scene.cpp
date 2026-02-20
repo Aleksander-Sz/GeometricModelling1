@@ -6,14 +6,15 @@ Scene::Scene(int windowWidth, int windowHeight)
 }
 void Scene::toggleGrab()
 {
+    xLocked = false;
+    yLocked = false;
+    zLocked = false;
 	if (selectedShape != NULL)
     {
         grabEnabled = !grabEnabled;
         if(!grabEnabled)
         {
-            xLocked = false;
-            yLocked = false;
-            zLocked = false;
+            ConfirmObjectMovement();
 		}
     }
 }
@@ -23,6 +24,12 @@ void Scene::UpdateCursorPosition(double xpos, double ypos)
 }
 void Scene::LeftMouseClick()
 {
+    if(grabEnabled)
+    {
+        ConfirmObjectMovement();
+        grabEnabled = false;
+        return;
+	}
 	Shape* newSelectedShape = cursor.Click(shapes);
 	if (newSelectedShape != NULL)
     {
@@ -74,13 +81,33 @@ void Scene::DrawCursorOverlay()
 	ImGui::Text("Z: %.2f", cursorPos.z);
     ImGui::End();
 }
-void Scene::moveSelectedObjects(glm::vec3 translation)
+void Scene::MoveSelectedObjects(glm::vec3 translation)
 {
     for (Shape* shape : shapes)
     {
         if (shape->isSelected())
         {
             shape->Translate(translation);
+        }
+    }
+}
+void Scene::CancellObjectMovement()
+{
+    for (Shape* shape : shapes)
+    {
+        if (shape->isSelected())
+        {
+            shape->CancelTransformations();
+        }
+    }
+}
+void Scene::ConfirmObjectMovement()
+{
+    for (Shape* shape : shapes)
+    {
+        if (shape->isSelected())
+        {
+            shape->ConfirmTransformations();
         }
     }
 }
