@@ -43,28 +43,38 @@ void processInput(GLFWwindow* window)
 		scene->camera.cameraPos += cameraDisplacement * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 		scene->camera.cameraPos -= cameraDisplacement * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
-	//scene->UpdateCursorPosition(scene->lastX, scene->lastY);
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+	{
+		if(!scene->Lpressed)
+			scene->cursorLocked = !scene->cursorLocked;
+		scene->Lpressed = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_RELEASE)
+		scene->Lpressed = false;
+	if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+		scene->AltPressed = true;
+	if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_RELEASE)
+		scene->AltPressed = false;
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureMouse) // Check if ImGui wants to capture the mouse input
+		return;
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
 	{
-		ImGuiIO& io = ImGui::GetIO();
-		if (!io.WantCaptureMouse) // Check if ImGui wants to capture the mouse input
-		{
-			scene->mouseButtonPressed = true;
-			scene->firstMovement = true; // Reset first movement flag when the button is pressed
-			scene->mousePressTime = glfwGetTime();
-			scene->mousePressPosition = glm::vec2(scene->lastX, scene->lastY);
-		}
+		scene->mouseLeftButtonPressed = true;
+		scene->firstMovement = true; // Reset first movement flag when the button is pressed
+		scene->mouseLeftPressTime = glfwGetTime();
+		scene->mouseLeftPressPosition = glm::vec2(scene->lastX, scene->lastY);
 	}
 	else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
 	{
-		scene->mouseButtonPressed = false;
+		scene->mouseLeftButtonPressed = false;
 		double mouseReleaseTime = glfwGetTime();
-		float movement = glm::length(glm::vec2(scene->lastX, scene->lastY) - scene->mousePressPosition);
-		if (mouseReleaseTime - scene->mousePressTime <= 0.2 && movement < 5.0f)
+		float movement = glm::length(glm::vec2(scene->lastX, scene->lastY) - scene->mouseLeftPressPosition);
+		if (mouseReleaseTime - scene->mouseLeftPressTime <= 0.2 && movement < 5.0f)
 		{
 			scene->LeftMouseClick();
 		}
@@ -73,37 +83,59 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	if (!scene->mouseButtonPressed)
+	if (scene->mouseLeftButtonPressed)
 	{
-		scene->UpdateCursorPosition(xpos, ypos);
-		return;
-	}
-	if (scene->firstMovement)
-	{
-		scene->firstMovement = false;
+		if (scene->firstMovement)
+		{
+			scene->firstMovement = false;
+			scene->lastX = xpos;
+			scene->lastY = ypos;
+		}
+		float xOffset = xpos - scene->lastX;
+		float yOffset = ypos - scene->lastY;
+
 		scene->lastX = xpos;
 		scene->lastY = ypos;
+
+
+
+		if (scene->shiftPressed)
+		{
+			const float sensitivity = 0.003f;
+			xOffset *= sensitivity;
+			yOffset *= sensitivity;
+
+			scene->camera.cameraPos += yOffset * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
+			scene->camera.cameraPos -= xOffset * glm::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
+		}
+		else
+		{
+			const float sensitivity = 0.1f;
+			xOffset *= sensitivity;
+			yOffset *= sensitivity;
+
+			scene->camera.yaw -= xOffset;
+			scene->camera.pitch += yOffset;
+
+			if (scene->camera.pitch > 89.0f)
+				scene->camera.pitch = 89.0f;
+			if (scene->camera.pitch < -89.0f)
+				scene->camera.pitch = -89.0f;
+		}
 	}
-	float xOffset = xpos - scene->lastX;
-	float yOffset = ypos - scene->lastY;
-
-	scene->lastX = xpos;
-	scene->lastY = ypos;
-
-	
-
-	if (scene->shiftPressed)
+	else if (scene->AltPressed)
 	{
-		const float sensitivity = 0.003f;
-		xOffset *= sensitivity;
-		yOffset *= sensitivity;
-
-		scene->camera.cameraPos += yOffset * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
-		scene->camera.cameraPos -= xOffset * glm::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
-	}
-	else
-	{
-		const float sensitivity = 0.2f;
+		if (scene->firstMovement)
+		{
+			scene->firstMovement = false;
+			scene->lastX = xpos;
+			scene->lastY = ypos;
+		}
+		float xOffset = xpos - scene->lastX;
+		float yOffset = ypos - scene->lastY;
+		scene->lastX = xpos;
+		scene->lastY = ypos;
+		const float sensitivity = 0.1f;
 		xOffset *= sensitivity;
 		yOffset *= sensitivity;
 
@@ -115,6 +147,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 		if (scene->camera.pitch < -89.0f)
 			scene->camera.pitch = -89.0f;
 	}
+	else
+	{
+		if (!scene->cursorLocked)
+			scene->UpdateCursorPosition(xpos, ypos);
+	}
+	scene->lastX = xpos;
+	scene->lastY = ypos;
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -122,11 +161,47 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureMouse)
 		return;
-	scene->camera.zoom -= (float)yoffset;
-	if (scene->camera.zoom < 1.0f)
-		scene->camera.zoom = 1.0f;
-	if (scene->camera.zoom > 45.0f)
-		scene->camera.zoom = 45.0f;
+	if (scene->AltPressed)
+	{
+		glm::vec3 cameraTarget = scene->camera.cameraPos + scene->camera.cameraFront;
+		float cameraRadius = glm::length(scene->camera.cameraPos - cameraTarget);
+
+		const float sensitivity = 0.3f;
+		xoffset *= sensitivity;
+		yoffset *= sensitivity;
+
+		scene->camera.yaw -= xoffset;
+		scene->camera.pitch -= yoffset;
+
+		if (scene->camera.pitch > 89.0f)
+			scene->camera.pitch = 89.0f;
+		if (scene->camera.pitch < -89.0f)
+			scene->camera.pitch = -89.0f;
+
+		// Convert to radians
+		float yawRad = glm::radians(scene->camera.yaw);
+		float pitchRad = glm::radians(scene->camera.pitch);
+
+		// Spherical coordinates
+		glm::vec3 offset;
+		offset.x = cameraRadius * cos(pitchRad) * cos(yawRad);
+		offset.y = cameraRadius * sin(pitchRad);
+		offset.z = cameraRadius * cos(pitchRad) * sin(yawRad);
+
+		// New position
+		scene->camera.cameraPos = cameraTarget + offset;
+
+		// Always look at target
+		scene->camera.cameraFront = glm::normalize(cameraTarget - scene->camera.cameraPos);
+	}
+	else
+	{
+		scene->camera.zoom -= (float)yoffset;
+		if (scene->camera.zoom < 10.0f)
+			scene->camera.zoom = 10.0f;
+		if (scene->camera.zoom > 45.0f)
+			scene->camera.zoom = 45.0f;
+	}
 }
 
 int main()
@@ -221,8 +296,12 @@ int main()
 		for (int i = 0; i < scene->shapes.size(); i++)
 		{
 			ImGui::PushID(i);
-			if (ImGui::CollapsingHeader((scene->shapes[i]->Name() + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+			if (ImGui::CollapsingHeader((scene->shapes[i]->Name() + " " + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 			{
+				if (ImGui::Button("Select this object"))
+				{
+					scene->shapes[i]->Select();
+				}
 				scene->shapes[i]->PrintImGuiOptions();
 				ImGui::Separator();
 				scene->shapes[i]->PrintImGuiTransformOptions();
@@ -281,6 +360,7 @@ int main()
 		float currentFrame = glfwGetTime();
 		scene->deltaTime = currentFrame - scene->lastFrame;
 		scene->lastFrame = currentFrame;
+		scene->DrawCursorOverlay();
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 		glfwSwapBuffers(window);

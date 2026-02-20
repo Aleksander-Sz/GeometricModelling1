@@ -13,15 +13,20 @@ public:
 	float lastFrame = 0.0f;
 	float lastX = 400, lastY = 300;
 	bool firstMovement = true;
-	bool mouseButtonPressed = false;
+	bool Lpressed = false;
+	bool AltPressed = false;
+	bool mouseLeftButtonPressed = false;
 	bool shiftPressed = false;
-	double mousePressTime;
-	glm::vec2 mousePressPosition;
+	bool cursorLocked = false;
+	double mouseLeftPressTime;
+	double AltPressTime;
+	glm::vec2 mouseLeftPressPosition;
 	Camera camera;
 	Cursor cursor = Cursor::getInstance();
 	void UpdateCursorPosition(double xpos, double ypos);
 	std::vector<Shape*> shapes;
 	void LeftMouseClick();
+	void DrawCursorOverlay();
 };
 
 #endif
