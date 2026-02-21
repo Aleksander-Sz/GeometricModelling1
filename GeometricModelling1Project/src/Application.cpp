@@ -23,6 +23,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processInput(GLFWwindow* window)
 {
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureKeyboard)
+		return;
 	float cameraSpeed(scene->shiftPressed ? 10.0f : 2.5f);
 	const float cameraDisplacement = cameraSpeed * scene->deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -363,7 +366,6 @@ int main()
 	scene->shapes.push_back(&point);
 	torus.Rotate(90.0f,glm::vec3(1.0f,0.0f,0.0f));
 	torus.ConfirmTransformations();
-	Grid grid = Grid::getInstance();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -382,6 +384,47 @@ int main()
 		ImGui::NewFrame();
 		ImGui::Begin("Menu");
 		ImGui::Text("Use WASD to move, mouse to look around, scroll to zoom.");
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Scene Transformations"))
+		{
+			static glm::vec3 scale(1.0f);
+			static float rotationX = 0.0f;
+			static float rotationY = 0.0f;
+			static float rotationZ = 0.0f;
+			static glm::vec3 translation(0.0f);
+			ImGui::InputFloat3("Scale", glm::value_ptr(scale));
+			if (ImGui::Button("Apply Scale"))
+			{
+				scene->Scale(scale);
+			}
+			ImGui::DragFloat("Rotation X", &rotationX, 1.0f, -180.0f, 180.0f, "%.0f");
+			if (ImGui::Button("Apply Rotation X"))
+			{
+				scene->Rotate(rotationX, glm::vec3(1.0f, 0.0f, 0.0f));
+			}
+			ImGui::DragFloat("Rotation Y", &rotationY, 1.0f, -180.0f, 180.0f, "%.0f");
+			if (ImGui::Button("Apply Rotation Y"))
+			{
+				scene->Rotate(rotationY, glm::vec3(0.0f, 1.0f, 0.0f));
+			}
+			ImGui::DragFloat("Rotation Z", &rotationZ, 1.0f, -180.0f, 180.0f, "%.0f");
+			if (ImGui::Button("Apply Rotation Z"))
+			{
+				scene->Rotate(rotationZ, glm::vec3(0.0f, 0.0f, 1.0f));
+			}
+			ImGui::InputFloat3("Translation", glm::value_ptr(translation));
+			if (ImGui::Button("Apply Translation"))
+			{
+				scene->Translate(translation);
+			}
+			if (ImGui::Button("Reset Transformations"))
+			{
+				scene->resetSceneMatrix();
+				scale = glm::vec3(1.0f);
+				rotationX = rotationY = rotationZ = 0.0f;
+				translation = glm::vec3(0.0f);
+			}
+		}
 		ImGui::Separator();
 		ImGui::Text("Object parameters:");
 		for (int i = 0; i < scene->shapes.size(); i++)
@@ -439,28 +482,7 @@ int main()
 		ImGui::End();
 
 		//rendering commands here
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		ourShader.use();
-		ourShader.setMat4("view", scene->camera.view());
-		ourShader.setMat4("projection", scene->camera.projectionRight());
-		glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
-		glDepthMask(GL_FALSE);
-		grid.Draw(scene->camera, 'R');
-		for (int i = 0; i < scene->shapes.size(); i++)
-			scene->shapes[i]->Draw(ourShader);
-		if(!scene->grabEnabled)
-			scene->cursor.Draw(ourShader, 'R');
-		glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
-		glClear(GL_DEPTH_BUFFER_BIT);
-		ourShader.setMat4("projection", scene->camera.projectionLeft());
-		grid.Draw(scene->camera, 'L');
-		for (int i = 0; i < scene->shapes.size(); i++)
-			scene->shapes[i]->Draw(ourShader);
-		if (!scene->grabEnabled)
-			scene->cursor.Draw(ourShader, 'L');
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		
 		scene->DrawScene();
 		// -----
 		float currentFrame = glfwGetTime();

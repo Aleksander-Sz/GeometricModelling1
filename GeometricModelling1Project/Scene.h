@@ -49,6 +49,13 @@ public:
 	Axis movementAxis;
 	Shader shader;
 	void DrawScene();
+	void Scale(glm::vec3 s);
+	void Rotate(float angle, glm::vec3 axis);
+	void Translate(glm::vec3 t);
+	void resetSceneMatrix();
+	Grid grid = Grid::getInstance();
+private:
+	glm::mat4 sceneMatrix = glm::mat4(1.0f);
 };
 
 #endif
