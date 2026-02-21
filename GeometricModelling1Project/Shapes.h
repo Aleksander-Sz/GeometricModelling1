@@ -22,7 +22,8 @@ public:
 	void CancelTransformations();
 	virtual void PrintImGuiOptions() = 0;
 	void PrintImGuiTransformOptions();
-	virtual std::string Name() = 0;
+	std::string Name() { return shapeName; }
+	void setName(std::string _name) { shapeName = _name; }
 	bool Select(bool deselect = false);
 	glm::vec3 getPosition();
 	bool isSelected();
@@ -32,6 +33,7 @@ protected:
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 modelBackup = glm::mat4(1.0f);
 	bool selected = false;
+	std::string shapeName;
 };
 class Meshable : public Shape
 {
@@ -50,7 +52,6 @@ public:
 	Point(glm::vec3 coords);
 	void Draw(Shader& shader) override;
 	void PrintImGuiOptions() override;
-	std::string Name() override { return "Point"; }
 };
 
 class Torus : public Meshable
@@ -63,7 +64,6 @@ public:
 	void setR(float _R);
 	void setr(float _r);
 	void PrintImGuiOptions() override;
-	std::string Name() override { return "Torus"; }
 private:
 	float R, r;
 	unsigned int s1, s2;
@@ -76,7 +76,6 @@ public:
 	void Mesh() override;
 	// elipsoid specific functions
 	void PrintImGuiOptions() override;
-	std::string Name() override { return "Ellipsoid"; }
 private:
 	float a, b, c;
 	unsigned int s;
@@ -116,7 +115,7 @@ public:
 	void SetAxis(glm::mat4 _model, glm::vec3 _color);
 	void Draw(Shader& shader, char eye = 0);
 private:
-	unsigned int VAO, VBO;
+	unsigned int VAO = 0, VBO = 0;
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::vec3 color = glm::vec3(0.0f);
 };

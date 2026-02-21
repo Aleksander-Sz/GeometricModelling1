@@ -22,7 +22,6 @@ void Scene::LockYAxis()
         xLocked = false;
         zLocked = false;
         movementAxis = Axis('y', currentTranslationOrigin);
-        std::cout << "y axis locked\n";
         CancellObjectMovement();
     }
 }

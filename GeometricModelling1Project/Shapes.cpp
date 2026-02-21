@@ -125,6 +125,7 @@ bool Shape::isSelected()
 // Point class functions
 Point::Point(glm::vec3 coords)
 {
+	shapeName = "Point";
 	model = glm::translate(model, coords);
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -157,6 +158,7 @@ void Point::PrintImGuiOptions()
 // Torus class functions
 Torus::Torus(float _R, float _r, unsigned int _s1, unsigned int _s2)
 {
+	shapeName = "Torus";
 	R = _R;
 	r = _r;
 	s1 = _s1;
@@ -197,16 +199,6 @@ void Torus::Mesh()
 			// indices
 			unsigned int nextI = (i + 1) % s1;
 			unsigned int nextJ = (j + 1) % s2;
-			/*unsigned int v0 = i * s2 + j;
-			unsigned int v1 = i * s2 + nextJ;
-			unsigned int v2 = nextI * s2 + j;
-			unsigned int v3 = nextI * s2 + nextJ;
-			indices.push_back(v0);
-			indices.push_back(v1);
-			indices.push_back(v2);
-			indices.push_back(v1);
-			indices.push_back(v2);
-			indices.push_back(v3);*/
 			unsigned int v0 = i * s2 + j;
 			unsigned int v1 = i * s2 + nextJ;
 			unsigned int v2 = nextI * s2 + j;
@@ -265,6 +257,7 @@ void Torus::PrintImGuiOptions()
 
 Ellipsoid::Ellipsoid(float _a, float _b, float _c, unsigned int _s)
 {
+	shapeName = "Ellipsoid";
 	a = _a;
 	b = _b;
 	c = _c;

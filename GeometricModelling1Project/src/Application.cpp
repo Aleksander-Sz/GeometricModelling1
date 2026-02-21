@@ -389,6 +389,12 @@ int main()
 			ImGui::PushID(i);
 			if (ImGui::CollapsingHeader((scene->shapes[i]->Name() + " " + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 			{
+				char buffer[64] = "";
+				strcpy_s(buffer, (scene->shapes[i]->Name()).c_str());
+				if (ImGui::InputText("Object name", buffer, IM_ARRAYSIZE(buffer)))
+				{
+					scene->shapes[i]->setName(std::string(buffer));
+				}
 				if (ImGui::Button("Select this object"))
 				{
 					scene->shapes[i]->Select();
@@ -396,6 +402,12 @@ int main()
 				scene->shapes[i]->PrintImGuiOptions();
 				ImGui::Separator();
 				scene->shapes[i]->PrintImGuiTransformOptions();
+				if (ImGui::Button("Delete object"))
+				{
+					scene->grabEnabled = false;
+					scene->DeselectEverything();
+					scene->shapes.erase(scene->shapes.begin() + i);
+				}
 			}
 			ImGui::PopID();
 		}
@@ -427,7 +439,7 @@ int main()
 		ImGui::End();
 
 		//rendering commands here
-		glClearColor(0.0f, 0.1f, 0.0f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		ourShader.use();
