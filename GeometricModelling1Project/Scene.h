@@ -8,7 +8,7 @@
 class Scene
 {
 public:
-	Scene(int windowWidth, int windowHeight);
+	Scene(int windowWidth, int windowHeight, Shader shader);
 	float deltaTime = 0.0f;
 	float lastFrame = 0.0f;
 	float lastX = 400, lastY = 300;
@@ -27,6 +27,9 @@ public:
 	bool xLocked = false;
 	bool yLocked = false;
 	bool zLocked = false;
+	void LockXAxis();
+	void LockYAxis();
+	void LockZAxis();
 	void toggleGrab();
 	double mouseLeftPressTime;
 	double AltPressTime;
@@ -41,6 +44,11 @@ public:
 	Shape* selectedShape = NULL;
 	void ConfirmObjectMovement(); // TODO add floating axis during locked movement, save the movement for use after axis change
 	void CancellObjectMovement();
+	void DeselectEverything();
+	glm::vec3 currentTranslationOrigin = glm::vec3(0.0f);
+	Axis movementAxis;
+	Shader shader;
+	void DrawScene();
 };
 
 #endif

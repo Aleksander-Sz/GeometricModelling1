@@ -107,4 +107,17 @@ private:
 	glm::vec3 location = glm::vec3(0.0f,0.0f,0.0f);
 	unsigned int VAO, VBO, EBO;
 };
+
+class Axis
+{
+public:
+	Axis();
+	Axis(char _axis, glm::vec3 translationOrigin);
+	void SetAxis(glm::mat4 _model, glm::vec3 _color);
+	void Draw(Shader& shader, char eye = 0);
+private:
+	unsigned int VAO, VBO;
+	glm::mat4 model = glm::mat4(1.0f);
+	glm::vec3 color = glm::vec3(0.0f);
+};
 #endif

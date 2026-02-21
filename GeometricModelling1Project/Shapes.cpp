@@ -387,6 +387,7 @@ void Grid::Draw(Camera &camera, char eye)
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
+// Cursor class functions
 Cursor Cursor::getInstance()
 {
 	static Cursor instance;
@@ -492,4 +493,63 @@ Shape* Cursor::Click(std::vector<Shape*> shapes)
 	if(isSelected)
 		return shapes[closestObject];
 	return nullptr;
+}
+
+// Axis class functions
+Axis::Axis()
+{
+	model = glm::mat4(1.0f);
+	color = glm::vec3(0.0f);
+	VAO = 0;
+	VBO = 0;
+}
+Axis::Axis(char _axis, glm::vec3 translationOrigin)
+{
+	model = glm::translate(model, translationOrigin);
+	switch (_axis)
+	{
+	case 'x':
+		color = glm::vec3(0.8f, 0.1f, 0.1f);
+		break;
+	case 'y':
+		model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		color = glm::vec3(0.1f, 0.8f, 0.1f);
+		break;
+	case 'z':
+		model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		color = glm::vec3(0.1f, 0.1f, 0.8f);
+		break;
+	default:
+		std::cerr << "Invalid axis specified, defaulting to x-axis.\n";
+		break;
+	}
+	model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+	this->SetAxis(model, color);
+}
+void Axis::SetAxis(glm::mat4 _model, glm::vec3 _color)
+{
+	model = _model;
+	color = _color;
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(VAO);
+	float vertices[] = {
+		-1.0f, 0.0f, 0.0f,
+		 1.0f, 0.0f, 0.0f
+	};
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+	glBindVertexArray(0);
+}
+void Axis::Draw(Shader& shader, char eye)
+{
+	shader.use();
+	glBindVertexArray(VAO);
+	shader.setMat4("model", model);
+	shader.setVec3("color", color);
+	glLineWidth(1.0f);
+	glDrawArrays(GL_LINES, 0, 2);
+	glBindVertexArray(0);
 }

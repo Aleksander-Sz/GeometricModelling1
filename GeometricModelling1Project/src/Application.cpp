@@ -29,8 +29,15 @@ void processInput(GLFWwindow* window)
 	{
 		if (!scene->EscPressed)
 		{
-			scene->CancellObjectMovement();
-			scene->grabEnabled = false;
+			if (scene->grabEnabled)
+			{
+				scene->CancellObjectMovement();
+				scene->grabEnabled = false;
+			}
+			else
+			{
+				scene->DeselectEverything();
+			}
 		}
 		scene->EscPressed = true;
 	}
@@ -72,12 +79,7 @@ void processInput(GLFWwindow* window)
 	{
 		if (!scene->xPressed)
 		{
-			if (scene->xLocked = !scene->xLocked)
-			{
-				scene->yLocked = false;
-				scene->zLocked = false;
-				scene->CancellObjectMovement();
-			}
+			scene->LockXAxis();
 		}
 		scene->xPressed = true;
 	}
@@ -87,12 +89,7 @@ void processInput(GLFWwindow* window)
 	{
 		if (!scene->yPressed)
 		{
-			if(scene->yLocked = !scene->yLocked)
-			{
-				scene->xLocked = false;
-				scene->zLocked = false;
-				scene->CancellObjectMovement();
-			}
+			scene->LockYAxis();
 		}
 		scene->yPressed = true;
 	}
@@ -102,12 +99,7 @@ void processInput(GLFWwindow* window)
 	{
 		if (!scene->zPressed)
 		{
-			if (scene->zLocked = !scene->zLocked)
-			{
-				scene->xLocked = false;
-				scene->yLocked = false;
-				scene->CancellObjectMovement();
-			}
+			scene->LockZAxis();
 		}
 		scene->zPressed = true;
 	}
@@ -359,12 +351,12 @@ int main()
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
 
-	Scene sceneObject = Scene(900, 900);
+	Shader ourShader("Shaders/VertexShader.glsl","Shaders/FragmentShader.glsl");
+	Scene sceneObject = Scene(900, 900, ourShader);
 	scene = &sceneObject;
 
 	// Rendering commands here
 	
-	Shader ourShader("Shaders/VertexShader.glsl","Shaders/FragmentShader.glsl");
 	Torus torus(1.0f, 0.3f, 50, 50);
 	scene->shapes.push_back(&torus);
 	Point point(glm::vec3(0.0f, 0.1f, 0.0f));
@@ -457,6 +449,7 @@ int main()
 		if (!scene->grabEnabled)
 			scene->cursor.Draw(ourShader, 'L');
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		scene->DrawScene();
 		// -----
 		float currentFrame = glfwGetTime();
 		scene->deltaTime = currentFrame - scene->lastFrame;

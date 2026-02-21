@@ -1,8 +1,40 @@
 #include "Scene.h"
 
-Scene::Scene(int windowWidth, int windowHeight)
+Scene::Scene(int windowWidth, int windowHeight, Shader _shader)
 {
 	camera = Camera(windowWidth, windowHeight);
+    shader = _shader;
+}
+void Scene::LockXAxis()
+{
+    if (xLocked = !xLocked)
+    {
+        yLocked = false;
+        zLocked = false;
+        movementAxis = Axis('x', currentTranslationOrigin);
+        CancellObjectMovement();
+    }
+}
+void Scene::LockYAxis()
+{
+    if (yLocked = !yLocked)
+    {
+        xLocked = false;
+        zLocked = false;
+        movementAxis = Axis('y', currentTranslationOrigin);
+        std::cout << "y axis locked\n";
+        CancellObjectMovement();
+    }
+}
+void Scene::LockZAxis()
+{
+    if (zLocked = !zLocked)
+    {
+        xLocked = false;
+        yLocked = false;
+        movementAxis = Axis('z', currentTranslationOrigin);
+        CancellObjectMovement();
+    }
 }
 void Scene::toggleGrab()
 {
@@ -11,11 +43,15 @@ void Scene::toggleGrab()
     zLocked = false;
 	if (selectedShape != NULL)
     {
-        grabEnabled = !grabEnabled;
-        if(!grabEnabled)
+        if(grabEnabled)
         {
             ConfirmObjectMovement();
 		}
+        else
+        {
+            currentTranslationOrigin = selectedShape->getPosition();
+        }
+        grabEnabled = !grabEnabled;
     }
 }
 void Scene::UpdateCursorPosition(double xpos, double ypos)
@@ -28,21 +64,31 @@ void Scene::LeftMouseClick()
     {
         ConfirmObjectMovement();
         grabEnabled = false;
-        return;
 	}
-	Shape* newSelectedShape = cursor.Click(shapes);
-	if (newSelectedShape != NULL)
-    {
-        std::cout << newSelectedShape->Name() << "\n";
-        if (selectedShape != NULL)
-        {
-            ;//selectedShape->Select(true); // Deselect current shape
-        }
-        selectedShape = newSelectedShape;
-    }
     else
     {
-		grabEnabled = false;
+        Shape* previousShape = NULL;
+        if (!shiftPressed)
+        {
+            previousShape = selectedShape;
+            DeselectEverything();
+        }
+        Shape* newSelectedShape = cursor.Click(shapes);
+        if (!shiftPressed && previousShape == newSelectedShape)
+            return;
+        if (newSelectedShape != NULL)
+        {
+            std::cout << newSelectedShape->Name() << "\n";
+            if (selectedShape != NULL)
+            {
+                ;//selectedShape->Select(true); // Deselect current shape
+            }
+            selectedShape = newSelectedShape;
+        }
+        else
+        {
+            grabEnabled = false;
+        }
     }
 }
 void Scene::DrawCursorOverlay()
@@ -109,5 +155,26 @@ void Scene::ConfirmObjectMovement()
         {
             shape->ConfirmTransformations();
         }
+    }
+}
+void Scene::DeselectEverything()
+{
+    selectedShape = NULL;
+    for (int i = 0; i < shapes.size(); i++)
+    {
+        shapes[i]->Select(true);
+    }
+}
+void Scene::DrawScene()
+{
+    if (grabEnabled && (xLocked || yLocked || zLocked))
+    {
+        glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
+        shader.setMat4("projection", camera.projectionRight());
+        movementAxis.Draw(shader, 'R');
+        glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
+        shader.setMat4("projection", camera.projectionLeft());
+        movementAxis.Draw(shader, 'L');
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     }
 }
