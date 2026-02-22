@@ -72,7 +72,28 @@ void Scene::LeftMouseClick()
             previousShape = selectedShape;
             DeselectEverything();
         }
-        Shape* newSelectedShape = cursor.Click(shapes);
+        Shape* newSelectedShape = NULL;
+        //
+        float minDistance = 1000.0f;
+        int closestObject = 0;
+        std::cout << "cursor: " << lastX << ", " << lastY << "\n";
+        for (int i = 0; i < shapes.size(); i++)
+        {
+            glm::vec2 objectPosition = shapes[i]->getScreenSpacePosition(camera);
+            std::cout << "object " << i << ": " << objectPosition.x << ", " << objectPosition.y << "\n";
+            float distance = glm::length(objectPosition - glm::vec2(lastX,lastY));
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                closestObject = i;
+            }
+        }
+        bool isSelected = false;
+        if (minDistance < 30.0f)
+            isSelected = shapes[closestObject]->Select();
+        if (isSelected)
+            newSelectedShape = shapes[closestObject];
+        //
         if (!shiftPressed && previousShape == newSelectedShape)
             return;
         if (newSelectedShape != NULL)

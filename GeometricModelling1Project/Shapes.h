@@ -26,6 +26,7 @@ public:
 	void setName(std::string _name) { shapeName = _name; }
 	bool Select(bool deselect = false);
 	glm::vec3 getPosition();
+	glm::vec2 getScreenSpacePosition(Camera& camera);
 	bool isSelected();
 protected:
 	bool dirty = true;
@@ -99,7 +100,6 @@ public:
 	static Cursor getInstance();
 	void Draw(Shader& shader, char eye = 0);
 	void UpdatePosition(Camera& camera, double xpos, double ypos);
-	Shape* Click(std::vector<Shape*> shapes);
 	glm::vec3 getPosition();
 private:
 	Cursor();

@@ -118,6 +118,23 @@ glm::vec3 Shape::getPosition()
 			model[3][2]
 	);
 }
+glm::vec2 Shape::getScreenSpacePosition(Camera& camera)
+{
+	// clip space transform
+	glm::vec4 clipSpacePos = camera.projection() * camera.view() * model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+	// Perspective Division
+	if (clipSpacePos.w != 0.0f) {
+		glm::vec3 ndc = glm::vec3(clipSpacePos) / clipSpacePos.w;
+
+		float screenX = ((ndc.x + 1.0f) / 2.0f) * camera.windowWidth;
+		float screenY = ((1.0f - ndc.y) / 2.0f) * camera.windowHeight;
+
+		return glm::vec2(screenX, screenY);
+	}
+
+	return glm::vec2(-1.0f);
+}
 bool Shape::isSelected()
 {
 	return selected;
@@ -465,27 +482,6 @@ void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos)
 glm::vec3 Cursor::getPosition()
 {
 	return location;
-}
-Shape* Cursor::Click(std::vector<Shape*> shapes)
-{
-	float minDistance = 1000.0f;
-	int closestObject = 0;
-	for (int i = 0; i < shapes.size(); i++)
-	{
-		glm::vec3 objectPosition = shapes[i]->getPosition();
-		float distance = glm::length(objectPosition - location);
-		if (distance < minDistance)
-		{
-			minDistance = distance;
-			closestObject = i;
-		}
-	}
-	bool isSelected = false;
-	if (minDistance < 1.0f)
-		isSelected = shapes[closestObject]->Select();
-	if(isSelected)
-		return shapes[closestObject];
-	return nullptr;
 }
 
 // Axis class functions
