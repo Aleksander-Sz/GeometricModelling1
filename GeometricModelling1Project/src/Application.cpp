@@ -242,8 +242,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			worldDelta *= glm::vec3(xLockFactor, yLockFactor, zLockFactor);
 			scene->MoveSelectedObjects(worldDelta);
 		}
-		if (!scene->cursorLocked)
-			scene->UpdateCursorPosition(xpos, ypos);
+		/*if (!scene->cursorLocked)
+			scene->UpdateCursorPosition(xpos, ypos);*/
 	}
 	scene->lastX = xpos;
 	scene->lastY = ypos;
