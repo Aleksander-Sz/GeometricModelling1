@@ -99,7 +99,7 @@ class Cursor
 public:
 	static Cursor getInstance();
 	void Draw(Shader& shader, char eye = 0);
-	void UpdatePosition(Camera& camera, double xpos, double ypos);
+	void UpdatePosition(Camera& camera, double xpos, double ypos, bool xLocked, bool yLocked, bool zLocked);
 	glm::vec3 getPosition();
 private:
 	Cursor();

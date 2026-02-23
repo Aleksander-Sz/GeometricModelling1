@@ -48,14 +48,14 @@ void Scene::toggleGrab()
 		}
         else
         {
-            currentTranslationOrigin = selectedShape->getPosition();
+            currentTranslationOrigin = sceneMatrix * glm::vec4(selectedShape->getPosition(), 1.0f);
         }
         grabEnabled = !grabEnabled;
     }
 }
 void Scene::UpdateCursorPosition(double xpos, double ypos)
 {
-	cursor.UpdatePosition(camera, xpos, ypos);
+	cursor.UpdatePosition(camera, xpos, ypos, xLocked, yLocked, zLocked);
 }
 void Scene::LeftMouseClick()
 {
@@ -63,6 +63,7 @@ void Scene::LeftMouseClick()
     {
         ConfirmObjectMovement();
         grabEnabled = false;
+        xLocked = yLocked = zLocked = false;
 	}
     else
     {
@@ -151,6 +152,7 @@ void Scene::MoveSelectedObjects(glm::vec3 translation)
     {
         if (shape->isSelected())
         {
+            translation = inverseSceneMatrix * glm::vec4(translation, 1.0f);
             shape->Translate(translation);
         }
     }
@@ -191,6 +193,7 @@ void Scene::DrawScene()
     shader.use();
     shader.setMat4("view", camera.view());
     shader.setMat4("projection", camera.projectionRight());
+    shader.setMat4("scene", sceneMatrix);
     glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
     glDepthMask(GL_FALSE);
     grid.Draw(camera, 'R');
@@ -202,6 +205,7 @@ void Scene::DrawScene()
     glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
     glClear(GL_DEPTH_BUFFER_BIT);
     shader.setMat4("projection", camera.projectionLeft());
+    shader.setMat4("scene", sceneMatrix);
     grid.Draw(camera, 'L');
     for (int i = 0; i < shapes.size(); i++)
         shapes[i]->Draw(shader);
@@ -215,6 +219,7 @@ void Scene::Scale(glm::vec3 s)
     //model = glm::scale(model, s);
     glm::mat4 scaleMatrix = glm::mat4(glm::vec4(s.x, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, s.y, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, s.z, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     sceneMatrix = scaleMatrix * sceneMatrix;
+    inverseSceneMatrix = glm::inverse(sceneMatrix);
 }
 void Scene::Rotate(float angle, glm::vec3 axis)
 {
@@ -235,14 +240,17 @@ void Scene::Rotate(float angle, glm::vec3 axis)
         return;
     }
     sceneMatrix = rotationMatrix * sceneMatrix;
+    inverseSceneMatrix = glm::inverse(sceneMatrix);
 }
 void Scene::Translate(glm::vec3 t)
 {
     //model = glm::translate(model, t);
     glm::mat4 translationMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(t.x, t.y, t.z, 1.0f));
     sceneMatrix = translationMatrix * sceneMatrix;
+    inverseSceneMatrix = glm::inverse(sceneMatrix);
 }
 void Scene::resetSceneMatrix()
 {
     sceneMatrix = glm::mat4(1.0f);
+    inverseSceneMatrix = glm::inverse(sceneMatrix);
 }

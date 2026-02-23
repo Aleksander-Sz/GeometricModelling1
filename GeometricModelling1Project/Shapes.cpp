@@ -407,22 +407,9 @@ void Cursor::Draw(Shader &shader, char eye)
 {
 	glBindVertexArray(VAO);
 	shader.use();
-	/*glm::mat4 projection;
-	switch (eye)
-	{
-	case 0:
-		projection = camera.projection();
-		break;
-	case 'R':
-		projection = camera.projectionRight();
-		break;
-	case 'L':
-		projection = camera.projectionLeft();
-		break;
-	}
-	gridShader.setMat4("projection", projection);*/
 	shader.setMat4("model", glm::scale(glm::translate(glm::mat4(1.0f), location), glm::vec3(0.1f, 0.1f, 0.1f)));
 	shader.setVec3("color", glm::vec3(1.0f, 0.0f, 1.0f));
+	shader.setMat4("scene", glm::mat4(1.0f));
 	glLineWidth(5);
 	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -457,7 +444,7 @@ Cursor::Cursor()
 
 	glBindVertexArray(0);
 }
-void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos)
+void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos, bool xLocked, bool yLocked, bool zLocked)
 {
 	float x_ndc = (2.0f * xpos) / camera.windowWidth - 1.0f;
 	float y_ndc = 1.0f - (2.0f * ypos) / camera.windowHeight;
@@ -476,8 +463,15 @@ void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos)
 	glm::vec3 rayDir = glm::normalize(glm::vec3(worldPos) - camera.cameraPos);
 
 	// Place cursor some fixed distance in front of camera
-	float distance = 5.0f;
-	location = camera.cameraPos + rayDir * distance;
+	float distance = glm::distance(camera.cameraPos, location);
+	if (xLocked)
+		location.x = (camera.cameraPos + rayDir * distance).x;
+	else if (yLocked)
+		location.y = (camera.cameraPos + rayDir * distance).y;
+	else if (zLocked)
+		location.z = (camera.cameraPos + rayDir * distance).z;
+	else
+		location = camera.cameraPos + rayDir * distance;
 }
 glm::vec3 Cursor::getPosition()
 {

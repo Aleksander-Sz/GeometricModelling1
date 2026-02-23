@@ -6,6 +6,7 @@
 #include "../Camera.h"
 #include "../Shapes.h"
 #include "../Scene.h"
+#include "../UserInterface.h"
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
@@ -36,6 +37,7 @@ void processInput(GLFWwindow* window)
 			{
 				scene->CancellObjectMovement();
 				scene->grabEnabled = false;
+				scene->xLocked = scene->yLocked = scene->zLocked = false;
 			}
 			else
 			{
@@ -70,13 +72,13 @@ void processInput(GLFWwindow* window)
 	}
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_RELEASE)
 		scene->lPressed = false;
-	if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
+	if (glfwGetKey(window, GRAB_KEY) == GLFW_PRESS)
 	{
 		if (!scene->gPressed)
 			scene->toggleGrab();
 		scene->gPressed = true;
 	}
-	if (glfwGetKey(window, GLFW_KEY_G) == GLFW_RELEASE)
+	if (glfwGetKey(window, GRAB_KEY) == GLFW_RELEASE)
 		scene->gPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
 	{
@@ -108,9 +110,9 @@ void processInput(GLFWwindow* window)
 	}
 	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_RELEASE)
 		scene->zPressed = false;
-	if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+	if (glfwGetKey(window, CAMERA_ORBIT_KEY) == GLFW_PRESS)
 		scene->AltPressed = true;
-	if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_RELEASE)
+	if (glfwGetKey(window, CAMERA_ORBIT_KEY) == GLFW_RELEASE)
 		scene->AltPressed = false;
 }
 
@@ -242,8 +244,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			worldDelta *= glm::vec3(xLockFactor, yLockFactor, zLockFactor);
 			scene->MoveSelectedObjects(worldDelta);
 		}
-		/*if (!scene->cursorLocked)
-			scene->UpdateCursorPosition(xpos, ypos);*/
+		if (!scene->cursorLocked)
+			scene->UpdateCursorPosition(xpos, ypos);
 	}
 	scene->lastX = xpos;
 	scene->lastY = ypos;

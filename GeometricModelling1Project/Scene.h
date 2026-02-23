@@ -56,6 +56,7 @@ public:
 	Grid grid = Grid::getInstance();
 private:
 	glm::mat4 sceneMatrix = glm::mat4(1.0f);
+	glm::mat4 inverseSceneMatrix = glm::mat4(1.0f);
 };
 
 #endif
