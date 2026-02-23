@@ -22,7 +22,7 @@ public:
 	bool EscPressed = false;
 	bool mouseLeftButtonPressed = false;
 	bool shiftPressed = false;
-	bool cursorLocked = false;
+	bool cursorLocked = true;
 	bool grabEnabled = false;
 	bool xLocked = false;
 	bool yLocked = false;

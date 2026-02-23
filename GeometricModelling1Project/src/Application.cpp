@@ -389,30 +389,48 @@ int main()
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Scene Transformations"))
 		{
+			static bool relativeToCursor = false;
 			static glm::vec3 scale(1.0f);
 			static float rotationX = 0.0f;
 			static float rotationY = 0.0f;
 			static float rotationZ = 0.0f;
 			static glm::vec3 translation(0.0f);
+			ImGui::Checkbox("Transform relatively to the cursor", &relativeToCursor);
 			ImGui::InputFloat3("Scale", glm::value_ptr(scale));
 			if (ImGui::Button("Apply Scale"))
 			{
+				if (relativeToCursor)
+					scene->Translate(-scene->cursor.getPosition());
 				scene->Scale(scale);
+				if (relativeToCursor)
+					scene->Translate(scene->cursor.getPosition());
 			}
 			ImGui::DragFloat("Rotation X", &rotationX, 1.0f, -180.0f, 180.0f, "%.0f");
 			if (ImGui::Button("Apply Rotation X"))
 			{
+				if (relativeToCursor)
+					scene->Translate(-scene->cursor.getPosition());
 				scene->Rotate(rotationX, glm::vec3(1.0f, 0.0f, 0.0f));
+				if (relativeToCursor)
+					scene->Translate(scene->cursor.getPosition());
 			}
 			ImGui::DragFloat("Rotation Y", &rotationY, 1.0f, -180.0f, 180.0f, "%.0f");
 			if (ImGui::Button("Apply Rotation Y"))
 			{
+				if (relativeToCursor)
+					scene->Translate(-scene->cursor.getPosition());
 				scene->Rotate(rotationY, glm::vec3(0.0f, 1.0f, 0.0f));
+				if (relativeToCursor)
+					scene->Translate(scene->cursor.getPosition());
 			}
 			ImGui::DragFloat("Rotation Z", &rotationZ, 1.0f, -180.0f, 180.0f, "%.0f");
 			if (ImGui::Button("Apply Rotation Z"))
 			{
+				if (relativeToCursor)
+					scene->Translate(-scene->cursor.getPosition());
 				scene->Rotate(rotationZ, glm::vec3(0.0f, 0.0f, 1.0f));
+				if (relativeToCursor)
+					scene->Translate(scene->cursor.getPosition());
 			}
 			ImGui::InputFloat3("Translation", glm::value_ptr(translation));
 			if (ImGui::Button("Apply Translation"))
