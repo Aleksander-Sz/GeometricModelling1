@@ -386,6 +386,7 @@ int main()
 		ImGui::NewFrame();
 		ImGui::Begin("Menu");
 		ImGui::Text("Use WASD to move, mouse to look around, scroll to zoom.");
+		ImGui::Checkbox("Enable stereoscopy", &(scene->stereoscopy));
 		ImGui::Separator();
 		if (ImGui::CollapsingHeader("Scene Transformations"))
 		{

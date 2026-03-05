@@ -136,6 +136,16 @@ void Scene::DrawCursorOverlay()
 
     ImGui::Begin("CursorOverlay", nullptr, flags);
 
+    //show object position in grab mode
+    if (grabEnabled)
+    {
+        ImGui::Text("Object Position:");
+        glm::vec3 objectPosition = selectedShape->getPosition();
+        ImGui::Text("X: %.2f", objectPosition.x);
+        ImGui::Text("Y: %.2f", objectPosition.y);
+        ImGui::Text("Z: %.2f", objectPosition.z);
+    }
+
 	ImGui::Text("2D Position:");
     ImGui::Text("X: %.1f", lastX);
     ImGui::Text("Y: %.1f", lastY);
@@ -192,9 +202,13 @@ void Scene::DrawScene()
 
     shader.use();
     shader.setMat4("view", camera.view());
-    shader.setMat4("projection", camera.projectionRight());
+    if (stereoscopy)
+        shader.setMat4("projection", camera.projectionRight());
+    else
+        shader.setMat4("projection", camera.projection());
     shader.setMat4("scene", sceneMatrix);
-    glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
+    if(stereoscopy)
+        glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
     glDepthMask(GL_FALSE);
     grid.Draw(camera, 'R');
     for (int i = 0; i < shapes.size(); i++)
@@ -202,17 +216,20 @@ void Scene::DrawScene()
     cursor.Draw(shader, 'R');
     if (grabEnabled && (xLocked || yLocked || zLocked))
         movementAxis.Draw(shader, 'R');
-    glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glClear(GL_DEPTH_BUFFER_BIT);
-    shader.setMat4("projection", camera.projectionLeft());
-    shader.setMat4("scene", sceneMatrix);
-    grid.Draw(camera, 'L');
-    for (int i = 0; i < shapes.size(); i++)
-        shapes[i]->Draw(shader);
-    cursor.Draw(shader, 'L');
-    if (grabEnabled && (xLocked || yLocked || zLocked))
-        movementAxis.Draw(shader, 'L');
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    if (stereoscopy)
+    {
+        glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        shader.setMat4("projection", camera.projectionLeft());
+        shader.setMat4("scene", sceneMatrix);
+        grid.Draw(camera, 'L');
+        for (int i = 0; i < shapes.size(); i++)
+            shapes[i]->Draw(shader);
+        cursor.Draw(shader, 'L');
+        if (grabEnabled && (xLocked || yLocked || zLocked))
+            movementAxis.Draw(shader, 'L');
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    }
 }
 void Scene::Scale(glm::vec3 s)
 {
