@@ -94,12 +94,13 @@ private:
 	Shader gridShader = Shader("Shaders/GridVertexShader.glsl", "Shaders/GridFragmentShader.glsl");
 };
 
-class Cursor
+class Cursor : public Shape
 {
 public:
-	static Cursor getInstance();
-	void Draw(Shader& shader, char eye = 0);
+	static Cursor& getInstance();
+	void Draw(Shader& shader);
 	void UpdatePosition(Camera& camera, double xpos, double ypos, bool xLocked, bool yLocked, bool zLocked);
+	void PrintImGuiOptions();
 	glm::vec3 getPosition();
 private:
 	Cursor();

@@ -398,19 +398,21 @@ void Grid::Draw(Camera &camera, char eye)
 	glBindVertexArray(0);
 }
 // Cursor class functions
-Cursor Cursor::getInstance()
+Cursor& Cursor::getInstance()
 {
 	static Cursor instance;
 	return instance;
 }
-void Cursor::Draw(Shader &shader, char eye)
+void Cursor::Draw(Shader &shader)
 {
 	glBindVertexArray(VAO);
 	shader.use();
 	shader.setMat4("model", glm::scale(glm::translate(glm::mat4(1.0f), location), glm::vec3(0.1f, 0.1f, 0.1f)));
-	shader.setVec3("color", glm::vec3(1.0f, 0.0f, 1.0f));
+	//shader.setVec3("color", glm::vec3(1.0f, 0.0f, 1.0f));
 	shader.setMat4("scene", glm::mat4(1.0f));
-	glLineWidth(5);
+	//glLineWidth(5);
+	glLineWidth((selected ? 15.0f : 5.0f)); //alter Cursor width based on selection
+	shader.setVec3("color", (selected ? glm::vec3(1.0f, 0.8f, 0.6f) : glm::vec3(1.0f, 0.0f, 1.0f)));
 	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
@@ -476,6 +478,10 @@ void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos, bool xLock
 glm::vec3 Cursor::getPosition()
 {
 	return location;
+}
+void Cursor::PrintImGuiOptions()
+{
+	; // TODO
 }
 
 // Axis class functions

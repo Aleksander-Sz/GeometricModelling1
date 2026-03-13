@@ -4,6 +4,7 @@ Scene::Scene(int windowWidth, int windowHeight, Shader _shader)
 {
 	camera = Camera(windowWidth, windowHeight);
     shader = _shader;
+    //shapes.push_back(&cursor);
 }
 void Scene::LockXAxis()
 {
@@ -213,7 +214,7 @@ void Scene::DrawScene()
     grid.Draw(camera, 'R');
     for (int i = 0; i < shapes.size(); i++)
         shapes[i]->Draw(shader);
-    cursor.Draw(shader, 'R');
+    cursor.Draw(shader);
     if (grabEnabled && (xLocked || yLocked || zLocked))
         movementAxis.Draw(shader, 'R');
     if (stereoscopy)
@@ -225,7 +226,7 @@ void Scene::DrawScene()
         grid.Draw(camera, 'L');
         for (int i = 0; i < shapes.size(); i++)
             shapes[i]->Draw(shader);
-        cursor.Draw(shader, 'L');
+        cursor.Draw(shader);
         if (grabEnabled && (xLocked || yLocked || zLocked))
             movementAxis.Draw(shader, 'L');
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
