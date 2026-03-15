@@ -13,6 +13,7 @@ public:
 	float lastFrame = 0.0f;
 	float lastX = 400, lastY = 300;
 	bool firstMovement = true;
+	bool cPressed = false;
 	bool lPressed = false;
 	bool gPressed = false;
 	bool xPressed = false;
@@ -33,31 +34,31 @@ public:
 	void toggleGrab();
 	double mouseLeftPressTime;
 	double AltPressTime;
-	glm::vec2 mouseLeftPressPosition;
+	aa::vec2 mouseLeftPressPosition;
 	Camera camera;
 	Cursor cursor = Cursor::getInstance();
 	void UpdateCursorPosition(double xpos, double ypos);
 	std::vector<Shape*> shapes;
 	void LeftMouseClick();
 	void DrawCursorOverlay();
-	void MoveSelectedObjects(glm::vec3 translation);
+	void MoveSelectedObjects(aa::vec3 translation);
 	Shape* selectedShape = NULL;
 	void ConfirmObjectMovement(); // TODO add floating axis during locked movement, save the movement for use after axis change
 	void CancellObjectMovement();
 	void DeselectEverything();
-	glm::vec3 currentTranslationOrigin = glm::vec3(0.0f);
+	aa::vec3 currentTranslationOrigin = aa::vec3(0.0f);
 	Axis movementAxis;
 	Shader shader;
 	void DrawScene();
-	void Scale(glm::vec3 s);
-	void Rotate(float angle, glm::vec3 axis);
-	void Translate(glm::vec3 t);
+	void Scale(aa::vec3 s);
+	void Rotate(float angle, aa::vec3 axis);
+	void Translate(aa::vec3 t);
 	void resetSceneMatrix();
 	Grid grid = Grid::getInstance();
 	bool stereoscopy = false;
 private:
-	glm::mat4 sceneMatrix = glm::mat4(1.0f);
-	glm::mat4 inverseSceneMatrix = glm::mat4(1.0f);
+	aa::mat4 sceneMatrix = aa::mat4(1.0f);
+	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);
 };
 
 #endif

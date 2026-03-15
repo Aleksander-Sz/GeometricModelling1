@@ -49,7 +49,7 @@ void Scene::toggleGrab()
 		}
         else
         {
-            currentTranslationOrigin = sceneMatrix * glm::vec4(selectedShape->getPosition(), 1.0f);
+            currentTranslationOrigin = (sceneMatrix * aa::vec4(selectedShape->getPosition(), 1.0f)).xyz;
         }
         grabEnabled = !grabEnabled;
     }
@@ -80,8 +80,8 @@ void Scene::LeftMouseClick()
         int closestObject = 0;
         for (int i = 0; i < shapes.size(); i++)
         {
-            glm::vec2 objectPosition = shapes[i]->getScreenSpacePosition(camera);
-            float distance = glm::length(objectPosition - glm::vec2(lastX,lastY));
+            aa::vec2 objectPosition = shapes[i]->getScreenSpacePosition(camera);
+            float distance = aa::length(objectPosition - aa::vec2(lastX,lastY));
             if (distance < minDistance)
             {
                 minDistance = distance;
@@ -141,7 +141,7 @@ void Scene::DrawCursorOverlay()
     if (grabEnabled)
     {
         ImGui::Text("Object Position:");
-        glm::vec3 objectPosition = selectedShape->getPosition();
+        aa::vec3 objectPosition = selectedShape->getPosition();
         ImGui::Text("X: %.2f", objectPosition.x);
         ImGui::Text("Y: %.2f", objectPosition.y);
         ImGui::Text("Z: %.2f", objectPosition.z);
@@ -151,19 +151,19 @@ void Scene::DrawCursorOverlay()
     ImGui::Text("X: %.1f", lastX);
     ImGui::Text("Y: %.1f", lastY);
 	ImGui::Text("3D Position:");
-	glm::vec3  cursorPos = cursor.getPosition();
+	aa::vec3  cursorPos = cursor.getPosition();
 	ImGui::Text("X: %.2f", cursorPos.x);
 	ImGui::Text("Y: %.2f", cursorPos.y);
 	ImGui::Text("Z: %.2f", cursorPos.z);
     ImGui::End();
 }
-void Scene::MoveSelectedObjects(glm::vec3 translation)
+void Scene::MoveSelectedObjects(aa::vec3 translation)
 {
     for (Shape* shape : shapes)
     {
         if (shape->isSelected())
         {
-            translation = inverseSceneMatrix * glm::vec4(translation, 1.0f);
+            translation = (inverseSceneMatrix * aa::vec4(translation, 1.0f)).xyz;
             shape->Translate(translation);
         }
     }
@@ -232,43 +232,43 @@ void Scene::DrawScene()
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     }
 }
-void Scene::Scale(glm::vec3 s)
+void Scene::Scale(aa::vec3 s)
 {
-    //model = glm::scale(model, s);
-    glm::mat4 scaleMatrix = glm::mat4(glm::vec4(s.x, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, s.y, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, s.z, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    //model = aa::scale(model, s);
+    aa::mat4 scaleMatrix = aa::mat4(aa::vec4(s.x, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, s.y, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, s.z, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     sceneMatrix = scaleMatrix * sceneMatrix;
-    inverseSceneMatrix = glm::inverse(sceneMatrix);
+    inverseSceneMatrix = aa::inverse(sceneMatrix);
 }
-void Scene::Rotate(float angle, glm::vec3 axis)
+void Scene::Rotate(float angle, aa::vec3 axis)
 {
-    //model = glm::rotate(model, glm::radians(angle), axis);
-    axis = glm::normalize(axis);
-    float c = cos(glm::radians(angle));
-    float s = sin(glm::radians(angle));
-    glm::mat4 rotationMatrix;
+    //model = aa::rotate(model, aa::radians(angle), axis);
+    axis = aa::normalize(axis);
+    float c = cos(aa::radians(angle));
+    float s = sin(aa::radians(angle));
+    aa::mat4 rotationMatrix;
     if (axis.x == 1.0f)
-        rotationMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, c, s, 0.0f), glm::vec4(0.0f, -s, c, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        rotationMatrix = aa::mat4(aa::vec4(1.0f, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, c, s, 0.0f), aa::vec4(0.0f, -s, c, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     else if (axis.y == 1.0f)
-        rotationMatrix = glm::mat4(glm::vec4(c, 0.0f, -s, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(s, 0.0f, c, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        rotationMatrix = aa::mat4(aa::vec4(c, 0.0f, -s, 0.0f), aa::vec4(0.0f, 1.0f, 0.0f, 0.0f), aa::vec4(s, 0.0f, c, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     else if (axis.z == 1.0f)
-        rotationMatrix = glm::mat4(glm::vec4(c, s, 0.0f, 0.0f), glm::vec4(-s, c, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+        rotationMatrix = aa::mat4(aa::vec4(c, s, 0.0f, 0.0f), aa::vec4(-s, c, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, 1.0f, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     else
     {
         std::cerr << "Rotation axis must be one of the cardinal axes (x,y,z).\n";
         return;
     }
     sceneMatrix = rotationMatrix * sceneMatrix;
-    inverseSceneMatrix = glm::inverse(sceneMatrix);
+    inverseSceneMatrix = aa::inverse(sceneMatrix);
 }
-void Scene::Translate(glm::vec3 t)
+void Scene::Translate(aa::vec3 t)
 {
-    //model = glm::translate(model, t);
-    glm::mat4 translationMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(t.x, t.y, t.z, 1.0f));
+    //model = aa::translate(model, t);
+    aa::mat4 translationMatrix = aa::mat4(aa::vec4(1.0f, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, 1.0f, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, 1.0f, 0.0f), aa::vec4(t.x, t.y, t.z, 1.0f));
     sceneMatrix = translationMatrix * sceneMatrix;
-    inverseSceneMatrix = glm::inverse(sceneMatrix);
+    inverseSceneMatrix = aa::inverse(sceneMatrix);
 }
 void Scene::resetSceneMatrix()
 {
-    sceneMatrix = glm::mat4(1.0f);
-    inverseSceneMatrix = glm::inverse(sceneMatrix);
+    sceneMatrix = aa::mat4(1.0f);
+    inverseSceneMatrix = aa::inverse(sceneMatrix);
 }

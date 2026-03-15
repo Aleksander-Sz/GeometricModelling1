@@ -7,7 +7,9 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 scene;
 
+out vec4 screenPos;
+
 void main()
 {
-	gl_Position = projection * view * scene * model * vec4(aPos, 1.0);
+	screenPos = gl_Position = projection * view * scene * model * vec4(aPos, 1.0);
 }

@@ -13,10 +13,10 @@ class Shape
 {
 public:
 	virtual void Draw(Shader& shader) = 0;
-	void Scale(glm::vec3 s);
-	void Rotate(float angle, glm::vec3 axis);
-	void Translate(glm::vec3 t);
-	void setModel(glm::mat4 m);
+	void Scale(aa::vec3 s);
+	void Rotate(float angle, aa::vec3 axis);
+	void Translate(aa::vec3 t);
+	void setModel(aa::mat4 m);
 	void resetModel();
 	void ConfirmTransformations();
 	void CancelTransformations();
@@ -25,14 +25,14 @@ public:
 	std::string Name() { return shapeName; }
 	void setName(std::string _name) { shapeName = _name; }
 	bool Select(bool deselect = false);
-	glm::vec3 getPosition();
-	glm::vec2 getScreenSpacePosition(Camera& camera);
+	aa::vec3 getPosition();
+	aa::vec2 getScreenSpacePosition(Camera& camera);
 	bool isSelected();
 protected:
 	bool dirty = true;
 	unsigned int VAO, VBO;
-	glm::mat4 model = glm::mat4(1.0f);
-	glm::mat4 modelBackup = glm::mat4(1.0f);
+	aa::mat4 model = aa::mat4(1.0f);
+	aa::mat4 modelBackup = aa::mat4(1.0f);
 	bool selected = false;
 	std::string shapeName;
 };
@@ -50,7 +50,7 @@ protected:
 class Point : public Shape
 {
 public:
-	Point(glm::vec3 coords);
+	Point(aa::vec3 coords);
 	void Draw(Shader& shader) override;
 	void PrintImGuiOptions() override;
 };
@@ -101,10 +101,10 @@ public:
 	void Draw(Shader& shader);
 	void UpdatePosition(Camera& camera, double xpos, double ypos, bool xLocked, bool yLocked, bool zLocked);
 	void PrintImGuiOptions();
-	glm::vec3 getPosition();
+	aa::vec3 getPosition();
 private:
 	Cursor();
-	glm::vec3 location = glm::vec3(0.0f,0.0f,0.0f);
+	aa::vec3 location = aa::vec3(0.0f,0.0f,0.0f);
 	unsigned int VAO, VBO, EBO;
 };
 
@@ -112,12 +112,12 @@ class Axis
 {
 public:
 	Axis();
-	Axis(char _axis, glm::vec3 translationOrigin);
-	void SetAxis(glm::mat4 _model, glm::vec3 _color);
+	Axis(char _axis, aa::vec3 translationOrigin);
+	void SetAxis(aa::mat4 _model, aa::vec3 _color);
 	void Draw(Shader& shader, char eye = 0);
 private:
 	unsigned int VAO = 0, VBO = 0;
-	glm::mat4 model = glm::mat4(1.0f);
-	glm::vec3 color = glm::vec3(0.0f);
+	aa::mat4 model = aa::mat4(1.0f);
+	aa::vec3 color = aa::vec3(0.0f);
 };
 #endif

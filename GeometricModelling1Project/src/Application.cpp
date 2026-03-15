@@ -7,9 +7,9 @@
 #include "../Shapes.h"
 #include "../Scene.h"
 #include "../UserInterface.h"
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
-#include <gtc/type_ptr.hpp>
+#include "../AlexAlgebra.h"
+
+
 #include <vector>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -53,17 +53,28 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
 		scene->shiftPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		scene->camera.cameraPos += cameraDisplacement * glm::normalize(scene->camera.cameraFront);
+	{
+		if(scene->camera.orbitingCamera)
+			scene->camera.radius -= cameraDisplacement;
+		else
+			scene->camera.cameraPos += cameraDisplacement * aa::normalize(scene->camera.cameraFront);
+
+	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		scene->camera.cameraPos -= cameraDisplacement * glm::normalize(scene->camera.cameraFront);
+	{
+		if (scene->camera.orbitingCamera)
+			scene->camera.radius += cameraDisplacement;
+		else
+			scene->camera.cameraPos -= cameraDisplacement * aa::normalize(scene->camera.cameraFront);
+	}
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		scene->camera.cameraPos -= cameraDisplacement * glm::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
+		scene->camera.cameraPos -= cameraDisplacement * aa::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		scene->camera.cameraPos += cameraDisplacement * glm::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
+		scene->camera.cameraPos += cameraDisplacement * aa::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
 	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-		scene->camera.cameraPos += cameraDisplacement * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
+		scene->camera.cameraPos += cameraDisplacement * aa::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
 	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-		scene->camera.cameraPos -= cameraDisplacement * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
+		scene->camera.cameraPos -= cameraDisplacement * aa::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
 	{
 		if(!scene->lPressed)
@@ -72,6 +83,14 @@ void processInput(GLFWwindow* window)
 	}
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_RELEASE)
 		scene->lPressed = false;
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
+	{
+		if (!scene->cPressed)
+			scene->camera.orbitingCamera = !scene->camera.orbitingCamera;
+		scene->cPressed = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE)
+		scene->cPressed = false;
 	if (glfwGetKey(window, GRAB_KEY) == GLFW_PRESS)
 	{
 		if (!scene->gPressed)
@@ -126,13 +145,13 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		scene->mouseLeftButtonPressed = true;
 		scene->firstMovement = true; // Reset first movement flag when the button is pressed
 		scene->mouseLeftPressTime = glfwGetTime();
-		scene->mouseLeftPressPosition = glm::vec2(scene->lastX, scene->lastY);
+		scene->mouseLeftPressPosition = aa::vec2(scene->lastX, scene->lastY);
 	}
 	else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
 	{
 		scene->mouseLeftButtonPressed = false;
 		double mouseReleaseTime = glfwGetTime();
-		float movement = glm::length(glm::vec2(scene->lastX, scene->lastY) - scene->mouseLeftPressPosition);
+		float movement = aa::length(aa::vec2(scene->lastX, scene->lastY) - scene->mouseLeftPressPosition);
 		if (mouseReleaseTime - scene->mouseLeftPressTime <= 0.2 && movement < 5.0f)
 		{
 			scene->LeftMouseClick();
@@ -164,8 +183,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			xOffset *= sensitivity;
 			yOffset *= sensitivity;
 
-			scene->camera.cameraPos += yOffset * glm::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
-			scene->camera.cameraPos -= xOffset * glm::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
+			scene->camera.cameraPos += yOffset * aa::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
+			scene->camera.cameraPos -= xOffset * aa::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
 		}
 		else
 		{
@@ -173,8 +192,16 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			xOffset *= sensitivity;
 			yOffset *= sensitivity;
 
-			scene->camera.yaw -= xOffset;
-			scene->camera.pitch += yOffset;
+			if (scene->camera.orbitingCamera)
+			{
+				scene->camera.pitch -= yOffset;
+				scene->camera.yaw += xOffset;
+			}
+			else
+			{
+				scene->camera.pitch += yOffset;
+				scene->camera.yaw -= xOffset;
+			}
 
 			if (scene->camera.pitch > 89.0f)
 				scene->camera.pitch = 89.0f;
@@ -212,18 +239,18 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			//xOffset *= sensitivity;
 			//yOffset *= sensitivity;
 
-			float distance = glm::length(scene->selectedShape->getPosition() - scene->camera.cameraPos);
+			float distance = aa::length(scene->selectedShape->getPosition() - scene->camera.cameraPos);
 
-			float fovRad = glm::radians(scene->camera.zoom); // assuming zoom = FOV
+			float fovRad = aa::radians(scene->camera.zoom); // assuming zoom = FOV
 			float viewHeight = 2.0f * distance * tan(fovRad * 0.5f);
 
 			float worldPerPixel = viewHeight / scene->camera.windowHeight;
 
-			glm::vec3 forward = glm::normalize(scene->camera.cameraFront);
-			glm::vec3 right = glm::normalize(glm::cross(forward, scene->camera.cameraUp));
-			glm::vec3 up = glm::normalize(glm::cross(right, forward));
+			aa::vec3 forward = aa::normalize(scene->camera.cameraFront);
+			aa::vec3 right = aa::normalize(aa::cross(forward, scene->camera.cameraUp));
+			aa::vec3 up = aa::normalize(aa::cross(right, forward));
 
-			glm::vec3 worldDelta =
+			aa::vec3 worldDelta =
 				right * (xOffset * worldPerPixel)
 				- up * (yOffset * worldPerPixel);
 			float xLockFactor = 0.0f;
@@ -241,7 +268,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 				yLockFactor = 1.0f;
 				zLockFactor = 1.0f;
 			}
-			worldDelta *= glm::vec3(xLockFactor, yLockFactor, zLockFactor);
+			worldDelta.x *= xLockFactor;
+			worldDelta.y *= yLockFactor;
+			worldDelta.z *= zLockFactor;
 			scene->MoveSelectedObjects(worldDelta);
 		}
 		if (!scene->cursorLocked)
@@ -256,10 +285,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureMouse)
 		return;
-	if (scene->AltPressed)
+/*	if (scene->AltPressed)
 	{
-		glm::vec3 cameraTarget = scene->camera.cameraPos + scene->camera.cameraFront;
-		float cameraRadius = glm::length(scene->camera.cameraPos - cameraTarget);
+		aa::vec3 cameraTarget = scene->camera.cameraPos + scene->camera.cameraFront;
+		float cameraRadius = aa::length(scene->camera.cameraPos - cameraTarget);
 
 		const float sensitivity = 0.3f;
 		xoffset *= sensitivity;
@@ -274,11 +303,11 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 			scene->camera.pitch = -89.0f;
 
 		// Convert to radians
-		float yawRad = glm::radians(scene->camera.yaw);
-		float pitchRad = glm::radians(scene->camera.pitch);
+		float yawRad = aa::radians(scene->camera.yaw);
+		float pitchRad = aa::radians(scene->camera.pitch);
 
 		// Spherical coordinates
-		glm::vec3 offset;
+		aa::vec3 offset;
 		offset.x = cameraRadius * cos(pitchRad) * cos(yawRad);
 		offset.y = cameraRadius * sin(pitchRad);
 		offset.z = cameraRadius * cos(pitchRad) * sin(yawRad);
@@ -287,15 +316,19 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 		scene->camera.cameraPos = cameraTarget + offset;
 
 		// Always look at target
-		scene->camera.cameraFront = glm::normalize(cameraTarget - scene->camera.cameraPos);
+		scene->camera.cameraFront = aa::normalize(cameraTarget - scene->camera.cameraPos);
+	}*/
+	if (scene->camera.orbitingCamera)
+	{
+		scene->camera.radius -= (float)yoffset * 0.1f;
 	}
 	else
 	{
 		scene->camera.zoom -= (float)yoffset;
 		if (scene->camera.zoom < 10.0f)
 			scene->camera.zoom = 10.0f;
-		if (scene->camera.zoom > 45.0f)
-			scene->camera.zoom = 45.0f;
+		if (scene->camera.zoom > 80.0f)
+			scene->camera.zoom = 80.0f;
 	}
 }
 
@@ -364,9 +397,9 @@ int main()
 	
 	Torus torus(1.0f, 0.3f, 50, 50);
 	scene->shapes.push_back(&torus);
-	Point point(glm::vec3(0.0f, 0.1f, 0.0f));
+	Point point(aa::vec3(0.0f, 0.1f, 0.0f));
 	scene->shapes.push_back(&point);
-	torus.Rotate(90.0f,glm::vec3(1.0f,0.0f,0.0f));
+	torus.Rotate(90.0f,aa::vec3(1.0f,0.0f,0.0f));
 	torus.ConfirmTransformations();
 
 	glEnable(GL_DEPTH_TEST);
@@ -391,13 +424,13 @@ int main()
 		if (ImGui::CollapsingHeader("Scene Transformations"))
 		{
 			static bool relativeToCursor = false;
-			static glm::vec3 scale(1.0f);
+			static aa::vec3 scale(1.0f);
 			static float rotationX = 0.0f;
 			static float rotationY = 0.0f;
 			static float rotationZ = 0.0f;
-			static glm::vec3 translation(0.0f);
+			static aa::vec3 translation(0.0f);
 			ImGui::Checkbox("Transform relatively to the cursor", &relativeToCursor);
-			ImGui::InputFloat3("Scale", glm::value_ptr(scale));
+			ImGui::InputFloat3("Scale", aa::value_ptr(scale));
 			if (ImGui::Button("Apply Scale"))
 			{
 				if (relativeToCursor)
@@ -411,7 +444,7 @@ int main()
 			{
 				if (relativeToCursor)
 					scene->Translate(-scene->cursor.getPosition());
-				scene->Rotate(rotationX, glm::vec3(1.0f, 0.0f, 0.0f));
+				scene->Rotate(rotationX, aa::vec3(1.0f, 0.0f, 0.0f));
 				if (relativeToCursor)
 					scene->Translate(scene->cursor.getPosition());
 			}
@@ -420,7 +453,7 @@ int main()
 			{
 				if (relativeToCursor)
 					scene->Translate(-scene->cursor.getPosition());
-				scene->Rotate(rotationY, glm::vec3(0.0f, 1.0f, 0.0f));
+				scene->Rotate(rotationY, aa::vec3(0.0f, 1.0f, 0.0f));
 				if (relativeToCursor)
 					scene->Translate(scene->cursor.getPosition());
 			}
@@ -429,11 +462,11 @@ int main()
 			{
 				if (relativeToCursor)
 					scene->Translate(-scene->cursor.getPosition());
-				scene->Rotate(rotationZ, glm::vec3(0.0f, 0.0f, 1.0f));
+				scene->Rotate(rotationZ, aa::vec3(0.0f, 0.0f, 1.0f));
 				if (relativeToCursor)
 					scene->Translate(scene->cursor.getPosition());
 			}
-			ImGui::InputFloat3("Translation", glm::value_ptr(translation));
+			ImGui::InputFloat3("Translation", aa::value_ptr(translation));
 			if (ImGui::Button("Apply Translation"))
 			{
 				scene->Translate(translation);
@@ -441,9 +474,9 @@ int main()
 			if (ImGui::Button("Reset Transformations"))
 			{
 				scene->resetSceneMatrix();
-				scale = glm::vec3(1.0f);
+				scale = aa::vec3(1.0f);
 				rotationX = rotationY = rotationZ = 0.0f;
-				translation = glm::vec3(0.0f);
+				translation = aa::vec3(0.0f);
 			}
 		}
 		ImGui::Separator();
@@ -491,7 +524,7 @@ int main()
 				scene->shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
 				break;
 			case 2:
-				scene->shapes.push_back(new Point(glm::vec3(0.0f, 0.0f, 0.0f)));
+				scene->shapes.push_back(new Point(aa::vec3(0.0f, 0.0f, 0.0f)));
 				break;
 			default:
 				std::cerr << "Shape not implemented yet.\n";
