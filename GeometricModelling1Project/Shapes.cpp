@@ -9,29 +9,29 @@ void Meshable::Draw(Shader& shader)
 	glBindVertexArray(VAO);
 	shader.setMat4("model", model);
 	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
-	shader.setVec3("color", (selected ? glm::vec3(1.0f,1.0f,0.6f) : glm::vec3(1.0f,1.0f,1.0f)));
+	shader.setVec3("color", (selected ? aa::vec3(1.0f,1.0f,0.6f) : aa::vec3(1.0f,1.0f,1.0f)));
 	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
-void Shape::Scale(glm::vec3 s)
+void Shape::Scale(aa::vec3 s)
 {
-	//model = glm::scale(model, s);
-	glm::mat4 scaleMatrix = glm::mat4(glm::vec4(s.x, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, s.y, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, s.z, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+	//model = aa::scale(model, s);
+	aa::mat4 scaleMatrix = aa::mat4(aa::vec4(s.x, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, s.y, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, s.z, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	model = scaleMatrix * model;
 }
-void Shape::Rotate(float angle, glm::vec3 axis)
+void Shape::Rotate(float angle, aa::vec3 axis)
 {
-	//model = glm::rotate(model, glm::radians(angle), axis);
-	axis = glm::normalize(axis);
-	float c = cos(glm::radians(angle));
-	float s = sin(glm::radians(angle));
-	glm::mat4 rotationMatrix;
+	//model = aa::rotate(model, aa::radians(angle), axis);
+	axis = aa::normalize(axis);
+	float c = cos(aa::radians(angle));
+	float s = sin(aa::radians(angle));
+	aa::mat4 rotationMatrix;
 	if(axis.x == 1.0f)
-		rotationMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, c, s, 0.0f), glm::vec4(0.0f, -s, c, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		rotationMatrix = aa::mat4(aa::vec4(1.0f, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, c, s, 0.0f), aa::vec4(0.0f, -s, c, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	else if(axis.y==1.0f)
-		rotationMatrix = glm::mat4(glm::vec4(c, 0.0f, -s, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(s, 0.0f, c, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		rotationMatrix = aa::mat4(aa::vec4(c, 0.0f, -s, 0.0f), aa::vec4(0.0f, 1.0f, 0.0f, 0.0f), aa::vec4(s, 0.0f, c, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	else if(axis.z==1.0f)
-		rotationMatrix = glm::mat4(glm::vec4(c, s, 0.0f, 0.0f), glm::vec4(-s, c, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+		rotationMatrix = aa::mat4(aa::vec4(c, s, 0.0f, 0.0f), aa::vec4(-s, c, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, 1.0f, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	else
 	{
 		std::cerr << "Rotation axis must be one of the cardinal axes (x,y,z).\n";
@@ -39,19 +39,19 @@ void Shape::Rotate(float angle, glm::vec3 axis)
 	}
 	model = rotationMatrix * model;
 }
-void Shape::Translate(glm::vec3 t)
+void Shape::Translate(aa::vec3 t)
 {
-	//model = glm::translate(model, t);
-	glm::mat4 translationMatrix = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(t.x, t.y, t.z, 1.0f));
+	//model = aa::translate(model, t);
+	aa::mat4 translationMatrix = aa::mat4(aa::vec4(1.0f, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, 1.0f, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, 1.0f, 0.0f), aa::vec4(t.x, t.y, t.z, 1.0f));
 	model = translationMatrix * model;
 }
-void Shape::setModel(glm::mat4 m)
+void Shape::setModel(aa::mat4 m)
 {
 	modelBackup = model = m;
 }
 void Shape::resetModel()
 {
-	modelBackup = model = glm::mat4(1.0f);
+	modelBackup = model = aa::mat4(1.0f);
 }
 void Shape::ConfirmTransformations()
 {
@@ -63,12 +63,12 @@ void Shape::CancelTransformations()
 }
 void Shape::PrintImGuiTransformOptions()
 {
-	static glm::vec3 scale(1.0f);
+	static aa::vec3 scale(1.0f);
 	static float rotationX = 0.0f;
 	static float rotationY = 0.0f;
 	static float rotationZ = 0.0f;
-	static glm::vec3 translation(0.0f);
-	ImGui::InputFloat3("Scale", glm::value_ptr(scale));
+	static aa::vec3 translation(0.0f);
+	ImGui::InputFloat3("Scale", aa::value_ptr(scale));
 	if (ImGui::Button("Apply Scale"))
 	{
 		Scale(scale);
@@ -77,22 +77,22 @@ void Shape::PrintImGuiTransformOptions()
 	ImGui::DragFloat("Rotation X", &rotationX, 1.0f, -180.0f, 180.0f, "%.0f");
 	if(ImGui::Button("Apply Rotation X"))
 	{
-		Rotate(rotationX, glm::vec3(1.0f, 0.0f, 0.0f));
+		Rotate(rotationX, aa::vec3(1.0f, 0.0f, 0.0f));
 		ConfirmTransformations();
 	}
 	ImGui::DragFloat("Rotation Y", &rotationY, 1.0f, -180.0f, 180.0f, "%.0f");
 	if (ImGui::Button("Apply Rotation Y"))
 	{
-		Rotate(rotationY, glm::vec3(0.0f, 1.0f, 0.0f));
+		Rotate(rotationY, aa::vec3(0.0f, 1.0f, 0.0f));
 		ConfirmTransformations();
 	}
 	ImGui::DragFloat("Rotation Z", &rotationZ, 1.0f, -180.0f, 180.0f, "%.0f");
 	if (ImGui::Button("Apply Rotation Z"))
 	{
-		Rotate(rotationZ, glm::vec3(0.0f, 0.0f, 1.0f));
+		Rotate(rotationZ, aa::vec3(0.0f, 0.0f, 1.0f));
 		ConfirmTransformations();
 	}
-	ImGui::InputFloat3("Translation", glm::value_ptr(translation));
+	ImGui::InputFloat3("Translation", aa::value_ptr(translation));
 	if (ImGui::Button("Apply Translation"))
 	{
 		Translate(translation);
@@ -101,49 +101,49 @@ void Shape::PrintImGuiTransformOptions()
 	if (ImGui::Button("Reset Transformations"))
 	{
 		resetModel();
-		scale = glm::vec3(1.0f);
+		scale = aa::vec3(1.0f);
 		rotationX = rotationY = rotationZ = 0.0f;
-		translation = glm::vec3(0.0f);
+		translation = aa::vec3(0.0f);
 	}
 }
 bool Shape::Select(bool deselect)
 {
 	return selected = (deselect ? false : !selected);
 }
-glm::vec3 Shape::getPosition()
+aa::vec3 Shape::getPosition()
 {
-	return glm::vec3(
+	return aa::vec3(
 			model[3][0],
 			model[3][1],
 			model[3][2]
 	);
 }
-glm::vec2 Shape::getScreenSpacePosition(Camera& camera)
+aa::vec2 Shape::getScreenSpacePosition(Camera& camera)
 {
 	// clip space transform
-	glm::vec4 clipSpacePos = camera.projection() * camera.view() * model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	aa::vec4 clipSpacePos = camera.projection() * camera.view() * model * aa::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// Perspective Division
 	if (clipSpacePos.w != 0.0f) {
-		glm::vec3 ndc = glm::vec3(clipSpacePos) / clipSpacePos.w;
+		aa::vec3 ndc = clipSpacePos.xyz / clipSpacePos.w;
 
 		float screenX = ((ndc.x + 1.0f) / 2.0f) * camera.windowWidth;
 		float screenY = ((1.0f - ndc.y) / 2.0f) * camera.windowHeight;
 
-		return glm::vec2(screenX, screenY);
+		return aa::vec2(screenX, screenY);
 	}
 
-	return glm::vec2(-1.0f);
+	return aa::vec2(-1.0f);
 }
 bool Shape::isSelected()
 {
 	return selected;
 }
 // Point class functions
-Point::Point(glm::vec3 coords)
+Point::Point(aa::vec3 coords)
 {
 	shapeName = "Point";
-	model = glm::translate(model, coords);
+	model = aa::translate(model, coords);
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	float center[] = { 0.0f,0.0f,0.0f };
@@ -163,7 +163,7 @@ void Point::Draw(Shader &shader)
 	glBindVertexArray(VAO);
 	shader.setMat4("model", model);
 	glPointSize((selected ? 15.0f : 5.0f)); //alter point size based on selection
-	shader.setVec3("color", (selected ? glm::vec3(1.0f, 1.0f, 0.6f) : glm::vec3(1.0f, 1.0f, 1.0f)));
+	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
 	glDrawArrays(GL_POINTS, 0, 1);
 	glBindVertexArray(0);
 }
@@ -379,7 +379,7 @@ void Grid::Draw(Camera &camera, char eye)
 	glBindVertexArray(VAO);
 	gridShader.use();
 	gridShader.setMat4("view", camera.view());
-	glm::mat4 projection;
+	aa::mat4 projection;
 	switch (eye)
 	{
 	case 0:
@@ -393,7 +393,7 @@ void Grid::Draw(Camera &camera, char eye)
 		break;
 	}
 	gridShader.setMat4("projection", projection);
-	gridShader.setMat4("model", glm::scale(glm::mat4(1.0f),glm::vec3(40.0f)));
+	gridShader.setMat4("model", aa::scale(aa::mat4(1.0f),aa::vec3(40.0f)));
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
@@ -407,12 +407,12 @@ void Cursor::Draw(Shader &shader)
 {
 	glBindVertexArray(VAO);
 	shader.use();
-	shader.setMat4("model", glm::scale(glm::translate(glm::mat4(1.0f), location), glm::vec3(0.1f, 0.1f, 0.1f)));
-	//shader.setVec3("color", glm::vec3(1.0f, 0.0f, 1.0f));
-	shader.setMat4("scene", glm::mat4(1.0f));
+	shader.setMat4("model", aa::scale(aa::translate(aa::mat4(1.0f), location), aa::vec3(0.1f, 0.1f, 0.1f)));
+	//shader.setVec3("color", aa::vec3(1.0f, 0.0f, 1.0f));
+	shader.setMat4("scene", aa::mat4(1.0f));
 	//glLineWidth(5);
 	glLineWidth((selected ? 15.0f : 5.0f)); //alter Cursor width based on selection
-	shader.setVec3("color", (selected ? glm::vec3(1.0f, 0.8f, 0.6f) : glm::vec3(1.0f, 0.0f, 1.0f)));
+	shader.setVec3("color", (selected ? aa::vec3(1.0f, 0.8f, 0.6f) : aa::vec3(1.0f, 0.0f, 1.0f)));
 	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
@@ -451,21 +451,21 @@ void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos, bool xLock
 	float x_ndc = (2.0f * xpos) / camera.windowWidth - 1.0f;
 	float y_ndc = 1.0f - (2.0f * ypos) / camera.windowHeight;
 
-	glm::vec4 ray_clip = glm::vec4(x_ndc, y_ndc, -1.0f, 1.0f);
+	aa::vec4 ray_clip = aa::vec4(x_ndc, y_ndc, -1.0f, 1.0f);
 
-	glm::mat4 invVP = camera.inverseViewProjection();
+	aa::mat4 invVP = camera.inverseViewProjection();
 
 	// Unproject to world space
-	glm::vec4 worldPos = invVP * ray_clip;
+	aa::vec4 worldPos = invVP * ray_clip;
 
 	// Perspective divide
-	worldPos /= worldPos.w;
+	worldPos = worldPos / worldPos.w;
 
 	// Compute ray direction
-	glm::vec3 rayDir = glm::normalize(glm::vec3(worldPos) - camera.cameraPos);
+	aa::vec3 rayDir = aa::normalize(aa::vec3(worldPos.xyz) - camera.cameraPos);
 
 	// Place cursor some fixed distance in front of camera
-	float distance = glm::distance(camera.cameraPos, location);
+	float distance = aa::distance(camera.cameraPos, location);
 	if (xLocked)
 		location.x = (camera.cameraPos + rayDir * distance).x;
 	else if (yLocked)
@@ -475,7 +475,7 @@ void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos, bool xLock
 	else
 		location = camera.cameraPos + rayDir * distance;
 }
-glm::vec3 Cursor::getPosition()
+aa::vec3 Cursor::getPosition()
 {
 	return location;
 }
@@ -487,35 +487,35 @@ void Cursor::PrintImGuiOptions()
 // Axis class functions
 Axis::Axis()
 {
-	model = glm::mat4(1.0f);
-	color = glm::vec3(0.0f);
+	model = aa::mat4(1.0f);
+	color = aa::vec3(0.0f);
 	VAO = 0;
 	VBO = 0;
 }
-Axis::Axis(char _axis, glm::vec3 translationOrigin)
+Axis::Axis(char _axis, aa::vec3 translationOrigin)
 {
-	model = glm::translate(model, translationOrigin);
+	model = aa::translate(model, translationOrigin);
 	switch (_axis)
 	{
 	case 'x':
-		color = glm::vec3(0.8f, 0.1f, 0.1f);
+		color = aa::vec3(0.8f, 0.1f, 0.1f);
 		break;
 	case 'y':
-		model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		color = glm::vec3(0.1f, 0.8f, 0.1f);
+		model = aa::rotate(model, aa::Axis::Z, aa::radians(90.0f));
+		color = aa::vec3(0.1f, 0.8f, 0.1f);
 		break;
 	case 'z':
-		model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-		color = glm::vec3(0.1f, 0.1f, 0.8f);
+		model = aa::rotate(model, aa::Axis::Y, aa::radians(90.0f));
+		color = aa::vec3(0.1f, 0.1f, 0.8f);
 		break;
 	default:
 		std::cerr << "Invalid axis specified, defaulting to x-axis.\n";
 		break;
 	}
-	model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+	model = aa::scale(model, aa::vec3(10.0f, 10.0f, 10.0f));
 	this->SetAxis(model, color);
 }
-void Axis::SetAxis(glm::mat4 _model, glm::vec3 _color)
+void Axis::SetAxis(aa::mat4 _model, aa::vec3 _color)
 {
 	model = _model;
 	color = _color;
