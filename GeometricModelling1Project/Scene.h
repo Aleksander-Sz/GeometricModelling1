@@ -4,6 +4,7 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Shapes.h"
+#include <GLFW/glfw3.h>
 
 class Scene
 {
@@ -49,7 +50,7 @@ public:
 	aa::vec3 currentTranslationOrigin = aa::vec3(0.0f);
 	Axis movementAxis;
 	Shader shader;
-	void DrawScene();
+	void DrawScene(GLFWwindow* window);
 	void Scale(aa::vec3 s);
 	void Rotate(float angle, aa::vec3 axis);
 	void Translate(aa::vec3 t);

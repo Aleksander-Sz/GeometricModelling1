@@ -20,6 +20,8 @@ Scene* scene;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
+	scene->camera.windowWidth = width;
+	scene->camera.windowHeight = height;
 }
 
 void processInput(GLFWwindow* window)
@@ -338,9 +340,9 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-	int windowWidth = 900; // Your desired width
+	int windowWidth = 1600; // Your desired width
 	int windowHeight = 900; // Your desired height
 
 	GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "Geometric Modelling 1", NULL, NULL);
@@ -390,7 +392,7 @@ int main()
 	ImGui_ImplOpenGL3_Init("#version 330");
 
 	Shader ourShader("Shaders/VertexShader.glsl","Shaders/FragmentShader.glsl");
-	Scene sceneObject = Scene(900, 900, ourShader);
+	Scene sceneObject = Scene(windowWidth, windowHeight, ourShader);
 	scene = &sceneObject;
 
 	// Rendering commands here
@@ -406,7 +408,7 @@ int main()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	
-	glViewport(0, 0, windowWidth, windowHeight);
+	//glViewport(0, 0, windowWidth, windowHeight);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	unsigned int frame = 0;
 	while (!glfwWindowShouldClose(window))
@@ -537,7 +539,7 @@ int main()
 
 		//rendering commands here
 		
-		scene->DrawScene();
+		scene->DrawScene(window);
 		// -----
 		float currentFrame = glfwGetTime();
 		scene->deltaTime = currentFrame - scene->lastFrame;

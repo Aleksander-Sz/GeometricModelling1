@@ -196,8 +196,14 @@ void Scene::DeselectEverything()
         shapes[i]->Select(true);
     }
 }
-void Scene::DrawScene()
+void Scene::DrawScene(GLFWwindow* window)
 {
+    glDisable(GL_DEPTH_TEST); // temporary, might work, but I don't know
+    int w, h;
+    glfwGetFramebufferSize(window, &w, &h);
+    std::cout << w << ", " << h << "\n";
+    glViewport(0, 0, w, h);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
