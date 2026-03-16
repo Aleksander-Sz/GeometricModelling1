@@ -67,7 +67,7 @@ public:
 	void PrintImGuiOptions() override;
 private:
 	float R, r;
-	unsigned int s1, s2;
+	int s1, s2;
 };
 
 class Ellipsoid : public Meshable

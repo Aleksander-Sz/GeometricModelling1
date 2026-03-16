@@ -187,6 +187,31 @@ Torus::Torus(float _R, float _r, unsigned int _s1, unsigned int _s2)
 }
 void Torus::Mesh()
 {
+	if (R < 0.1f)
+	{
+		std::cerr << "Big radius must be at least 0.1.\n";
+		R = 0.1f;
+	}
+	if (r < 0.1f)
+	{
+		std::cerr << "Small radius must be at least 0.1.\n";
+		r = 0.1f;
+	}
+	if (R > 25.0f)
+	{
+		std::cerr << "Big radius must be at most 25.\n";
+		R = 25.0f;
+	}
+	if (r > 20.0f)
+	{
+		std::cerr << "Small radius must be at most 20.\n";
+		r = 20.0f;
+	}
+	if (R < r)
+	{
+		std::cerr << "Small radius cannot be larger than the big radius.";
+		r = R;
+	}
 	if (s1 < 3)
 	{
 		std::cerr << "Subdivision must be at least 1.\n";
@@ -196,6 +221,16 @@ void Torus::Mesh()
 	{
 		std::cerr << "Subdivision must be at least 1.\n";
 		s2 = 3;
+	}
+	if (s1 > 500)
+	{
+		std::cerr << "Cannot have more than 500 subdivisions.\n";
+		s1 = 500;
+	}
+	if (s2 > 500)
+	{
+		std::cerr << "Cannot have more than 500 subdivisions.\n";
+		s2 = 500;
 	}
 	vertices.clear();
 	indices.clear();

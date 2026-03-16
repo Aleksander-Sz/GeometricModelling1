@@ -399,8 +399,8 @@ int main()
 	
 	Torus torus(1.0f, 0.3f, 50, 50);
 	scene->shapes.push_back(&torus);
-	Point point(aa::vec3(0.0f, 0.1f, 0.0f));
-	scene->shapes.push_back(&point);
+	//Point point(aa::vec3(0.0f, 0.1f, 0.0f));
+	//scene->shapes.push_back(&point);
 	torus.Rotate(90.0f,aa::vec3(1.0f,0.0f,0.0f));
 	torus.ConfirmTransformations();
 
@@ -423,7 +423,7 @@ int main()
 		ImGui::Text("Use WASD to move, mouse to look around, scroll to zoom.");
 		ImGui::Checkbox("Enable stereoscopy", &(scene->stereoscopy));
 		ImGui::Separator();
-		if (ImGui::CollapsingHeader("Scene Transformations"))
+		if (false&&ImGui::CollapsingHeader("Scene Transformations")) // temporarily disabled, as it is outside of the scope of project 2
 		{
 			static bool relativeToCursor = false;
 			static aa::vec3 scale(1.0f);
@@ -523,9 +523,13 @@ int main()
 				scene->shapes.push_back(new Torus(1.0f, 0.3f, 50, 50));
 				break;
 			case 1:
+				std::cout << "This option has been locked, as it is out of the scope of MKMG.\n";
+				break;
 				scene->shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
 				break;
 			case 2:
+				std::cout << "This option has been locked, as it is out of the scope of MKMG.\n";
+				break;
 				scene->shapes.push_back(new Point(aa::vec3(0.0f, 0.0f, 0.0f)));
 				break;
 			default:
