@@ -225,8 +225,16 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 		xOffset *= sensitivity;
 		yOffset *= sensitivity;
 
-		scene->camera.yaw += xOffset;
-		scene->camera.pitch -= yOffset;
+		if (scene->camera.orbitingCamera)
+		{
+			scene->camera.yaw -= xOffset;
+			scene->camera.pitch += yOffset;
+		}
+		else
+		{
+			scene->camera.yaw += xOffset;
+			scene->camera.pitch -= yOffset;
+		}
 
 		if (scene->camera.pitch > 89.0f)
 			scene->camera.pitch = 89.0f;
