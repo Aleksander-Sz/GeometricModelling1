@@ -57,6 +57,7 @@ public:
 	void resetSceneMatrix();
 	Grid grid = Grid::getInstance();
 	bool stereoscopy = false;
+	aa::vec3 sceneScale = aa::vec3(1.0f, 1.0f, 1.0f);
 private:
 	aa::mat4 sceneMatrix = aa::mat4(1.0f);
 	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);

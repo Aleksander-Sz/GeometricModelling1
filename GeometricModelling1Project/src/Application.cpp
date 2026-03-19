@@ -429,8 +429,23 @@ int main()
 		ImGui::NewFrame();
 		ImGui::Begin("Menu");
 		ImGui::Text("Use WASD to move, mouse to look around, scroll to zoom.");
-		ImGui::Checkbox("Enable stereoscopy", &(scene->stereoscopy));
+		//ImGui::Checkbox("Enable stereoscopy", &(scene->stereoscopy)); // Temporarily disabled
 		ImGui::Separator();
+		if (ImGui::DragFloat3("Scene Scaling", aa::value_ptr(scene->sceneScale), 0.01f, 0.01f, 10.0f))
+		{
+			if (scene->sceneScale.x < 0.01f)
+				scene->sceneScale.x = 0.01f;
+			if (scene->sceneScale.x > 10.0f)
+				scene->sceneScale.x = 10.0f;
+			if (scene->sceneScale.y < 0.01f)
+				scene->sceneScale.y = 0.01f;
+			if (scene->sceneScale.y > 10.0f)
+				scene->sceneScale.y = 10.0f;
+			if (scene->sceneScale.z < 0.01f)
+				scene->sceneScale.z = 0.01f;
+			if (scene->sceneScale.z > 10.0f)
+				scene->sceneScale.z = 10.0f;
+		}
 		if (false&&ImGui::CollapsingHeader("Scene Transformations")) // temporarily disabled, as it is outside of the scope of project 2
 		{
 			static bool relativeToCursor = false;
@@ -508,7 +523,7 @@ int main()
 				}
 				scene->shapes[i]->PrintImGuiOptions();
 				ImGui::Separator();
-				scene->shapes[i]->PrintImGuiTransformOptions();
+				//scene->shapes[i]->PrintImGuiTransformOptions(); // Temporarily Disabled
 				if (ImGui::Button("Delete object"))
 				{
 					scene->grabEnabled = false;

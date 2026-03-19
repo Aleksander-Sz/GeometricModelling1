@@ -212,6 +212,7 @@ void Scene::DrawScene(GLFWwindow* window)
         shader.setMat4("projection", camera.projectionRight());
     else
         shader.setMat4("projection", camera.projection());
+    sceneMatrix = aa::scale(sceneScale);
     shader.setMat4("scene", sceneMatrix);
     if(stereoscopy)
         glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
