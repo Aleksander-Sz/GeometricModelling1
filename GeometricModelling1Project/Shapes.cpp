@@ -43,7 +43,7 @@ void Shape::Translate(aa::vec3 t)
 {
 	//model = aa::translate(model, t);
 	aa::mat4 translationMatrix = aa::mat4(aa::vec4(1.0f, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, 1.0f, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, 1.0f, 0.0f), aa::vec4(t.x, t.y, t.z, 1.0f));
-	model = translationMatrix * model;
+	model = translationMatrix * modelBackup;
 }
 void Shape::setModel(aa::mat4 m)
 {
@@ -95,7 +95,7 @@ void Shape::PrintImGuiTransformOptions()
 	ImGui::InputFloat3("Translation", aa::value_ptr(translation));
 	if (ImGui::Button("Apply Translation"))
 	{
-		Translate(translation);
+		//Translate(translation); // Needs to be updated, to not use this function
 		ConfirmTransformations();
 	}
 	if (ImGui::Button("Reset Transformations"))
@@ -121,7 +121,7 @@ aa::vec3 Shape::getPosition()
 aa::vec2 Shape::getScreenSpacePosition(Camera& camera)
 {
 	// clip space transform
-	aa::vec4 clipSpacePos = camera.projection() * camera.view() * model * aa::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	aa::vec4 clipSpacePos = camera.projection() * camera.view() * aa::vec4(getPosition(), 1.0f);//model * aa::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// Perspective Division
 	if (clipSpacePos.w != 0.0f) {
@@ -453,6 +453,7 @@ void Cursor::Draw(Shader &shader)
 }
 Cursor::Cursor()
 {
+	shapeName = "3D Cursor";
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -516,7 +517,17 @@ aa::vec3 Cursor::getPosition()
 }
 void Cursor::PrintImGuiOptions()
 {
-	; // TODO
+	//static aa::vec4 newCursorPosition = aa::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+	if (ImGui::DragFloat3("Cursor position", aa::value_ptr(location), 0.1f, -20.0f, 20.0f, "%.3f"))
+	{
+		if (aa::length(location) > 40.0f)
+		{
+			location = aa::vec3(0.0f, 0.0f, 0.0f);
+		}
+		model[3][0] = location[0];
+		model[3][1] = location[1];
+		model[3][2] = location[2];
+	}
 }
 
 // Axis class functions
@@ -529,7 +540,7 @@ Axis::Axis()
 }
 Axis::Axis(char _axis, aa::vec3 translationOrigin)
 {
-	model = aa::translate(model, translationOrigin);
+	model = aa::mat4::identity();
 	switch (_axis)
 	{
 	case 'x':
@@ -548,6 +559,7 @@ Axis::Axis(char _axis, aa::vec3 translationOrigin)
 		break;
 	}
 	model = aa::scale(model, aa::vec3(10.0f, 10.0f, 10.0f));
+	model = aa::translate(model, translationOrigin);
 	this->SetAxis(model, color);
 }
 void Axis::SetAxis(aa::mat4 _model, aa::vec3 _color)

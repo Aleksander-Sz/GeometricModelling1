@@ -260,27 +260,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			aa::vec3 right = aa::normalize(aa::cross(forward, scene->camera.cameraUp));
 			aa::vec3 up = aa::normalize(aa::cross(right, forward));
 
+			float xOffsetSinceMoveStart = xpos - scene->grabMouseOrigin.x;
+			float yOffsetSinceMoveStart = ypos - scene->grabMouseOrigin.y;
+
 			aa::vec3 worldDelta =
-				right * (xOffset * worldPerPixel)
-				- up * (yOffset * worldPerPixel);
-			float xLockFactor = 0.0f;
-			float yLockFactor = 0.0f;
-			float zLockFactor = 0.0f;
-			if (scene->xLocked)
-				xLockFactor = 1.0f;
-			else if (scene->yLocked)
-				yLockFactor = 1.0f;
-			else if (scene->zLocked)
-				zLockFactor = 1.0f;
-			else
-			{
-				xLockFactor = 1.0f;
-				yLockFactor = 1.0f;
-				zLockFactor = 1.0f;
-			}
-			worldDelta.x *= xLockFactor;
-			worldDelta.y *= yLockFactor;
-			worldDelta.z *= zLockFactor;
+				right * (xOffsetSinceMoveStart * worldPerPixel)
+				- up * (yOffsetSinceMoveStart * worldPerPixel);
 			scene->MoveSelectedObjects(worldDelta);
 		}
 		if (!scene->cursorLocked)
@@ -446,7 +431,7 @@ int main()
 			if (scene->sceneScale.z > 10.0f)
 				scene->sceneScale.z = 10.0f;
 		}
-		if (false&&ImGui::CollapsingHeader("Scene Transformations")) // temporarily disabled, as it is outside of the scope of project 2
+		/*if (false && ImGui::CollapsingHeader("Scene Transformations")) // temporarily disabled, as it is outside of the scope of project 2
 		{
 			static bool relativeToCursor = false;
 			static aa::vec3 scale(1.0f);
@@ -503,28 +488,40 @@ int main()
 				rotationX = rotationY = rotationZ = 0.0f;
 				translation = aa::vec3(0.0f);
 			}
-		}
+		}*/
 		ImGui::Separator();
 		ImGui::Text("Object parameters:");
 		for (int i = 0; i < scene->shapes.size(); i++)
 		{
 			ImGui::PushID(i);
-			if (ImGui::CollapsingHeader((scene->shapes[i]->Name() + " " + std::to_string(i)).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+			std::string fullObjectName = scene->shapes[i]->Name();
+			if (scene->shapes[i]->Name() != "3D Cursor")
+				fullObjectName += " " + std::to_string(i);
+			if (ImGui::CollapsingHeader((fullObjectName).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				char buffer[64] = "";
 				strcpy_s(buffer, (scene->shapes[i]->Name()).c_str());
-				if (ImGui::InputText("Object name", buffer, IM_ARRAYSIZE(buffer)))
+				if (scene->shapes[i]->Name()!="3D Cursor" && ImGui::InputText("Object name", buffer, IM_ARRAYSIZE(buffer)))
 				{
-					scene->shapes[i]->setName(std::string(buffer));
+					std::string newName = std::string(buffer);
+					if (newName == "3D Cursor")
+					{
+						std::cerr << "Cannot set the name to '3D Cursor'\n";
+					}
+					else
+					{
+						scene->shapes[i]->setName(newName);
+					}
 				}
 				if (ImGui::Button("Select this object"))
 				{
 					scene->shapes[i]->Select();
+					scene->selectedShape = scene->shapes[i];
 				}
 				scene->shapes[i]->PrintImGuiOptions();
 				ImGui::Separator();
 				//scene->shapes[i]->PrintImGuiTransformOptions(); // Temporarily Disabled
-				if (ImGui::Button("Delete object"))
+				if (scene->shapes[i]->Name() != "3D Cursor" && ImGui::Button("Delete object"))
 				{
 					scene->grabEnabled = false;
 					scene->DeselectEverything();

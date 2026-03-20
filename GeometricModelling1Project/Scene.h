@@ -26,6 +26,7 @@ public:
 	bool shiftPressed = false;
 	bool cursorLocked = true;
 	bool grabEnabled = false;
+	aa::vec2 grabMouseOrigin;
 	bool xLocked = false;
 	bool yLocked = false;
 	bool zLocked = false;
@@ -43,6 +44,7 @@ public:
 	void LeftMouseClick();
 	void DrawCursorOverlay();
 	void MoveSelectedObjects(aa::vec3 translation);
+	aa::vec3 unlockedTranslationBackup = aa::vec3(0.0f, 0.0f, 0.0f);
 	Shape* selectedShape = NULL;
 	void ConfirmObjectMovement(); // TODO add floating axis during locked movement, save the movement for use after axis change
 	void CancellObjectMovement();
@@ -51,10 +53,6 @@ public:
 	Axis movementAxis;
 	Shader shader;
 	void DrawScene(GLFWwindow* window);
-	void Scale(aa::vec3 s);
-	void Rotate(float angle, aa::vec3 axis);
-	void Translate(aa::vec3 t);
-	void resetSceneMatrix();
 	Grid grid = Grid::getInstance();
 	bool stereoscopy = false;
 	aa::vec3 sceneScale = aa::vec3(1.0f, 1.0f, 1.0f);
