@@ -15,11 +15,11 @@ public:
 	virtual void Draw(Shader& shader) = 0;
 	void Scale(aa::vec3 s);
 	void Rotate(float angle, aa::vec3 axis);
-	void Translate(aa::vec3 t);
+	virtual void Translate(aa::vec3 t);
 	void setModel(aa::mat4 m);
 	void resetModel();
-	void ConfirmTransformations();
-	void CancelTransformations();
+	virtual void ConfirmTransformations();
+	virtual void CancelTransformations();
 	virtual void PrintImGuiOptions() = 0;
 	void PrintImGuiTransformOptions();
 	std::string Name() { return shapeName; }
@@ -101,10 +101,14 @@ public:
 	void Draw(Shader& shader);
 	void UpdatePosition(Camera& camera, double xpos, double ypos, bool xLocked, bool yLocked, bool zLocked);
 	void PrintImGuiOptions();
+	void Translate(aa::vec3 t) override;
+	void ConfirmTransformations() override;
+	void CancelTransformations() override;
 	aa::vec3 getPosition();
 private:
 	Cursor();
 	aa::vec3 location = aa::vec3(0.0f,0.0f,0.0f);
+	aa::vec3 locationBackup = aa::vec3(0.0f, 0.0f, 0.0f);
 	unsigned int VAO, VBO, EBO;
 };
 

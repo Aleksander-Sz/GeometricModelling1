@@ -440,9 +440,12 @@ Cursor& Cursor::getInstance()
 }
 void Cursor::Draw(Shader &shader)
 {
+	model[3][0] = location[0];
+	model[3][1] = location[1];
+	model[3][2] = location[2];
 	glBindVertexArray(VAO);
 	shader.use();
-	shader.setMat4("model", aa::scale(aa::translate(aa::mat4(1.0f), location), aa::vec3(0.1f, 0.1f, 0.1f)));
+	shader.setMat4("model", model);
 	//shader.setVec3("color", aa::vec3(1.0f, 0.0f, 1.0f));
 	shader.setMat4("scene", aa::mat4(1.0f));
 	//glLineWidth(5);
@@ -454,6 +457,7 @@ void Cursor::Draw(Shader &shader)
 Cursor::Cursor()
 {
 	shapeName = "3D Cursor";
+	model = aa::scale(aa::vec3(0.1f, 0.1f, 0.1f));
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -524,10 +528,21 @@ void Cursor::PrintImGuiOptions()
 		{
 			location = aa::vec3(0.0f, 0.0f, 0.0f);
 		}
-		model[3][0] = location[0];
-		model[3][1] = location[1];
-		model[3][2] = location[2];
 	}
+}
+
+void Cursor::Translate(aa::vec3 t)
+{
+	location = locationBackup + t;
+}
+
+void Cursor::ConfirmTransformations()
+{
+	locationBackup = location;
+}
+void Cursor::CancelTransformations()
+{
+	location = locationBackup;
 }
 
 // Axis class functions
