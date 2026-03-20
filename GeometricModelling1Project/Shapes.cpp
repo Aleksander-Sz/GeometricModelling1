@@ -449,7 +449,7 @@ void Cursor::Draw(Shader &shader)
 	//shader.setVec3("color", aa::vec3(1.0f, 0.0f, 1.0f));
 	shader.setMat4("scene", aa::mat4(1.0f));
 	//glLineWidth(5);
-	glLineWidth((selected ? 15.0f : 5.0f)); //alter Cursor width based on selection
+	glLineWidth((selected ? 6.0f : 3.0f)); //alter Cursor width based on selection
 	shader.setVec3("color", (selected ? aa::vec3(1.0f, 0.8f, 0.6f) : aa::vec3(1.0f, 0.0f, 1.0f)));
 	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -521,13 +521,13 @@ aa::vec3 Cursor::getPosition()
 }
 void Cursor::PrintImGuiOptions()
 {
-	//static aa::vec4 newCursorPosition = aa::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-	if (ImGui::DragFloat3("Cursor position", aa::value_ptr(location), 0.1f, -20.0f, 20.0f, "%.3f"))
+	if (ImGui::DragFloat3("Cursor position", aa::value_ptr(location), 0.01f, -20.0f, 20.0f, "%.3f"))
 	{
 		if (aa::length(location) > 40.0f)
 		{
 			location = aa::vec3(0.0f, 0.0f, 0.0f);
 		}
+		locationBackup = location;
 	}
 }
 

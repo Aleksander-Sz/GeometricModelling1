@@ -157,11 +157,17 @@ void Scene::DrawCursorOverlay()
 	ImGui::Text("2D Position:");
     ImGui::Text("X: %.1f", lastX);
     ImGui::Text("Y: %.1f", lastY);
+    ImGui::Separator();
 	ImGui::Text("3D Cursor:");
-	aa::vec3  cursorPos = cursor.getPosition();
-	ImGui::Text("X: %.2f", cursorPos.x);
-	ImGui::Text("Y: %.2f", cursorPos.y);
-	ImGui::Text("Z: %.2f", cursorPos.z);
+    ImGui::Text("Position:");
+	aa::vec3 cursorPos3D = cursor.getPosition();
+	ImGui::Text("X: %.2f", cursorPos3D.x);
+	ImGui::Text("Y: %.2f", cursorPos3D.y);
+	ImGui::Text("Z: %.2f", cursorPos3D.z);
+    ImGui::Text("Screen Pos:");
+    aa::vec2 cursorPos2D = cursor.getScreenSpacePosition(camera);
+    ImGui::Text("X: %.2f", cursorPos2D.x);
+    ImGui::Text("Y: %.2f", cursorPos2D.y);
     ImGui::End();
 }
 void Scene::MoveSelectedObjects(aa::vec3 translation)

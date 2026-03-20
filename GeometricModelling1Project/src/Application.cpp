@@ -431,64 +431,6 @@ int main()
 			if (scene->sceneScale.z > 10.0f)
 				scene->sceneScale.z = 10.0f;
 		}
-		/*if (false && ImGui::CollapsingHeader("Scene Transformations")) // temporarily disabled, as it is outside of the scope of project 2
-		{
-			static bool relativeToCursor = false;
-			static aa::vec3 scale(1.0f);
-			static float rotationX = 0.0f;
-			static float rotationY = 0.0f;
-			static float rotationZ = 0.0f;
-			static aa::vec3 translation(0.0f);
-			ImGui::Checkbox("Transform relatively to the cursor", &relativeToCursor);
-			ImGui::InputFloat3("Scale", aa::value_ptr(scale));
-			if (ImGui::Button("Apply Scale"))
-			{
-				if (relativeToCursor)
-					scene->Translate(-scene->cursor.getPosition());
-				scene->Scale(scale);
-				if (relativeToCursor)
-					scene->Translate(scene->cursor.getPosition());
-			}
-			ImGui::DragFloat("Rotation X", &rotationX, 1.0f, -180.0f, 180.0f, "%.0f");
-			if (ImGui::Button("Apply Rotation X"))
-			{
-				if (relativeToCursor)
-					scene->Translate(-scene->cursor.getPosition());
-				scene->Rotate(rotationX, aa::vec3(1.0f, 0.0f, 0.0f));
-				if (relativeToCursor)
-					scene->Translate(scene->cursor.getPosition());
-			}
-			ImGui::DragFloat("Rotation Y", &rotationY, 1.0f, -180.0f, 180.0f, "%.0f");
-			if (ImGui::Button("Apply Rotation Y"))
-			{
-				if (relativeToCursor)
-					scene->Translate(-scene->cursor.getPosition());
-				scene->Rotate(rotationY, aa::vec3(0.0f, 1.0f, 0.0f));
-				if (relativeToCursor)
-					scene->Translate(scene->cursor.getPosition());
-			}
-			ImGui::DragFloat("Rotation Z", &rotationZ, 1.0f, -180.0f, 180.0f, "%.0f");
-			if (ImGui::Button("Apply Rotation Z"))
-			{
-				if (relativeToCursor)
-					scene->Translate(-scene->cursor.getPosition());
-				scene->Rotate(rotationZ, aa::vec3(0.0f, 0.0f, 1.0f));
-				if (relativeToCursor)
-					scene->Translate(scene->cursor.getPosition());
-			}
-			ImGui::InputFloat3("Translation", aa::value_ptr(translation));
-			if (ImGui::Button("Apply Translation"))
-			{
-				scene->Translate(translation);
-			}
-			if (ImGui::Button("Reset Transformations"))
-			{
-				scene->resetSceneMatrix();
-				scale = aa::vec3(1.0f);
-				rotationX = rotationY = rotationZ = 0.0f;
-				translation = aa::vec3(0.0f);
-			}
-		}*/
 		ImGui::Separator();
 		ImGui::Text("Object parameters:");
 		for (int i = 0; i < scene->shapes.size(); i++)
