@@ -49,6 +49,7 @@ public:
 	void ConfirmObjectMovement(); // TODO add floating axis during locked movement, save the movement for use after axis change
 	void CancellObjectMovement();
 	void DeselectEverything();
+	void DeleteSelectedObjects();
 	aa::vec3 currentTranslationOrigin = aa::vec3(0.0f);
 	Axis movementAxis;
 	Shader shader;

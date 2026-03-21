@@ -12,10 +12,12 @@
 class Shape
 {
 public:
+	virtual ~Shape() = default;
 	virtual void Draw(Shader& shader) = 0;
 	void Scale(aa::vec3 s);
 	void Rotate(float angle, aa::vec3 axis);
 	virtual void Translate(aa::vec3 t);
+	void TranslateAndConfirm(aa::vec3 t);
 	void setModel(aa::mat4 m);
 	void resetModel();
 	virtual void ConfirmTransformations();

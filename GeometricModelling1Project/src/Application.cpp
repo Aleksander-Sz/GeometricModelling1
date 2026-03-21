@@ -390,12 +390,12 @@ int main()
 
 	// Rendering commands here
 	
-	Torus torus(1.0f, 0.3f, 50, 50);
-	scene->shapes.push_back(&torus);
+	Torus* torus = new Torus(1.0f, 0.3f, 50, 50);
+	scene->shapes.push_back(torus);
 	//Point point(aa::vec3(0.0f, 0.1f, 0.0f));
 	//scene->shapes.push_back(&point);
-	torus.Rotate(90.0f,aa::vec3(1.0f,0.0f,0.0f));
-	torus.ConfirmTransformations();
+	torus->Rotate(90.0f,aa::vec3(1.0f,0.0f,0.0f));
+	torus->ConfirmTransformations();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -467,6 +467,7 @@ int main()
 				{
 					scene->grabEnabled = false;
 					scene->DeselectEverything();
+					delete scene->shapes[i];
 					scene->shapes.erase(scene->shapes.begin() + i);
 				}
 			}
@@ -479,6 +480,7 @@ int main()
 		ImGui::Combo("Shapes", &current_item_index, items, IM_ARRAYSIZE(items));
 		if (ImGui::Button("Add Shape"))
 		{
+			bool wasAShapeAdded = true;
 			switch (current_item_index)
 			{
 			case 0:
@@ -489,15 +491,16 @@ int main()
 				break;
 				scene->shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
 				break;
-			case 2:
-				std::cout << "This option has been locked, as it is out of the scope of MKMG.\n";
-				break;
+			case 2: 
 				scene->shapes.push_back(new Point(aa::vec3(0.0f, 0.0f, 0.0f)));
 				break;
 			default:
 				std::cerr << "Shape not implemented yet.\n";
+				wasAShapeAdded = false;
 				break;
 			}
+			if(wasAShapeAdded)
+				scene->shapes[scene->shapes.size()-1]->TranslateAndConfirm(scene->cursor.getPosition());
 		}
 		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 

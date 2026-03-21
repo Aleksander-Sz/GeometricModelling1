@@ -45,6 +45,11 @@ void Shape::Translate(aa::vec3 t)
 	aa::mat4 translationMatrix = aa::mat4(aa::vec4(1.0f, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, 1.0f, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, 1.0f, 0.0f), aa::vec4(t.x, t.y, t.z, 1.0f));
 	model = translationMatrix * modelBackup;
 }
+void Shape::TranslateAndConfirm(aa::vec3 t)
+{
+	Translate(t);
+	ConfirmTransformations();
+}
 void Shape::setModel(aa::mat4 m)
 {
 	modelBackup = model = m;

@@ -228,6 +228,18 @@ void Scene::DeselectEverything()
         shapes[i]->Select(true);
     }
 }
+void Scene::DeleteSelectedObjects()
+{
+    selectedShape = NULL;
+    for (int i = 0; i < shapes.size(); i++)
+    {
+        if (shapes[i]->isSelected())
+        {
+            delete shapes[i];
+            shapes.erase(shapes.begin() + i);
+        }
+    }
+}
 void Scene::DrawScene(GLFWwindow* window)
 {
     glDisable(GL_DEPTH_TEST); // temporary, might work, but I don't know
