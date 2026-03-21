@@ -18,6 +18,7 @@ public:
 	bool cPressed = false;
 	bool lPressed = false;
 	bool gPressed = false;
+	bool fPressed = false;
 	bool xPressed = false;
 	bool yPressed = false;
 	bool zPressed = false;
@@ -28,6 +29,7 @@ public:
 	bool shiftPressed = false;
 	bool cursorLocked = true;
 	bool grabEnabled = false;
+	bool scalingEnabled = false;
 	aa::vec2 grabMouseOrigin;
 	bool xLocked = false;
 	bool yLocked = false;
@@ -36,6 +38,7 @@ public:
 	void LockYAxis();
 	void LockZAxis();
 	void toggleGrab();
+	void toggleScaling();
 	double mouseLeftPressTime;
 	double AltPressTime;
 	aa::vec2 mouseLeftPressPosition;
@@ -46,6 +49,7 @@ public:
 	void LeftMouseClick();
 	void DrawCursorOverlay();
 	void MoveSelectedObjects(aa::vec3 translation);
+	void ScaleSelectedObjects(float factor);
 	aa::vec3 unlockedTranslationBackup = aa::vec3(0.0f, 0.0f, 0.0f);
 	Shape* selectedShape = NULL;
 	void ConfirmObjectMovement(); // TODO add floating axis during locked movement, save the movement for use after axis change
@@ -56,6 +60,7 @@ public:
 	void EndBoxSelect(aa::vec2 location);
 	bool boxSelectActive = false;
 	aa::vec3 currentTranslationOrigin = aa::vec3(0.0f);
+	aa::vec2 getTransformationCenterScreenSpacePosition();
 	Axis movementAxis;
 	Shader shader;
 	void DrawScene(GLFWwindow* window);

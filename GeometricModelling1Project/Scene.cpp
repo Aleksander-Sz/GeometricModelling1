@@ -55,10 +55,27 @@ void Scene::toggleGrab()
 		}
         else
         {
-            //currentTranslationOrigin = (sceneMatrix * aa::vec4(selectedShape->getPosition(), 1.0f)).xyz;
             grabMouseOrigin = aa::vec2(lastX, lastY);
         }
         grabEnabled = !grabEnabled;
+    }
+}
+void Scene::toggleScaling()
+{
+    xLocked = false;
+    yLocked = false;
+    zLocked = false;
+    if (selectedShape != nullptr)
+    {
+        if (scalingEnabled)
+        {
+            ConfirmObjectMovement();
+        }
+        else
+        {
+            grabMouseOrigin = aa::vec2(lastX, lastY);
+        }
+        scalingEnabled = !scalingEnabled;
     }
 }
 void Scene::UpdateCursorPosition(double xpos, double ypos)
@@ -200,6 +217,18 @@ void Scene::MoveSelectedObjects(aa::vec3 translation)
         }
     }
 }
+void Scene::ScaleSelectedObjects(float factor)
+{
+    aa::vec3 scaling = aa::vec3(factor, factor, factor);
+    for (Shape* shape : shapes)
+    {
+        if (shape->isSelected())
+        {
+            scaling = (inverseSceneMatrix * aa::vec4(scaling, 1.0f)).xyz;
+            shape->Scale(scaling);
+        }
+    }
+}
 void Scene::CancellObjectMovement()
 {
     for (Shape* shape : shapes)
@@ -263,6 +292,22 @@ void Scene::EndBoxSelect(aa::vec2 location)
         }
     }
 }
+aa::vec2 Scene::getTransformationCenterScreenSpacePosition()
+{
+    // clip space transform
+    aa::vec4 clipSpacePos = camera.projection() * camera.view() * aa::vec4(currentTranslationOrigin, 1.0f);
+    // Perspective Division
+    if (clipSpacePos.w != 0.0f) {
+        aa::vec3 ndc = clipSpacePos.xyz / clipSpacePos.w;
+
+        float screenX = ((ndc.x + 1.0f) / 2.0f) * camera.windowWidth;
+        float screenY = ((1.0f - ndc.y) / 2.0f) * camera.windowHeight;
+
+        return aa::vec2(screenX, screenY);
+    }
+
+    return aa::vec2(-1.0f);
+}
 void Scene::DrawScene(GLFWwindow* window)
 {
     glDisable(GL_DEPTH_TEST); // temporary, might work, but I don't know
@@ -280,6 +325,7 @@ void Scene::DrawScene(GLFWwindow* window)
     else
         shader.setMat4("projection", camera.projection());
     sceneMatrix = aa::scale(sceneScale);
+    inverseSceneMatrix = aa::scale(aa::vec3(1.0f / sceneScale.x, 1.0f / sceneScale.y, 1.0f / sceneScale.z));
     shader.setMat4("scene", sceneMatrix);
     if(stereoscopy)
         glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
@@ -316,10 +362,17 @@ void Scene::DrawScene(GLFWwindow* window)
             centerOfMass += shapes[i]->getPosition();
         }
     }
-    if (selectedCount > 1)
+    if (selectedCount > 0)
     {
         currentTranslationOrigin = centerOfMass / selectedCount;
-        centerOfGravityIndicator.Draw(shader, currentTranslationOrigin);
+        if (selectedCount > 1)
+        {
+            centerOfGravityIndicator.Draw(shader, currentTranslationOrigin);
+        }
+    }
+    else
+    {
+        currentTranslationOrigin = cursor.getPosition();
     }
 
     //Box Select

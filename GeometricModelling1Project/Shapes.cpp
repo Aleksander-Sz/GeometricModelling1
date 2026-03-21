@@ -9,7 +9,7 @@ void Shape::Scale(aa::vec3 s)
 {
 	//model = aa::scale(model, s);
 	aa::mat4 scaleMatrix = aa::mat4(aa::vec4(s.x, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, s.y, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, s.z, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-	model = scaleMatrix * model;
+	model = scaleMatrix * modelBackup;
 }
 void Shape::Rotate(float angle, aa::vec3 axis)
 {
@@ -29,7 +29,7 @@ void Shape::Rotate(float angle, aa::vec3 axis)
 		std::cerr << "Rotation axis must be one of the cardinal axes (x,y,z).\n";
 		return;
 	}
-	model = rotationMatrix * model;
+	model = rotationMatrix * modelBackup;
 }
 void Shape::Translate(aa::vec3 t)
 {
@@ -607,7 +607,7 @@ Axis::Axis(char _axis)
 		std::cerr << "Invalid axis specified, defaulting to x-axis.\n";
 		break;
 	}
-	model = aa::scale(model, aa::vec3(10.0f, 10.0f, 10.0f));
+	model = aa::scale(model, aa::vec3(100.0f, 100.0f, 100.0f));
 	this->SetAxis(model, color);
 }
 void Axis::SetAxis(aa::mat4 _model, aa::vec3 _color)

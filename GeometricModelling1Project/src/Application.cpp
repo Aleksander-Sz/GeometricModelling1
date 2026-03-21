@@ -101,6 +101,14 @@ void processInput(GLFWwindow* window)
 	}
 	if (glfwGetKey(window, GRAB_KEY) == GLFW_RELEASE)
 		scene->gPressed = false;
+	if (glfwGetKey(window, SCALE_KEY) == GLFW_PRESS)
+	{
+		if (!scene->fPressed)
+			scene->toggleScaling();
+		scene->fPressed = true;
+	}
+	if (glfwGetKey(window, SCALE_KEY) == GLFW_RELEASE)
+		scene->fPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
 	{
 		if (!scene->xPressed)
@@ -266,12 +274,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	}
 	else
 	{
-		if (scene->grabEnabled)
+		if (scene->grabEnabled||scene->scalingEnabled)
 		{
-			//float sensitivity = 0.003f;
-			//xOffset *= sensitivity;
-			//yOffset *= sensitivity;
-
 			float distance = aa::length(scene->selectedShape->getPosition() - scene->camera.cameraPos);
 
 			float fovRad = aa::radians(scene->camera.zoom); // assuming zoom = FOV
@@ -289,10 +293,21 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			aa::vec3 worldDelta =
 				right * (xOffsetSinceMoveStart * worldPerPixel)
 				- up * (yOffsetSinceMoveStart * worldPerPixel);
-			scene->MoveSelectedObjects(worldDelta);
+			if (scene->grabEnabled)
+				scene->MoveSelectedObjects(worldDelta);
+			else if (scene->scalingEnabled)
+			{
+				aa::vec2 scalingOrigin = scene->getTransformationCenterScreenSpacePosition();
+				float startDistance = aa::distance(scalingOrigin, scene->grabMouseOrigin);
+				float endDistance = aa::distance(scalingOrigin, aa::vec2(xpos, ypos));
+				if (startDistance > 5.0f)
+				{
+					float factor = endDistance / startDistance;
+					std::cout << factor << "\n";
+					scene->ScaleSelectedObjects(factor);
+				}
+			}
 		}
-		if (!scene->cursorLocked)
-			scene->UpdateCursorPosition(xpos, ypos);
 	}
 	scene->lastX = xpos;
 	scene->lastY = ypos;
