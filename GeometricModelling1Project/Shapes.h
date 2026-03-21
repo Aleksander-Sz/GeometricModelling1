@@ -102,7 +102,9 @@ class Cursor : public Shape
 {
 public:
 	static Cursor& getInstance();
+	static Cursor& centerOfGravityIndicator();
 	void Draw(Shader& shader);
+	void Draw(Shader& shader, aa::vec3 position);
 	void UpdatePosition(Camera& camera, double xpos, double ypos, bool xLocked, bool yLocked, bool zLocked);
 	void PrintImGuiOptions();
 	void Translate(aa::vec3 t) override;
@@ -110,19 +112,20 @@ public:
 	void CancelTransformations() override;
 	aa::vec3 getPosition();
 private:
-	Cursor();
+	Cursor(bool _isCenterOfGravity = false);
 	aa::vec3 location = aa::vec3(0.0f,0.0f,0.0f);
 	aa::vec3 locationBackup = aa::vec3(0.0f, 0.0f, 0.0f);
 	unsigned int VAO, VBO, EBO;
+	bool isCenterOfGravity = false;
 };
 
 class Axis
 {
 public:
 	Axis();
-	Axis(char _axis, aa::vec3 translationOrigin);
+	Axis(char _axis);
 	void SetAxis(aa::mat4 _model, aa::vec3 _color);
-	void Draw(Shader& shader, char eye = 0);
+	void Draw(Shader& shader, aa::vec3 translationOrigin, char eye = 0);
 private:
 	unsigned int VAO = 0, VBO = 0;
 	aa::mat4 model = aa::mat4(1.0f);

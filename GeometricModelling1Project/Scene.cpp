@@ -14,7 +14,7 @@ void Scene::LockXAxis()
     {
         yLocked = false;
         zLocked = false;
-        movementAxis = Axis('x', currentTranslationOrigin);
+        movementAxis = Axis('x');
     }
     MoveSelectedObjects(unlockedTranslationBackup);
 }
@@ -26,7 +26,7 @@ void Scene::LockYAxis()
     {
         xLocked = false;
         zLocked = false;
-        movementAxis = Axis('y', currentTranslationOrigin);
+        movementAxis = Axis('y');
     }
     MoveSelectedObjects(unlockedTranslationBackup);
 }
@@ -38,7 +38,7 @@ void Scene::LockZAxis()
     {
         xLocked = false;
         yLocked = false;
-        movementAxis = Axis('z', currentTranslationOrigin);
+        movementAxis = Axis('z');
     }
     MoveSelectedObjects(unlockedTranslationBackup);
 }
@@ -47,7 +47,7 @@ void Scene::toggleGrab()
     xLocked = false;
     yLocked = false;
     zLocked = false;
-	if (selectedShape != NULL)
+	if (selectedShape != nullptr)
     {
         if(grabEnabled)
         {
@@ -55,7 +55,7 @@ void Scene::toggleGrab()
 		}
         else
         {
-            currentTranslationOrigin = (sceneMatrix * aa::vec4(selectedShape->getPosition(), 1.0f)).xyz;
+            //currentTranslationOrigin = (sceneMatrix * aa::vec4(selectedShape->getPosition(), 1.0f)).xyz;
             grabMouseOrigin = aa::vec2(lastX, lastY);
         }
         grabEnabled = !grabEnabled;
@@ -259,6 +259,7 @@ void Scene::EndBoxSelect(aa::vec2 location)
         if (shapeLocation.x >= leftBoundry && shapeLocation.x <= rightBoundry && shapeLocation.y >= bottomBoundry && shapeLocation.y <= topBoundry)
         {
             shapes[i]->Select();
+            selectedShape = shapes[i];
         }
     }
 }
@@ -288,7 +289,7 @@ void Scene::DrawScene(GLFWwindow* window)
         shapes[i]->Draw(shader);
     cursor.Draw(shader);
     if (grabEnabled && (xLocked || yLocked || zLocked))
-        movementAxis.Draw(shader, 'R');
+        movementAxis.Draw(shader, currentTranslationOrigin, 'R');
     if (stereoscopy)
     {
         glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -300,8 +301,25 @@ void Scene::DrawScene(GLFWwindow* window)
             shapes[i]->Draw(shader);
         cursor.Draw(shader);
         if (grabEnabled && (xLocked || yLocked || zLocked))
-            movementAxis.Draw(shader, 'L');
+            movementAxis.Draw(shader, currentTranslationOrigin, 'L');
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    }
+
+    //Multiple Selection Center Of Gravity
+    int selectedCount = 0;
+    aa::vec3 centerOfMass = aa::vec3(0.0f, 0.0f, 0.0f);
+    for (int i = 1; i < shapes.size(); i++)
+    {
+        if (shapes[i]->isSelected())
+        {
+            selectedCount++;
+            centerOfMass += shapes[i]->getPosition();
+        }
+    }
+    if (selectedCount > 1)
+    {
+        currentTranslationOrigin = centerOfMass / selectedCount;
+        centerOfGravityIndicator.Draw(shader, currentTranslationOrigin);
     }
 
     //Box Select

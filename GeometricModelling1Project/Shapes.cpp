@@ -450,7 +450,12 @@ void Grid::Draw(Camera &camera, char eye)
 // Cursor class functions
 Cursor& Cursor::getInstance()
 {
-	static Cursor instance;
+	static Cursor instance(false);
+	return instance;
+}
+Cursor& Cursor::centerOfGravityIndicator()
+{
+	static Cursor instance(true);
 	return instance;
 }
 void Cursor::Draw(Shader &shader)
@@ -465,14 +470,28 @@ void Cursor::Draw(Shader &shader)
 	shader.setMat4("scene", aa::mat4(1.0f));
 	//glLineWidth(5);
 	glLineWidth((selected ? 6.0f : 3.0f)); //alter Cursor width based on selection
-	shader.setVec3("color", (selected ? aa::vec3(1.0f, 0.8f, 0.6f) : aa::vec3(1.0f, 0.0f, 1.0f)));
+	aa::vec3 color = aa::vec3(1.0f, 0.0f, 1.0f);
+	if (selected)
+		color = aa::vec3(1.0f, 0.8f, 0.6f);
+	if (isCenterOfGravity)
+		color = aa::vec3(1.0f, 0.0f, 0.0f);
+	shader.setVec3("color", color);
 	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
-Cursor::Cursor()
+void Cursor::Draw(Shader& shader, aa::vec3 position)
 {
+	locationBackup = location = position;
+	Draw(shader);
+}
+Cursor::Cursor(bool _isCenterOfGravity)
+{
+	isCenterOfGravity = _isCenterOfGravity;
 	shapeName = "3D Cursor";
-	model = aa::scale(aa::vec3(0.1f, 0.1f, 0.1f));
+	float size = 0.1f;
+	if (isCenterOfGravity)
+		size = 0.04;
+	model = aa::scale(aa::vec3(size, size, size));
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -568,7 +587,7 @@ Axis::Axis()
 	VAO = 0;
 	VBO = 0;
 }
-Axis::Axis(char _axis, aa::vec3 translationOrigin)
+Axis::Axis(char _axis)
 {
 	model = aa::mat4::identity();
 	switch (_axis)
@@ -589,7 +608,6 @@ Axis::Axis(char _axis, aa::vec3 translationOrigin)
 		break;
 	}
 	model = aa::scale(model, aa::vec3(10.0f, 10.0f, 10.0f));
-	model = aa::translate(model, translationOrigin);
 	this->SetAxis(model, color);
 }
 void Axis::SetAxis(aa::mat4 _model, aa::vec3 _color)
@@ -609,11 +627,11 @@ void Axis::SetAxis(aa::mat4 _model, aa::vec3 _color)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 	glBindVertexArray(0);
 }
-void Axis::Draw(Shader& shader, char eye)
+void Axis::Draw(Shader& shader, aa::vec3 translationOrigin, char eye)
 {
 	shader.use();
 	glBindVertexArray(VAO);
-	shader.setMat4("model", model);
+	shader.setMat4("model", aa::translate(model, translationOrigin));
 	shader.setVec3("color", color);
 	glLineWidth(1.0f);
 	glDrawArrays(GL_LINES, 0, 2);

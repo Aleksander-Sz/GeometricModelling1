@@ -67,6 +67,7 @@ private:
 	aa::mat4 sceneMatrix = aa::mat4(1.0f);
 	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);
 	BoxSelect boxSelect = BoxSelect::getInstance();
+	Cursor centerOfGravityIndicator = Cursor::centerOfGravityIndicator();
 };
 
 #endif
