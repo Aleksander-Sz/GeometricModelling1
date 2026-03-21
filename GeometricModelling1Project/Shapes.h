@@ -12,7 +12,7 @@
 class Shape
 {
 public:
-	virtual ~Shape() = default;
+	virtual ~Shape();
 	virtual void Draw(Shader& shader) = 0;
 	void Scale(aa::vec3 s);
 	void Rotate(float angle, aa::vec3 axis);
@@ -32,19 +32,21 @@ public:
 	bool isSelected();
 protected:
 	bool dirty = true;
-	unsigned int VAO, VBO;
+	unsigned int VAO = 0, VBO = 0;
 	aa::mat4 model = aa::mat4(1.0f);
 	aa::mat4 modelBackup = aa::mat4(1.0f);
 	bool selected = false;
 	std::string shapeName;
 };
+
 class Meshable : public Shape
 {
 public:
+	~Meshable() override;
 	void Draw(Shader& shader) override;
 	virtual void Mesh() = 0;
 protected:
-	unsigned int EBO;
+	unsigned int EBO = 0;
 	std::vector<float> vertices;
 	std::vector<unsigned int> indices;
 };
@@ -89,7 +91,7 @@ class Grid
 {
 public:
 	void Draw(Camera &camera, char eye = 0);
-	static Grid getInstance();
+	static Grid& getInstance();
 private:
 	Grid();
 	unsigned int VAO, VBO, EBO;
@@ -125,5 +127,16 @@ private:
 	unsigned int VAO = 0, VBO = 0;
 	aa::mat4 model = aa::mat4(1.0f);
 	aa::vec3 color = aa::vec3(0.0f);
+};
+
+class BoxSelect
+{
+public:
+	static BoxSelect& getInstance();
+	void Draw(aa::vec2 tl, aa::vec2 br);
+private:
+	BoxSelect();
+	unsigned int VAO, VBO, EBO;
+	Shader boxSelectShader = Shader("Shaders/BoxSelectVertexShader.glsl", "Shaders/BoxSelectFragmentShader.glsl");
 };
 #endif

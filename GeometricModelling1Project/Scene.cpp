@@ -240,6 +240,28 @@ void Scene::DeleteSelectedObjects()
         }
     }
 }
+void Scene::StartBoxSelect(aa::vec2 location)
+{
+    boxSelectOrigin = location;
+    boxSelectActive = true;
+}
+void Scene::EndBoxSelect(aa::vec2 location)
+{
+    DeselectEverything();
+    boxSelectActive = false;
+    int leftBoundry     = std::min(boxSelectOrigin.x, location.x);
+    int rightBoundry    = std::max(boxSelectOrigin.x, location.x);
+    int topBoundry      = std::max(boxSelectOrigin.y, location.y);
+    int bottomBoundry   = std::min(boxSelectOrigin.y, location.y);
+    for (int i = 1; i < shapes.size(); i++)
+    {
+        aa::vec2 shapeLocation = shapes[i]->getScreenSpacePosition(camera);
+        if (shapeLocation.x >= leftBoundry && shapeLocation.x <= rightBoundry && shapeLocation.y >= bottomBoundry && shapeLocation.y <= topBoundry)
+        {
+            shapes[i]->Select();
+        }
+    }
+}
 void Scene::DrawScene(GLFWwindow* window)
 {
     glDisable(GL_DEPTH_TEST); // temporary, might work, but I don't know
@@ -280,5 +302,13 @@ void Scene::DrawScene(GLFWwindow* window)
         if (grabEnabled && (xLocked || yLocked || zLocked))
             movementAxis.Draw(shader, 'L');
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    }
+
+    //Box Select
+    if (boxSelectActive)
+    {
+        aa::vec2 tl(boxSelectOrigin.x / camera.windowWidth * 2.0f - 1.0f, boxSelectOrigin.y / camera.windowHeight * -2.0f + 1.0f);
+        aa::vec2 br(lastX / camera.windowWidth * 2.0f - 1.0f, lastY / camera.windowHeight * -2.0f + 1.0f);
+        boxSelect.Draw(tl, br);
     }
 }

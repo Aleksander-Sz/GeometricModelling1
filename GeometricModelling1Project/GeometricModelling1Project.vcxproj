@@ -153,6 +153,8 @@
     <ClCompile Include="src\Application.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\BoxSelectFragmentShader.glsl" />
+    <None Include="Shaders\BoxSelectVertexShader.glsl" />
     <None Include="Shaders\FragmentShader.glsl" />
     <None Include="Shaders\GridFragmentShader.glsl" />
     <None Include="Shaders\GridVertexShader.glsl" />

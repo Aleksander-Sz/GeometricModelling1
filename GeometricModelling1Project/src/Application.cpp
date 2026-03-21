@@ -135,6 +135,10 @@ void processInput(GLFWwindow* window)
 		scene->AltPressed = true;
 	if (glfwGetKey(window, CAMERA_ORBIT_KEY) == GLFW_RELEASE)
 		scene->AltPressed = false;
+	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		scene->CtrlPressed = true;
+	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_RELEASE)
+		scene->CtrlPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_DELETE) == GLFW_PRESS)
 		scene->DeleteSelectedObjects();
 }
@@ -150,6 +154,15 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		scene->firstMovement = true; // Reset first movement flag when the button is pressed
 		scene->mouseLeftPressTime = glfwGetTime();
 		scene->mouseLeftPressPosition = aa::vec2(scene->lastX, scene->lastY);
+
+		// Box select
+		if (scene->CtrlPressed)
+		{
+			if (!scene->boxSelectActive)
+			{
+				scene->StartBoxSelect(aa::vec2(scene->lastX, scene->lastY));
+			}
+		}
 	}
 	else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
 	{
@@ -159,6 +172,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		if (mouseReleaseTime - scene->mouseLeftPressTime <= 0.2 && movement < 5.0f)
 		{
 			scene->LeftMouseClick();
+		}
+		if (scene->boxSelectActive)
+		{
+			scene->EndBoxSelect(aa::vec2(scene->lastX, scene->lastY));
 		}
 	}
 }
@@ -189,6 +206,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 			scene->camera.cameraPos += yOffset * aa::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
 			scene->camera.cameraPos -= xOffset * aa::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
+		}
+		else if (scene->boxSelectActive)
+		{
+			; // Do nothing
 		}
 		else
 		{
@@ -521,6 +542,7 @@ int main()
 		//rendering commands here
 		
 		scene->DrawScene(window);
+
 		// -----
 		float currentFrame = glfwGetTime();
 		scene->deltaTime = currentFrame - scene->lastFrame;

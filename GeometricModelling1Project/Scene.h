@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Shapes.h"
 #include <GLFW/glfw3.h>
+#include <algorithm>
 
 class Scene
 {
@@ -21,6 +22,7 @@ public:
 	bool yPressed = false;
 	bool zPressed = false;
 	bool AltPressed = false;
+	bool CtrlPressed = false;
 	bool EscPressed = false;
 	bool mouseLeftButtonPressed = false;
 	bool shiftPressed = false;
@@ -50,6 +52,9 @@ public:
 	void CancellObjectMovement();
 	void DeselectEverything();
 	void DeleteSelectedObjects();
+	void StartBoxSelect(aa::vec2 location);
+	void EndBoxSelect(aa::vec2 location);
+	bool boxSelectActive = false;
 	aa::vec3 currentTranslationOrigin = aa::vec3(0.0f);
 	Axis movementAxis;
 	Shader shader;
@@ -57,9 +62,11 @@ public:
 	Grid grid = Grid::getInstance();
 	bool stereoscopy = false;
 	aa::vec3 sceneScale = aa::vec3(1.0f, 1.0f, 1.0f);
+	aa::vec2 boxSelectOrigin;
 private:
 	aa::mat4 sceneMatrix = aa::mat4(1.0f);
 	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);
+	BoxSelect boxSelect = BoxSelect::getInstance();
 };
 
 #endif

@@ -1,17 +1,9 @@
 #include "Shapes.h"
 
 // Shape class functions
-void Meshable::Draw(Shader& shader)
-{
-	if (dirty)
-		Mesh();
-	shader.use();
-	glBindVertexArray(VAO);
-	shader.setMat4("model", model);
-	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
-	shader.setVec3("color", (selected ? aa::vec3(1.0f,1.0f,0.6f) : aa::vec3(1.0f,1.0f,1.0f)));
-	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
+Shape::~Shape() {
+	glDeleteBuffers(1, &VBO);
+	glDeleteVertexArrays(1, &VAO);
 }
 void Shape::Scale(aa::vec3 s)
 {
@@ -144,6 +136,24 @@ bool Shape::isSelected()
 {
 	return selected;
 }
+// Meshable class functions
+void Meshable::Draw(Shader& shader)
+{
+	if (dirty)
+		Mesh();
+	shader.use();
+	glBindVertexArray(VAO);
+	shader.setMat4("model", model);
+	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
+	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
+	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
+}
+Meshable::~Meshable()
+{
+	glDeleteBuffers(1, &EBO);
+}
+
 // Point class functions
 Point::Point(aa::vec3 coords)
 {
@@ -409,7 +419,7 @@ Grid::Grid()
 
 	glBindVertexArray(0);
 }
-Grid Grid::getInstance()
+Grid& Grid::getInstance()
 {
 	static Grid instance;
 	return instance;
@@ -607,5 +617,46 @@ void Axis::Draw(Shader& shader, char eye)
 	shader.setVec3("color", color);
 	glLineWidth(1.0f);
 	glDrawArrays(GL_LINES, 0, 2);
+	glBindVertexArray(0);
+}
+
+BoxSelect::BoxSelect()
+{
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	glBindVertexArray(VAO);
+	int vertices[] = {
+		0, 1, 2, 3
+	};
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	unsigned int indices[] = {
+		0, 1, 1, 3, 2, 3, 2, 0
+	};
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribIPointer(0, 1, GL_INT, 0, (void*)0);
+
+	glBindVertexArray(0);
+}
+BoxSelect& BoxSelect::getInstance()
+{
+	static BoxSelect instance;
+	return instance;
+}
+void BoxSelect::Draw(aa::vec2 tl, aa::vec2 br)
+{
+	glBindVertexArray(VAO);
+	glDisable(GL_DEPTH_TEST);
+	boxSelectShader.use();
+	boxSelectShader.setVec3("color", aa::vec3(1.0f, 1.0f, 0.0f));
+	boxSelectShader.setVec2("corner[0]", tl);
+	boxSelectShader.setVec2("corner[1]", br);
+	glPointSize(100);
+	glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
