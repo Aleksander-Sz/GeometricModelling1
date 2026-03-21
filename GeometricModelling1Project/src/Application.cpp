@@ -135,6 +135,8 @@ void processInput(GLFWwindow* window)
 		scene->AltPressed = true;
 	if (glfwGetKey(window, CAMERA_ORBIT_KEY) == GLFW_RELEASE)
 		scene->AltPressed = false;
+	if (glfwGetKey(window, GLFW_KEY_DELETE) == GLFW_PRESS)
+		scene->DeleteSelectedObjects();
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -432,46 +434,56 @@ int main()
 				scene->sceneScale.z = 10.0f;
 		}
 		ImGui::Separator();
-		ImGui::Text("Object parameters:");
-		for (int i = 0; i < scene->shapes.size(); i++)
+		if (ImGui::BeginListBox("##Object Selection", ImVec2(400, 200)))
 		{
-			ImGui::PushID(i);
-			std::string fullObjectName = scene->shapes[i]->Name();
-			if (scene->shapes[i]->Name() != "3D Cursor")
-				fullObjectName += " " + std::to_string(i);
-			if (ImGui::CollapsingHeader((fullObjectName).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+			for (int i = 0; i < scene->shapes.size(); i++)
 			{
-				char buffer[64] = "";
-				strcpy_s(buffer, (scene->shapes[i]->Name()).c_str());
-				if (scene->shapes[i]->Name()!="3D Cursor" && ImGui::InputText("Object name", buffer, IM_ARRAYSIZE(buffer)))
+				ImGui::PushID(i);
+				std::string fullObjectName = scene->shapes[i]->Name();
+				if (typeid(&(scene->shapes[i])) != typeid(Cursor))
+					fullObjectName += " " + std::to_string(i);
+				if (ImGui::Selectable((fullObjectName).c_str(), scene->shapes[i]->isSelected()))
 				{
-					std::string newName = std::string(buffer);
-					if (newName == "3D Cursor")
+					if (!scene->shiftPressed)
 					{
-						std::cerr << "Cannot set the name to '3D Cursor'\n";
+						scene->DeselectEverything();
 					}
-					else
-					{
-						scene->shapes[i]->setName(newName);
-					}
-				}
-				if (ImGui::Button("Select this object"))
-				{
 					scene->shapes[i]->Select();
 					scene->selectedShape = scene->shapes[i];
 				}
-				scene->shapes[i]->PrintImGuiOptions();
-				ImGui::Separator();
-				//scene->shapes[i]->PrintImGuiTransformOptions(); // Temporarily Disabled
-				if (scene->shapes[i]->Name() != "3D Cursor" && ImGui::Button("Delete object"))
+				ImGui::PopID();
+			}
+			ImGui::EndListBox();
+		}
+		ImGui::Text("Object parameters:");
+		Shape* shape = scene->selectedShape;
+		if (shape != nullptr)
+		{
+			char buffer[64] = "";
+			strcpy_s(buffer, (shape->Name()).c_str());
+			if (typeid(&(shape)) == typeid(Cursor) && ImGui::InputText("Object name", buffer, IM_ARRAYSIZE(buffer)))
+			{
+				std::string newName = std::string(buffer);
+				if (newName == "3D Cursor")
 				{
-					scene->grabEnabled = false;
-					scene->DeselectEverything();
-					delete scene->shapes[i];
-					scene->shapes.erase(scene->shapes.begin() + i);
+					std::cerr << "Cannot set the name to '3D Cursor'\n";
+				}
+				else
+				{
+					shape->setName(newName);
 				}
 			}
-			ImGui::PopID();
+			shape->PrintImGuiOptions();
+			ImGui::Separator();
+			//scene->shapes[i]->PrintImGuiTransformOptions(); // Temporarily Disabled
+			if (shape->Name() != "3D Cursor" && ImGui::Button("Delete object"))
+			{
+				scene->grabEnabled = false;
+				scene->DeselectEverything();
+				delete shape;
+				auto it = std::find(scene->shapes.begin(), scene->shapes.end(), shape);
+				scene->shapes.erase(it);
+			}
 		}
 		ImGui::Separator();
 		ImGui::Text("Add objects");

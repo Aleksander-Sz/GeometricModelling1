@@ -231,7 +231,7 @@ void Scene::DeselectEverything()
 void Scene::DeleteSelectedObjects()
 {
     selectedShape = NULL;
-    for (int i = 0; i < shapes.size(); i++)
+    for (int i = 1; i < shapes.size(); i++)
     {
         if (shapes[i]->isSelected())
         {
