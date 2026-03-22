@@ -35,10 +35,12 @@ void processInput(GLFWwindow* window)
 	{
 		if (!scene->EscPressed)
 		{
-			if (scene->grabEnabled)
+			if (scene->grabEnabled||scene->scalingEnabled||scene->rotatingEnabled)
 			{
 				scene->CancellObjectMovement();
 				scene->grabEnabled = false;
+				scene->scalingEnabled = false;
+				scene->rotatingEnabled = false;
 				scene->xLocked = scene->yLocked = scene->zLocked = false;
 			}
 			else
@@ -298,6 +300,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			else if (scene->scalingEnabled)
 			{
 				aa::vec2 scalingOrigin = scene->getTransformationCenterScreenSpacePosition();
+				if (scene->transformAroundCursor)
+					scalingOrigin = scene->cursor.getScreenSpacePosition(scene->camera);
 				float startDistance = aa::distance(scalingOrigin, scene->grabMouseOrigin);
 				float endDistance = aa::distance(scalingOrigin, aa::vec2(xpos, ypos));
 				if (startDistance > 5.0f)
@@ -454,6 +458,7 @@ int main()
 		ImGui::Text("Use WASD to move, mouse to look around, scroll to zoom.");
 		//ImGui::Checkbox("Enable stereoscopy", &(scene->stereoscopy)); // Temporarily disabled
 		ImGui::Separator();
+		ImGui::Checkbox("Transform Around the 3D Cursor", &(scene->transformAroundCursor));
 		if (ImGui::DragFloat3("Scene Scaling", aa::value_ptr(scene->sceneScale), 0.01f, 0.01f, 10.0f))
 		{
 			if (scene->sceneScale.x < 0.01f)

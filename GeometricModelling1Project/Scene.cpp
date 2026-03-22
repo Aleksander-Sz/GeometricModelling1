@@ -90,6 +90,12 @@ void Scene::LeftMouseClick()
         grabEnabled = false;
         xLocked = yLocked = zLocked = false;
 	}
+    else if (scalingEnabled)
+    {
+        ConfirmObjectMovement();
+        scalingEnabled = false;
+        xLocked = yLocked = zLocked = false;
+    }
     else
     {
         Shape* previousShape = NULL;
@@ -165,7 +171,9 @@ void Scene::DrawCursorOverlay()
     if (grabEnabled)
     {
         ImGui::Text("Object Position:");
-        aa::vec3 objectPosition = selectedShape->getPosition();
+        aa::vec3 objectPosition = selectedShape->getPosition(); // TODO correct this
+        if(numberOfSelectedShapes>1)
+            objectPosition = centerOfGravityIndicator.getPosition();
         ImGui::Text("X: %.2f", objectPosition.x);
         ImGui::Text("Y: %.2f", objectPosition.y);
         ImGui::Text("Z: %.2f", objectPosition.z);
@@ -225,7 +233,10 @@ void Scene::ScaleSelectedObjects(float factor)
         if (shape->isSelected())
         {
             scaling = (inverseSceneMatrix * aa::vec4(scaling, 1.0f)).xyz;
-            shape->Scale(scaling);
+            if(transformAroundCursor)
+                shape->Scale(scaling, cursor.getPosition());
+            else
+                shape->Scale(scaling, currentTranslationOrigin);
         }
     }
 }
@@ -352,27 +363,30 @@ void Scene::DrawScene(GLFWwindow* window)
     }
 
     //Multiple Selection Center Of Gravity
-    int selectedCount = 0;
-    aa::vec3 centerOfMass = aa::vec3(0.0f, 0.0f, 0.0f);
-    for (int i = 1; i < shapes.size(); i++)
+    if (!grabEnabled && !scalingEnabled && !rotatingEnabled)
     {
-        if (shapes[i]->isSelected())
+        numberOfSelectedShapes = 0;
+        aa::vec3 centerOfMass = aa::vec3(0.0f, 0.0f, 0.0f);
+        for (int i = 1; i < shapes.size(); i++)
         {
-            selectedCount++;
-            centerOfMass += shapes[i]->getPosition();
+            if (shapes[i]->isSelected())
+            {
+                numberOfSelectedShapes++;
+                centerOfMass += shapes[i]->getPosition();
+            }
         }
-    }
-    if (selectedCount > 0)
-    {
-        currentTranslationOrigin = centerOfMass / selectedCount;
-        if (selectedCount > 1)
+        if (numberOfSelectedShapes > 0)
         {
-            centerOfGravityIndicator.Draw(shader, currentTranslationOrigin);
+            currentTranslationOrigin = centerOfMass / numberOfSelectedShapes;
+            if (numberOfSelectedShapes > 1)
+            {
+                centerOfGravityIndicator.Draw(shader, currentTranslationOrigin);
+            }
         }
-    }
-    else
-    {
-        currentTranslationOrigin = cursor.getPosition();
+        else
+        {
+            currentTranslationOrigin = cursor.getPosition();
+        }
     }
 
     //Box Select

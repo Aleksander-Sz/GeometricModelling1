@@ -5,11 +5,11 @@ Shape::~Shape() {
 	glDeleteBuffers(1, &VBO);
 	glDeleteVertexArrays(1, &VAO);
 }
-void Shape::Scale(aa::vec3 s)
+void Shape::Scale(aa::vec3 s, aa::vec3 origin)
 {
 	//model = aa::scale(model, s);
 	aa::mat4 scaleMatrix = aa::mat4(aa::vec4(s.x, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, s.y, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, s.z, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-	model = scaleMatrix * modelBackup;
+	model = aa::translate(origin) * scaleMatrix * aa::translate(-origin) * modelBackup;
 }
 void Shape::Rotate(float angle, aa::vec3 axis)
 {

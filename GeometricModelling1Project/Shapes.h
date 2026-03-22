@@ -14,7 +14,7 @@ class Shape
 public:
 	virtual ~Shape();
 	virtual void Draw(Shader& shader) = 0;
-	void Scale(aa::vec3 s);
+	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f));
 	void Rotate(float angle, aa::vec3 axis);
 	virtual void Translate(aa::vec3 t);
 	void TranslateAndConfirm(aa::vec3 t);

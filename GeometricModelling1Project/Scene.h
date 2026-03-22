@@ -30,6 +30,8 @@ public:
 	bool cursorLocked = true;
 	bool grabEnabled = false;
 	bool scalingEnabled = false;
+	bool rotatingEnabled = false;
+	bool transformAroundCursor = false;
 	aa::vec2 grabMouseOrigin;
 	bool xLocked = false;
 	bool yLocked = false;
@@ -52,7 +54,7 @@ public:
 	void ScaleSelectedObjects(float factor);
 	aa::vec3 unlockedTranslationBackup = aa::vec3(0.0f, 0.0f, 0.0f);
 	Shape* selectedShape = NULL;
-	void ConfirmObjectMovement(); // TODO add floating axis during locked movement, save the movement for use after axis change
+	void ConfirmObjectMovement();
 	void CancellObjectMovement();
 	void DeselectEverything();
 	void DeleteSelectedObjects();
@@ -73,6 +75,7 @@ private:
 	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);
 	BoxSelect boxSelect = BoxSelect::getInstance();
 	Cursor centerOfGravityIndicator = Cursor::centerOfGravityIndicator();
+	int numberOfSelectedShapes = 0;
 };
 
 #endif
