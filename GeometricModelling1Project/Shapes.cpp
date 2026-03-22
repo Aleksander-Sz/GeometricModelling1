@@ -11,7 +11,7 @@ void Shape::Scale(aa::vec3 s, aa::vec3 origin)
 	aa::mat4 scaleMatrix = aa::mat4(aa::vec4(s.x, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, s.y, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, s.z, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	model = aa::translate(origin) * scaleMatrix * aa::translate(-origin) * modelBackup;
 }
-void Shape::Rotate(float angle, aa::Axis axis)
+void Shape::Rotate(float angle, aa::Axis axis, aa::vec3 pivot)
 {
 	float c = cos(angle);
 	float s = sin(angle);
@@ -27,7 +27,7 @@ void Shape::Rotate(float angle, aa::Axis axis)
 		std::cerr << "Rotation axis must be one of the cardinal axes (x,y,z).\n";
 		return;
 	}
-	model = rotationMatrix * modelBackup;
+	model = aa::translate(pivot) * rotationMatrix * aa::translate(-pivot) * modelBackup;
 }
 void Shape::Translate(aa::vec3 t)
 {

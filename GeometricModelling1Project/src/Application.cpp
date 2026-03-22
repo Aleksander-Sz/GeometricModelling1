@@ -348,25 +348,28 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 				aa::vec3 rotationOrigin = scene->currentTranslationOrigin;
 				if (scene->transformAroundCursor)
 					rotationOrigin = scene->cursor.getPosition();
-				aa::vec3 rotation3DStart = project3DPoint(scene->currentTranslationOrigin.x, scene->currentTranslationOrigin.y);
+				aa::vec3 rotation3DStart = project3DPoint(scene->mouseLeftPressPosition.x, scene->mouseLeftPressPosition.y);
 				aa::vec3 rotation3DEnd = project3DPoint(xpos, ypos);
 				if (scene->xLocked)
 				{
+					rotationOrigin.x = 0.0f;
 					rotation3DStart.x = 0.0f;
 					rotation3DEnd.x = 0.0f;
 				}
 				else if (scene->yLocked)
 				{
+					rotationOrigin.y = 0.0f;
 					rotation3DStart.y = 0.0f;
 					rotation3DEnd.y = 0.0f;
 				}
 				else if (scene->zLocked)
 				{
+					rotationOrigin.z = 0.0f;
 					rotation3DStart.z = 0.0f;
 					rotation3DEnd.z = 0.0f;
 				}
-				aa::vec3 firstRotationVector = aa::normalize(rotation3DStart);
-				aa::vec3 secondRotationVector = aa::normalize(rotation3DEnd);
+				aa::vec3 firstRotationVector = aa::normalize(rotation3DStart - rotationOrigin);
+				aa::vec3 secondRotationVector = aa::normalize(rotation3DEnd - rotationOrigin);
 				float angle = std::acos(aa::dot(firstRotationVector, secondRotationVector));
 				aa::vec3 crossProduct = aa::normalize(aa::cross(firstRotationVector, secondRotationVector));
 				//std::cout << crossProduct.x + crossProduct.y + crossProduct.z << " sign\n";

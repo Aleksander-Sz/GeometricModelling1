@@ -246,25 +246,28 @@ void Scene::MoveSelectedObjects(aa::vec3 translation)
 void Scene::ScaleSelectedObjects(float factor)
 {
     aa::vec3 scaling = aa::vec3(factor, factor, factor);
-    for (Shape* shape : shapes)
+    for (int i = 1; i < shapes.size(); i++)
     {
-        if (shape->isSelected())
+        if (shapes[i]->isSelected())
         {
             scaling = (inverseSceneMatrix * aa::vec4(scaling, 1.0f)).xyz;
             if(transformAroundCursor)
-                shape->Scale(scaling, cursor.getPosition());
+                shapes[i]->Scale(scaling, cursor.getPosition());
             else
-                shape->Scale(scaling, currentTranslationOrigin);
+                shapes[i]->Scale(scaling, currentTranslationOrigin);
         }
     }
 }
 void Scene::RotateSelectedObjects(float angle, aa::Axis axis)
 {
-    for (Shape* shape : shapes)
+    for (int i = 1; i < shapes.size(); i++)
     {
-        if (shape->isSelected())
+        if (shapes[i]->isSelected())
         {
-            shape->Rotate(angle, axis);
+            if (transformAroundCursor)
+                shapes[i]->Rotate(angle, axis, cursor.getPosition());
+            else
+                shapes[i]->Rotate(angle, axis, currentTranslationOrigin);
         }
     }
 }
