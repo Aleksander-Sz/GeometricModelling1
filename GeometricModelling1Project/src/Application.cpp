@@ -111,6 +111,14 @@ void processInput(GLFWwindow* window)
 	}
 	if (glfwGetKey(window, SCALE_KEY) == GLFW_RELEASE)
 		scene->fPressed = false;
+	if (glfwGetKey(window, ROTATE_KEY) == GLFW_PRESS)
+	{
+		if (!scene->rPressed)
+			scene->toggleRotating();
+		scene->rPressed = true;
+	}
+	if (glfwGetKey(window, ROTATE_KEY) == GLFW_RELEASE)
+		scene->rPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
 	{
 		if (!scene->xPressed)
@@ -188,6 +196,30 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			scene->EndBoxSelect(aa::vec2(scene->lastX, scene->lastY));
 		}
 	}
+}
+
+aa::vec3 project3DPoint(double xpos, double ypos)
+{
+	// Below is code pasted from an old unused function, keep in mind
+	float x_ndc = (2.0f * xpos) / scene->camera.windowWidth - 1.0f;
+	float y_ndc = 1.0f - (2.0f * ypos) / scene->camera.windowHeight;
+
+	aa::vec4 ray_clip = aa::vec4(x_ndc, y_ndc, -1.0f, 1.0f);
+
+	aa::mat4 invVP = scene->camera.inverseViewProjection();
+
+	// Unproject to world space
+	aa::vec4 worldPos = invVP * ray_clip;
+
+	// Perspective divide
+	worldPos = worldPos / worldPos.w;
+
+	// Compute ray direction
+	aa::vec3 rayDir = aa::normalize(aa::vec3(worldPos.xyz) - scene->camera.cameraPos);
+
+	// Place cursor some fixed distance in front of camera
+	float distance = std::max(aa::distance(scene->camera.cameraPos, scene->currentTranslationOrigin), 1.0f);
+	return scene->camera.cameraPos + rayDir * distance;
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
@@ -276,7 +308,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	}
 	else
 	{
-		if (scene->grabEnabled||scene->scalingEnabled)
+		if (scene->grabEnabled||scene->scalingEnabled||scene->rotatingEnabled)
 		{
 			float distance = aa::length(scene->selectedShape->getPosition() - scene->camera.cameraPos);
 
@@ -307,8 +339,49 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 				if (startDistance > 5.0f)
 				{
 					float factor = endDistance / startDistance;
-					std::cout << factor << "\n";
+					//std::cout << factor << "\n";
 					scene->ScaleSelectedObjects(factor);
+				}
+			}
+			else if (scene->rotatingEnabled)
+			{
+				aa::vec3 rotationOrigin = scene->currentTranslationOrigin;
+				if (scene->transformAroundCursor)
+					rotationOrigin = scene->cursor.getPosition();
+				aa::vec3 rotation3DStart = project3DPoint(scene->currentTranslationOrigin.x, scene->currentTranslationOrigin.y);
+				aa::vec3 rotation3DEnd = project3DPoint(xpos, ypos);
+				if (scene->xLocked)
+				{
+					rotation3DStart.x = 0.0f;
+					rotation3DEnd.x = 0.0f;
+				}
+				else if (scene->yLocked)
+				{
+					rotation3DStart.y = 0.0f;
+					rotation3DEnd.y = 0.0f;
+				}
+				else if (scene->zLocked)
+				{
+					rotation3DStart.z = 0.0f;
+					rotation3DEnd.z = 0.0f;
+				}
+				aa::vec3 firstRotationVector = aa::normalize(rotation3DStart);
+				aa::vec3 secondRotationVector = aa::normalize(rotation3DEnd);
+				float angle = std::acos(aa::dot(firstRotationVector, secondRotationVector));
+				aa::vec3 crossProduct = aa::normalize(aa::cross(firstRotationVector, secondRotationVector));
+				//std::cout << crossProduct.x + crossProduct.y + crossProduct.z << " sign\n";
+				angle *= crossProduct.x + crossProduct.y + crossProduct.z;
+				if (scene->xLocked)
+				{
+					scene->RotateSelectedObjects(angle, aa::Axis::X);
+				}
+				if (scene->yLocked)
+				{
+					scene->RotateSelectedObjects(angle, aa::Axis::Y);
+				}
+				if (scene->zLocked)
+				{
+					scene->RotateSelectedObjects(angle, aa::Axis::Z);
 				}
 			}
 		}
@@ -436,7 +509,7 @@ int main()
 	scene->shapes.push_back(torus);
 	//Point point(aa::vec3(0.0f, 0.1f, 0.0f));
 	//scene->shapes.push_back(&point);
-	torus->Rotate(90.0f,aa::vec3(1.0f,0.0f,0.0f));
+	torus->Rotate(aa::radians(90.0f),aa::Axis::X);
 	torus->ConfirmTransformations();
 
 	glEnable(GL_DEPTH_TEST);

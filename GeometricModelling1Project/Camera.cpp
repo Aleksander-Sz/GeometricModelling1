@@ -43,27 +43,6 @@ aa::mat4 Camera::projection(float e)
 	projection = aa::mat4(aa::vec4(A,0.0f,0.0f,0.0f), aa::vec4(0.0f, B, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, C, -1.0f), aa::vec4(0.0f, 0.0f, D, 0.0f));
 	return projection;
 }
-/*aa::mat4 Camera::projection(float e)
-{
-	float near = 0.1f;
-	float far = 100.0f;
-
-	float top = near * tan(aa::radians(zoom) / 2.0f);
-	float rightPlane = top * ((float)windowWidth / windowHeight);
-
-	float convergence = 5.0f;
-	float frustumShift = (e) * near / convergence;
-
-	aa::mat4 projection = aa::frustum(
-		-rightPlane - frustumShift,
-		rightPlane - frustumShift,
-		-top,
-		top,
-		near,
-		far
-	);
-	return projection;
-}*/
 aa::mat4 Camera::projectionLeft()
 {
 	return projection(0.05f);

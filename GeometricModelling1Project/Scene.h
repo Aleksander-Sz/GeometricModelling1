@@ -19,6 +19,7 @@ public:
 	bool lPressed = false;
 	bool gPressed = false;
 	bool fPressed = false;
+	bool rPressed = false;
 	bool xPressed = false;
 	bool yPressed = false;
 	bool zPressed = false;
@@ -41,6 +42,7 @@ public:
 	void LockZAxis();
 	void toggleGrab();
 	void toggleScaling();
+	void toggleRotating();
 	double mouseLeftPressTime;
 	double AltPressTime;
 	aa::vec2 mouseLeftPressPosition;
@@ -52,6 +54,7 @@ public:
 	void DrawCursorOverlay();
 	void MoveSelectedObjects(aa::vec3 translation);
 	void ScaleSelectedObjects(float factor);
+	void RotateSelectedObjects(float angle, aa::Axis axis);
 	aa::vec3 unlockedTranslationBackup = aa::vec3(0.0f, 0.0f, 0.0f);
 	Shape* selectedShape = NULL;
 	void ConfirmObjectMovement();

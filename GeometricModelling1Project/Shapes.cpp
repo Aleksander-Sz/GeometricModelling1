@@ -11,18 +11,16 @@ void Shape::Scale(aa::vec3 s, aa::vec3 origin)
 	aa::mat4 scaleMatrix = aa::mat4(aa::vec4(s.x, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, s.y, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, s.z, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	model = aa::translate(origin) * scaleMatrix * aa::translate(-origin) * modelBackup;
 }
-void Shape::Rotate(float angle, aa::vec3 axis)
+void Shape::Rotate(float angle, aa::Axis axis)
 {
-	//model = aa::rotate(model, aa::radians(angle), axis);
-	axis = aa::normalize(axis);
-	float c = cos(aa::radians(angle));
-	float s = sin(aa::radians(angle));
+	float c = cos(angle);
+	float s = sin(angle);
 	aa::mat4 rotationMatrix;
-	if(axis.x == 1.0f)
+	if (axis == aa::Axis::X)
 		rotationMatrix = aa::mat4(aa::vec4(1.0f, 0.0f, 0.0f, 0.0f), aa::vec4(0.0f, c, s, 0.0f), aa::vec4(0.0f, -s, c, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-	else if(axis.y==1.0f)
+	else if (axis == aa::Axis::Y)
 		rotationMatrix = aa::mat4(aa::vec4(c, 0.0f, -s, 0.0f), aa::vec4(0.0f, 1.0f, 0.0f, 0.0f), aa::vec4(s, 0.0f, c, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-	else if(axis.z==1.0f)
+	else if (axis == aa::Axis::Z)
 		rotationMatrix = aa::mat4(aa::vec4(c, s, 0.0f, 0.0f), aa::vec4(-s, c, 0.0f, 0.0f), aa::vec4(0.0f, 0.0f, 1.0f, 0.0f), aa::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 	else
 	{
@@ -74,19 +72,19 @@ void Shape::PrintImGuiTransformOptions()
 	ImGui::DragFloat("Rotation X", &rotationX, 1.0f, -180.0f, 180.0f, "%.0f");
 	if(ImGui::Button("Apply Rotation X"))
 	{
-		Rotate(rotationX, aa::vec3(1.0f, 0.0f, 0.0f));
+		Rotate(rotationX, aa::Axis::X);
 		ConfirmTransformations();
 	}
 	ImGui::DragFloat("Rotation Y", &rotationY, 1.0f, -180.0f, 180.0f, "%.0f");
 	if (ImGui::Button("Apply Rotation Y"))
 	{
-		Rotate(rotationY, aa::vec3(0.0f, 1.0f, 0.0f));
+		Rotate(rotationY, aa::Axis::Y);
 		ConfirmTransformations();
 	}
 	ImGui::DragFloat("Rotation Z", &rotationZ, 1.0f, -180.0f, 180.0f, "%.0f");
 	if (ImGui::Button("Apply Rotation Z"))
 	{
-		Rotate(rotationZ, aa::vec3(0.0f, 0.0f, 1.0f));
+		Rotate(rotationZ, aa::Axis::Z);
 		ConfirmTransformations();
 	}
 	ImGui::InputFloat3("Translation", aa::value_ptr(translation));

@@ -8,7 +8,7 @@ Scene::Scene(int windowWidth, int windowHeight, Shader _shader)
 }
 void Scene::LockXAxis()
 {
-    if (!grabEnabled)
+    if (!grabEnabled && !rotatingEnabled)
         return;
     if (xLocked = !xLocked)
     {
@@ -16,11 +16,13 @@ void Scene::LockXAxis()
         zLocked = false;
         movementAxis = Axis('x');
     }
+    if (rotatingEnabled)
+        xLocked = true;
     MoveSelectedObjects(unlockedTranslationBackup);
 }
 void Scene::LockYAxis()
 {
-    if (!grabEnabled)
+    if (!grabEnabled && !rotatingEnabled)
         return;
     if (yLocked = !yLocked)
     {
@@ -28,11 +30,13 @@ void Scene::LockYAxis()
         zLocked = false;
         movementAxis = Axis('y');
     }
+    if (rotatingEnabled)
+        yLocked = true;
     MoveSelectedObjects(unlockedTranslationBackup);
 }
 void Scene::LockZAxis()
 {
-    if (!grabEnabled)
+    if (!grabEnabled && !rotatingEnabled)
         return;
     if (zLocked = !zLocked)
     {
@@ -40,6 +44,8 @@ void Scene::LockZAxis()
         yLocked = false;
         movementAxis = Axis('z');
     }
+    if (rotatingEnabled)
+        zLocked = true;
     MoveSelectedObjects(unlockedTranslationBackup);
 }
 void Scene::toggleGrab()
@@ -78,24 +84,36 @@ void Scene::toggleScaling()
         scalingEnabled = !scalingEnabled;
     }
 }
+void Scene::toggleRotating()
+{
+    xLocked = false;
+    yLocked = true; // default rotation axis
+    zLocked = false;
+    if (selectedShape != nullptr)
+    {
+        if (rotatingEnabled)
+        {
+            ConfirmObjectMovement();
+        }
+        else
+        {
+            grabMouseOrigin = aa::vec2(lastX, lastY);
+        }
+        rotatingEnabled = !rotatingEnabled;
+    }
+}
 void Scene::UpdateCursorPosition(double xpos, double ypos)
 {
 	cursor.UpdatePosition(camera, xpos, ypos, xLocked, yLocked, zLocked);
 }
 void Scene::LeftMouseClick()
 {
-    if(grabEnabled)
+    if(grabEnabled||scalingEnabled||rotatingEnabled)
     {
         ConfirmObjectMovement();
-        grabEnabled = false;
+        rotatingEnabled = scalingEnabled = grabEnabled = false;
         xLocked = yLocked = zLocked = false;
 	}
-    else if (scalingEnabled)
-    {
-        ConfirmObjectMovement();
-        scalingEnabled = false;
-        xLocked = yLocked = zLocked = false;
-    }
     else
     {
         Shape* previousShape = NULL;
@@ -237,6 +255,16 @@ void Scene::ScaleSelectedObjects(float factor)
                 shape->Scale(scaling, cursor.getPosition());
             else
                 shape->Scale(scaling, currentTranslationOrigin);
+        }
+    }
+}
+void Scene::RotateSelectedObjects(float angle, aa::Axis axis)
+{
+    for (Shape* shape : shapes)
+    {
+        if (shape->isSelected())
+        {
+            shape->Rotate(angle, axis);
         }
     }
 }
