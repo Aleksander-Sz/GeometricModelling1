@@ -578,7 +578,7 @@ int main()
 		{
 			char buffer[64] = "";
 			strcpy_s(buffer, (shape->Name()).c_str());
-			if (typeid(&(shape)) == typeid(Cursor) && ImGui::InputText("Object name", buffer, IM_ARRAYSIZE(buffer)))
+			if (shape->Name() != "3D Cursor" && ImGui::InputText("Object name", buffer, IM_ARRAYSIZE(buffer)))
 			{
 				std::string newName = std::string(buffer);
 				if (newName == "3D Cursor")

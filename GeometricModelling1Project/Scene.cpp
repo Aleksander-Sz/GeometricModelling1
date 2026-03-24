@@ -50,6 +50,8 @@ void Scene::LockZAxis()
 }
 void Scene::toggleGrab()
 {
+    if (scalingEnabled || rotatingEnabled)
+        return;
     xLocked = false;
     yLocked = false;
     zLocked = false;
@@ -68,6 +70,8 @@ void Scene::toggleGrab()
 }
 void Scene::toggleScaling()
 {
+    if (grabEnabled || rotatingEnabled)
+        return;
     xLocked = false;
     yLocked = false;
     zLocked = false;
@@ -86,6 +90,8 @@ void Scene::toggleScaling()
 }
 void Scene::toggleRotating()
 {
+    if (grabEnabled || scalingEnabled)
+        return;
     xLocked = false;
     yLocked = true; // default rotation axis
     zLocked = false;
