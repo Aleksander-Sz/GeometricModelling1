@@ -144,7 +144,15 @@ void Meshable::Draw(Shader& shader)
 	shader.setMat4("model", model);
 	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
 	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
-	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+	if (dynamic_cast<Line*>(this))
+	{
+		// This is a Line
+		glDrawElements(GL_LINE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
+	}
+	else
+	{
+		glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+	}
 	glBindVertexArray(0);
 }
 Meshable::~Meshable()
@@ -388,6 +396,96 @@ void Ellipsoid::PrintImGuiOptions()
 	dirty |= ImGui::InputFloat("b", &b, 0.1f, 5.0f, "%.1f");
 	dirty |= ImGui::InputFloat("c", &c, 0.1f, 5.0f, "%.1f");
 	dirty |= ImGui::InputInt("s", (int*)&s, 3, 500);
+}
+
+Line::Line(std::vector<Point*> _points)
+{
+	points = _points;
+	shapeName = "Bezzier Curve C0";
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+	Mesh();
+}
+void Line::Mesh()
+{
+	vertices.clear();
+	indices.clear();
+	if (points.size() < 2)
+		return; // Nothing to mesh
+	for (int i = 0; i < points.size(); i++)
+	{
+		aa::vec3 pointLocation = points[i]->getPosition();
+		vertices.push_back(pointLocation.x);
+		vertices.push_back(pointLocation.y);
+		vertices.push_back(pointLocation.z);
+		indices.push_back(i);
+	}
+	//prepare for drawing
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
+}
+void Line::PrintImGuiOptions()
+{
+	if (ImGui::BeginListBox("##Curve Points", ImVec2(400, 200)))
+	{
+		for (int i = 0; i < points.size(); i++)
+		{
+			ImGui::PushID(i);
+			if (ImGui::Selectable((points[i]->Name()).c_str(), false))
+			{
+				;
+			}
+			ImGui::PopID();
+		}
+
+		ImGui::EndListBox();
+	}
+}
+void Line::Scale(aa::vec3 s, aa::vec3 origin)
+{
+	for (int i = 0; i < points.size(); i++)
+	{
+		points[i]->Scale(s, origin);
+	}
+}
+void Line::Rotate(float angle, aa::Axis axis, aa::vec3 pivot)
+{
+	for (int i = 0; i < points.size(); i++)
+	{
+		points[i]->Rotate(angle, axis, pivot);
+	}
+}
+void Line::Translate(aa::vec3 t)
+{
+	for (int i = 0; i < points.size(); i++)
+	{
+		points[i]->Translate(t);
+	}
+}
+void Line::ConfirmTransformations()
+{
+	for (int i = 0; i < points.size(); i++)
+	{
+		points[i]->ConfirmTransformations();
+	}
+}
+void Line::CancelTransformations()
+{
+	for (int i = 0; i < points.size(); i++)
+	{
+		points[i]->CancelTransformations();
+	}
 }
 
 Grid::Grid()

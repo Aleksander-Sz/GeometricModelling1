@@ -14,8 +14,8 @@ class Shape
 public:
 	virtual ~Shape();
 	virtual void Draw(Shader& shader) = 0;
-	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f));
-	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f));
+	virtual void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f));
+	virtual void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f));
 	virtual void Translate(aa::vec3 t);
 	void TranslateAndConfirm(aa::vec3 t);
 	void setModel(aa::mat4 m);
@@ -84,6 +84,20 @@ public:
 private:
 	float a, b, c;
 	unsigned int s;
+};
+
+class Line : public Meshable
+{
+public:
+	Line(std::vector<Point*> _points);
+	void Mesh();
+	void PrintImGuiOptions() override;
+	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Translate(aa::vec3 t) override;
+	void ConfirmTransformations() override;
+	void CancelTransformations() override;
+	std::vector<Point*> points;
 };
 
 

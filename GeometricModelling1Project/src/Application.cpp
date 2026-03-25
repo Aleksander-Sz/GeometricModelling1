@@ -604,7 +604,7 @@ int main()
 		}
 		ImGui::Separator();
 		ImGui::Text("Add objects");
-		const char* items[] = { "Torus", "Ellipsoid", "Point", "Future objects..." };
+		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Future objects..." };
 		static int current_item_index = 0;
 		ImGui::Combo("Shapes", &current_item_index, items, IM_ARRAYSIZE(items));
 		if (ImGui::Button("Add Shape"))
@@ -622,6 +622,21 @@ int main()
 				break;
 			case 2: 
 				scene->shapes.push_back(new Point(aa::vec3(0.0f, 0.0f, 0.0f)));
+				break;
+			case 3:
+			{
+				std::vector<Point*> selectedPoints;
+				for (int i = 1; i < scene->shapes.size(); i++)
+				{
+					Point* pointer;
+					if (pointer = dynamic_cast<Point*>(scene->shapes[i]))
+					{
+						if(pointer->isSelected())
+							selectedPoints.push_back(pointer);
+					}
+				}
+				scene->shapes.push_back(new Line(selectedPoints));
+			}
 				break;
 			default:
 				std::cerr << "Shape not implemented yet.\n";
