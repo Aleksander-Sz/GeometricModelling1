@@ -122,13 +122,13 @@ void Scene::LeftMouseClick()
 	}
     else
     {
-        Shape* previousShape = NULL;
+        Shape* previousShape = nullptr;
         if (!shiftPressed)
         {
             previousShape = selectedShape;
             DeselectEverything();
         }
-        Shape* newSelectedShape = NULL;
+        Shape* newSelectedShape = nullptr;
         //
         float minDistance = 1000.0f;
         int closestObject = 0;
@@ -150,14 +150,15 @@ void Scene::LeftMouseClick()
         //
         if (!shiftPressed && previousShape == newSelectedShape)
             return;
-        if (newSelectedShape != NULL)
+        if (newSelectedShape != nullptr)
         {
             std::cout << newSelectedShape->Name() << "\n";
-            if (selectedShape != NULL)
+            if (selectedShape != nullptr)
             {
                 ;//selectedShape->Select(true); // Deselect current shape
             }
-            selectedShape = newSelectedShape;
+            if(selectedShape==nullptr)
+                selectedShape = newSelectedShape;
         }
         else
         {

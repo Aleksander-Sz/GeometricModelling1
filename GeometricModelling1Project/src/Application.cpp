@@ -573,8 +573,8 @@ int main()
 					continue;
 				ImGui::PushID(i);
 				std::string fullObjectName = scene->shapes[i]->Name();
-				if (typeid(&(scene->shapes[i])) != typeid(Cursor))
-					fullObjectName += " " + std::to_string(i);
+				//if (typeid(&(scene->shapes[i])) != typeid(Cursor))
+				//	fullObjectName += " " + std::to_string(i);
 				if (ImGui::Selectable((fullObjectName).c_str(), scene->shapes[i]->isSelected()))
 				{
 					if (!scene->shiftPressed)
@@ -582,7 +582,8 @@ int main()
 						scene->DeselectEverything();
 					}
 					scene->shapes[i]->Select();
-					scene->selectedShape = scene->shapes[i];
+					if(scene->selectedShape==nullptr)
+						scene->selectedShape = scene->shapes[i];
 				}
 				ImGui::PopID();
 			}
@@ -615,6 +616,22 @@ int main()
 				scene->DeselectEverything();
 				shape->MarkForDeletion();
 				scene->RemoveMarkedObjects();
+			}
+			Line* linePointer = dynamic_cast<Line*>(shape);
+			if (linePointer != nullptr)
+			{
+				if (ImGui::Button("Add Selected Points"))
+				{
+					// traversing all of the selected objects and adding all the points to the line
+					for (int i = 1; i < scene->shapes.size(); i++)
+					{
+						Point* pointPointer = dynamic_cast<Point*>(scene->shapes[i]);
+						if (pointPointer != nullptr && scene->shapes[i]->isSelected())
+						{
+							linePointer->AddPoint(pointPointer);
+						}
+					}
+				}
 			}
 		}
 		ImGui::Separator();

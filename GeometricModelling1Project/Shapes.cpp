@@ -173,7 +173,8 @@ Meshable::~Meshable()
 // Point class functions
 Point::Point(aa::vec3 coords)
 {
-	shapeName = "Point";
+	static unsigned int pointIndex = 0;
+	shapeName = "Point " + std::to_string(pointIndex++);
 	model = aa::translate(model, coords);
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -454,9 +455,9 @@ void Line::PrintImGuiOptions()
 		for (int i = 0; i < points.size(); i++)
 		{
 			ImGui::PushID(i);
-			if (ImGui::Selectable((points[i]->Name()).c_str(), false))
+			if (ImGui::Selectable((points[i]->Name()).c_str(), points[i]->isSelected()))
 			{
-				;
+				points[i]->Select();
 			}
 			ImGui::PopID();
 		}
