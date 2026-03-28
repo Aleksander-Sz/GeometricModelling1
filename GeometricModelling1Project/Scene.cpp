@@ -312,10 +312,10 @@ void Scene::DeleteSelectedObjects()
     {
         if (shapes[i]->isSelected())
         {
-            delete shapes[i];
-            shapes.erase(shapes.begin() + i);
+            shapes[i]->MarkForDeletion();
         }
     }
+    RemoveMarkedObjects();
 }
 void Scene::StartBoxSelect(aa::vec2 location)
 {
@@ -432,5 +432,25 @@ void Scene::DrawScene(GLFWwindow* window)
         aa::vec2 tl(boxSelectOrigin.x / camera.windowWidth * 2.0f - 1.0f, boxSelectOrigin.y / camera.windowHeight * -2.0f + 1.0f);
         aa::vec2 br(lastX / camera.windowWidth * 2.0f - 1.0f, lastY / camera.windowHeight * -2.0f + 1.0f);
         boxSelect.Draw(tl, br);
+    }
+}
+
+void Scene::RemoveMarkedObjects()
+{
+    for (int i = 0; i < shapes.size(); i++)
+    {
+        if (shapes[i]->isMarkedForDeletion())
+        {
+            delete shapes[i];
+            shapes.erase(shapes.begin() + i);
+        }
+        else
+        {
+            Line* linePointer = dynamic_cast<Line*>(shapes[i]);
+            if (linePointer != nullptr)
+            {
+                linePointer->RemoveDeletedPoints();
+            }
+        }
     }
 }

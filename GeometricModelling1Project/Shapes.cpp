@@ -134,6 +134,16 @@ bool Shape::isSelected()
 {
 	return selected;
 }
+void Shape::MarkForDeletion()
+{
+	markedForDeletion = true;
+	model = aa::translate(model, aa::vec3(100000.0f, 100000.0f, 100000.0f));
+}
+bool Shape::isMarkedForDeletion()
+{
+	return markedForDeletion;
+}
+
 // Meshable class functions
 void Meshable::Draw(Shader& shader)
 {
@@ -180,6 +190,8 @@ Point::Point(aa::vec3 coords)
 }
 void Point::Draw(Shader &shader)
 {
+	if (markedForDeletion)
+		return;
 	shader.use();
 	glBindVertexArray(VAO);
 	shader.setMat4("model", model);
@@ -502,6 +514,16 @@ void Line::AddPoint(Point* point)
 	if (point == nullptr)
 		return;
 	points.push_back(point);
+}
+void Line::RemoveDeletedPoints()
+{
+	for (int i = 0; i < points.size(); i++)
+	{
+		if (points[i]->isMarkedForDeletion())
+		{
+			points.erase(points.begin() + i);
+		}
+	}
 }
 
 Grid::Grid()

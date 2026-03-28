@@ -30,6 +30,8 @@ public:
 	virtual aa::vec3 getPosition();
 	aa::vec2 getScreenSpacePosition(Camera& camera);
 	bool isSelected();
+	void MarkForDeletion();
+	bool isMarkedForDeletion();
 protected:
 	bool dirty = true;
 	unsigned int VAO = 0, VBO = 0;
@@ -37,6 +39,7 @@ protected:
 	aa::mat4 modelBackup = aa::mat4(1.0f);
 	bool selected = false;
 	std::string shapeName;
+	bool markedForDeletion = false;
 };
 
 class Meshable : public Shape
@@ -99,6 +102,8 @@ public:
 	void CancelTransformations() override;
 	void AddPoint(Point* point);
 	aa::vec3 getPosition() override;
+	void RemoveDeletedPoints(); // removes all the points marked for deletion from the points vector
+private:
 	std::vector<Point*> points;
 };
 

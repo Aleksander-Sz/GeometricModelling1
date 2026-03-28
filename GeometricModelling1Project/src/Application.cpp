@@ -555,6 +555,8 @@ int main()
 		{
 			for (int i = 0; i < scene->shapes.size(); i++)
 			{
+				if (scene->shapes[i]->isMarkedForDeletion())
+					continue;
 				ImGui::PushID(i);
 				std::string fullObjectName = scene->shapes[i]->Name();
 				if (typeid(&(scene->shapes[i])) != typeid(Cursor))
@@ -597,9 +599,8 @@ int main()
 			{
 				scene->grabEnabled = false;
 				scene->DeselectEverything();
-				delete shape;
-				auto it = std::find(scene->shapes.begin(), scene->shapes.end(), shape);
-				scene->shapes.erase(it);
+				shape->MarkForDeletion();
+				scene->RemoveMarkedObjects();
 			}
 		}
 		ImGui::Separator();
