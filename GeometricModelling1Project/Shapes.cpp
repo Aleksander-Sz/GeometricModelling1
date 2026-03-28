@@ -401,7 +401,7 @@ void Ellipsoid::PrintImGuiOptions()
 Line::Line(std::vector<Point*> _points)
 {
 	points = _points;
-	shapeName = "Bezzier Curve C0";
+	shapeName = "Polyline";
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -486,6 +486,22 @@ void Line::CancelTransformations()
 	{
 		points[i]->CancelTransformations();
 	}
+}
+aa::vec3 Line::getPosition()
+{
+	aa::vec3 averagePosition(0.0f, 0.0f, 0.0f);
+	for (int i = 0; i < points.size(); i++)
+	{
+		averagePosition += points[i]->getPosition();
+	}
+	averagePosition /= (float)points.size();
+	return averagePosition;
+}
+void Line::AddPoint(Point* point)
+{
+	if (point == nullptr)
+		return;
+	points.push_back(point);
 }
 
 Grid::Grid()

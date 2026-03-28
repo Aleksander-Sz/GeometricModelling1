@@ -48,6 +48,18 @@ namespace aa {
 			y -= v.y;
 			return *this;
 		}
+		vec2& operator*=(const float& scalar)
+		{
+			x *= scalar;
+			y *= scalar;
+			return *this;
+		}
+		vec2& operator/=(const float& scalar)
+		{
+			x /= scalar;
+			y /= scalar;
+			return *this;
+		}
 		vec2 operator-()
 		{
 			return vec2(-x, -y);
@@ -98,6 +110,20 @@ namespace aa {
 			x -= v.x;
 			y -= v.y;
 			z -= v.z;
+			return *this;
+		}
+		vec3& operator*=(const float& scalar)
+		{
+			x *= scalar;
+			y *= scalar;
+			z *= scalar;
+			return *this;
+		}
+		vec3& operator/=(const float& scalar)
+		{
+			x /= scalar;
+			y /= scalar;
+			z /= scalar;
 			return *this;
 		}
 		float& operator[](const int i)
@@ -163,6 +189,22 @@ namespace aa {
 			y -= v.y;
 			z -= v.z;
 			w -= v.w;
+			return *this;
+		}
+		vec4& operator*=(const float& scalar)
+		{
+			x *= scalar;
+			y *= scalar;
+			z *= scalar;
+			w *= scalar;
+			return *this;
+		}
+		vec4& operator/=(const float& scalar)
+		{
+			x /= scalar;
+			y /= scalar;
+			z /= scalar;
+			w /= scalar;
 			return *this;
 		}
 		float& operator[](const int i)

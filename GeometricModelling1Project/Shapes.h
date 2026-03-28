@@ -27,7 +27,7 @@ public:
 	std::string Name() { return shapeName; }
 	void setName(std::string _name) { shapeName = _name; }
 	bool Select(bool deselect = false);
-	aa::vec3 getPosition();
+	virtual aa::vec3 getPosition();
 	aa::vec2 getScreenSpacePosition(Camera& camera);
 	bool isSelected();
 protected:
@@ -97,6 +97,8 @@ public:
 	void Translate(aa::vec3 t) override;
 	void ConfirmTransformations() override;
 	void CancelTransformations() override;
+	void AddPoint(Point* point);
+	aa::vec3 getPosition() override;
 	std::vector<Point*> points;
 };
 

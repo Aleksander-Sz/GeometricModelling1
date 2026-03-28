@@ -621,7 +621,25 @@ int main()
 				scene->shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
 				break;
 			case 2: 
-				scene->shapes.push_back(new Point(aa::vec3(0.0f, 0.0f, 0.0f)));
+			{
+				Line* selectedLine = nullptr;
+				int selectedLinesCount = 0;
+				for (int i = 1; i < scene->shapes.size(); i++)
+				{
+					Line* current = dynamic_cast<Line*>(scene->shapes[i]);
+					if (current && current->isSelected())
+					{
+						selectedLinesCount++;
+						selectedLine = current; // store the correct one
+					}
+				}
+				Point* newPoint = new Point(aa::vec3(0.0f, 0.0f, 0.0f));
+				scene->shapes.push_back(newPoint);
+				if (selectedLinesCount == 1)
+				{
+					selectedLine->AddPoint(newPoint);
+				}
+			}
 				break;
 			case 3:
 			{
