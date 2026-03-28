@@ -27,6 +27,7 @@ public:
 	bool CtrlPressed = false;
 	bool EscPressed = false;
 	bool mouseLeftButtonPressed = false;
+	bool mouseRightButtonPressed = false;
 	bool shiftPressed = false;
 	bool cursorLocked = true;
 	bool grabEnabled = false;
@@ -44,6 +45,7 @@ public:
 	void toggleScaling();
 	void toggleRotating();
 	double mouseLeftPressTime;
+	double mouseRightPressTime;
 	double AltPressTime;
 	aa::vec2 mouseLeftPressPosition;
 	Camera camera;
@@ -74,6 +76,8 @@ public:
 	aa::vec3 sceneScale = aa::vec3(1.0f, 1.0f, 1.0f);
 	aa::vec2 boxSelectOrigin;
 	void RemoveMarkedObjects();
+	int currentItemSelectedForAdding = 0;
+	void AddShape();
 private:
 	aa::mat4 sceneMatrix = aa::mat4(1.0f);
 	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);

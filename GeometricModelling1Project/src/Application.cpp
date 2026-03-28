@@ -196,6 +196,20 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			scene->EndBoxSelect(aa::vec2(scene->lastX, scene->lastY));
 		}
 	}
+	else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+	{
+		scene->mouseRightButtonPressed = true;
+		scene->mouseRightPressTime = glfwGetTime();
+	}
+	else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE)
+	{
+		double mouseReleaseTime = glfwGetTime();
+		if (mouseReleaseTime - scene->mouseRightPressTime <= 0.2)
+		{
+			scene->cursor.UpdatePosition(scene->camera, scene->lastX, scene->lastY, false, false, false);
+			scene->AddShape();
+		}
+	}
 }
 
 aa::vec3 project3DPoint(double xpos, double ypos)
@@ -606,64 +620,10 @@ int main()
 		ImGui::Separator();
 		ImGui::Text("Add objects");
 		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Future objects..." };
-		static int current_item_index = 0;
-		ImGui::Combo("Shapes", &current_item_index, items, IM_ARRAYSIZE(items));
+		ImGui::Combo("Shapes", &(scene->currentItemSelectedForAdding), items, IM_ARRAYSIZE(items));
 		if (ImGui::Button("Add Shape"))
 		{
-			bool wasAShapeAdded = true;
-			switch (current_item_index)
-			{
-			case 0:
-				scene->shapes.push_back(new Torus(1.0f, 0.3f, 50, 50));
-				break;
-			case 1:
-				std::cout << "This option has been locked, as it is out of the scope of MKMG.\n";
-				break;
-				scene->shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
-				break;
-			case 2: 
-			{
-				Line* selectedLine = nullptr;
-				int selectedLinesCount = 0;
-				for (int i = 1; i < scene->shapes.size(); i++)
-				{
-					Line* current = dynamic_cast<Line*>(scene->shapes[i]);
-					if (current && current->isSelected())
-					{
-						selectedLinesCount++;
-						selectedLine = current; // store the correct one
-					}
-				}
-				Point* newPoint = new Point(aa::vec3(0.0f, 0.0f, 0.0f));
-				scene->shapes.push_back(newPoint);
-				if (selectedLinesCount == 1)
-				{
-					selectedLine->AddPoint(newPoint);
-				}
-			}
-				break;
-			case 3:
-			{
-				std::vector<Point*> selectedPoints;
-				for (int i = 1; i < scene->shapes.size(); i++)
-				{
-					Point* pointer;
-					if (pointer = dynamic_cast<Point*>(scene->shapes[i]))
-					{
-						if(pointer->isSelected())
-							selectedPoints.push_back(pointer);
-					}
-				}
-				scene->shapes.push_back(new Line(selectedPoints));
-			}
-				break;
-			default:
-				std::cerr << "Shape not implemented yet.\n";
-				wasAShapeAdded = false;
-				break;
-			}
-			if(wasAShapeAdded)
-				scene->shapes[scene->shapes.size()-1]->TranslateAndConfirm(scene->cursor.getPosition());
+			scene->AddShape();
 		}
 		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 

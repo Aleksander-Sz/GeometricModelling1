@@ -522,6 +522,7 @@ void Line::RemoveDeletedPoints()
 		if (points[i]->isMarkedForDeletion())
 		{
 			points.erase(points.begin() + i);
+			i--;
 		}
 	}
 }
@@ -675,13 +676,13 @@ void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos, bool xLock
 	// Place cursor some fixed distance in front of camera
 	float distance = aa::distance(camera.cameraPos, location);
 	if (xLocked)
-		location.x = (camera.cameraPos + rayDir * distance).x;
+		locationBackup.x = location.x = (camera.cameraPos + rayDir * distance).x;
 	else if (yLocked)
-		location.y = (camera.cameraPos + rayDir * distance).y;
+		locationBackup.y = location.y = (camera.cameraPos + rayDir * distance).y;
 	else if (zLocked)
-		location.z = (camera.cameraPos + rayDir * distance).z;
+		locationBackup.z = location.z = (camera.cameraPos + rayDir * distance).z;
 	else
-		location = camera.cameraPos + rayDir * distance;
+		locationBackup = location = camera.cameraPos + rayDir * distance;
 }
 aa::vec3 Cursor::getPosition()
 {
