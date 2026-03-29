@@ -44,6 +44,9 @@
     <None Include="Shaders\GridVertexShader.glsl" />
     <None Include="Shaders\BoxSelectFragmentShader.glsl" />
     <None Include="Shaders\BoxSelectVertexShader.glsl" />
+    <None Include="Shaders\BezierTessellationControlShader.glsl" />
+    <None Include="Shaders\BezierTessellationEvaluationShader.glsl" />
+    <None Include="Shaders\BezierVertexShader.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">

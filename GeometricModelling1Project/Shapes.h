@@ -13,7 +13,7 @@ class Shape
 {
 public:
 	virtual ~Shape();
-	virtual void Draw(Shader& shader) = 0;
+	virtual void Draw() = 0;
 	virtual void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f));
 	virtual void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f));
 	virtual void Translate(aa::vec3 t);
@@ -32,6 +32,7 @@ public:
 	bool isSelected();
 	void MarkForDeletion();
 	bool isMarkedForDeletion();
+	void setShader(Shader& _shader);
 protected:
 	bool dirty = true;
 	unsigned int VAO = 0, VBO = 0;
@@ -40,13 +41,14 @@ protected:
 	bool selected = false;
 	std::string shapeName;
 	bool markedForDeletion = false;
+	Shader shader;
 };
 
 class Meshable : public Shape
 {
 public:
 	~Meshable() override;
-	void Draw(Shader& shader) override;
+	void Draw() override;
 	virtual void Mesh() = 0;
 protected:
 	unsigned int EBO = 0;
@@ -58,7 +60,7 @@ class Point : public Shape
 {
 public:
 	Point(aa::vec3 coords);
-	void Draw(Shader& shader) override;
+	void Draw() override;
 	void PrintImGuiOptions() override;
 };
 
@@ -103,10 +105,15 @@ public:
 	void AddPoint(Point* point);
 	aa::vec3 getPosition() override;
 	void RemoveDeletedPoints(); // removes all the points marked for deletion from the points vector
-private:
+protected:
 	std::vector<Point*> points;
 };
 
+class BezierCurve : public Line
+{
+public:
+	BezierCurve(std::vector<Point*> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; };
+};
 
 class Grid
 {
@@ -124,8 +131,8 @@ class Cursor : public Shape
 public:
 	static Cursor& getInstance();
 	static Cursor& centerOfGravityIndicator();
-	void Draw(Shader& shader);
-	void Draw(Shader& shader, aa::vec3 position);
+	void Draw() override;
+	void Draw(aa::vec3 position);
 	void UpdatePosition(Camera& camera, double xpos, double ypos, bool xLocked, bool yLocked, bool zLocked);
 	void PrintImGuiOptions();
 	void Translate(aa::vec3 t) override;

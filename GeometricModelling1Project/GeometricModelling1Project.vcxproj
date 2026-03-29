@@ -153,6 +153,9 @@
     <ClCompile Include="src\Application.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\BezierTessellationControlShader.glsl" />
+    <None Include="Shaders\BezierTessellationEvaluationShader.glsl" />
+    <None Include="Shaders\BezierVertexShader.glsl" />
     <None Include="Shaders\BoxSelectFragmentShader.glsl" />
     <None Include="Shaders\BoxSelectVertexShader.glsl" />
     <None Include="Shaders\FragmentShader.glsl" />

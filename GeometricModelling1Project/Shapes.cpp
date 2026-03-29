@@ -143,9 +143,13 @@ bool Shape::isMarkedForDeletion()
 {
 	return markedForDeletion;
 }
+void Shape::setShader(Shader& _shader)
+{
+	shader = _shader;
+}
 
 // Meshable class functions
-void Meshable::Draw(Shader& shader)
+void Meshable::Draw()
 {
 	if (dirty)
 		Mesh();
@@ -154,7 +158,14 @@ void Meshable::Draw(Shader& shader)
 	shader.setMat4("model", model);
 	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
 	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
-	if (dynamic_cast<Line*>(this))
+	if (dynamic_cast<BezierCurve*>(this))
+	{
+		// This is a BezierCurve
+		glPatchParameteri(GL_PATCH_VERTICES, 4);
+		glLineWidth(5.0f);
+		glDrawArrays(GL_PATCHES, 0, 4);
+	}
+	else if (dynamic_cast<Line*>(this))
 	{
 		// This is a Line
 		glDrawElements(GL_LINE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
@@ -189,7 +200,7 @@ Point::Point(aa::vec3 coords)
 
 	glBindVertexArray(0);
 }
-void Point::Draw(Shader &shader)
+void Point::Draw()
 {
 	if (markedForDeletion)
 		return;
@@ -594,7 +605,7 @@ Cursor& Cursor::centerOfGravityIndicator()
 	static Cursor instance(true);
 	return instance;
 }
-void Cursor::Draw(Shader &shader)
+void Cursor::Draw()
 {
 	model[3][0] = location[0];
 	model[3][1] = location[1];
@@ -615,10 +626,10 @@ void Cursor::Draw(Shader &shader)
 	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
-void Cursor::Draw(Shader& shader, aa::vec3 position)
+void Cursor::Draw(aa::vec3 position)
 {
 	locationBackup = location = position;
-	Draw(shader);
+	Draw();
 }
 Cursor::Cursor(bool _isCenterOfGravity)
 {

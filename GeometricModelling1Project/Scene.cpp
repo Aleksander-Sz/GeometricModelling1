@@ -5,6 +5,8 @@ Scene::Scene(int windowWidth, int windowHeight, Shader _shader)
 	camera = Camera(windowWidth, windowHeight);
     shader = _shader;
     shapes.push_back(&cursor);
+	cursor.setShader(shader);
+	centerOfGravityIndicator.setShader(shader);
 }
 void Scene::LockXAxis()
 {
@@ -381,8 +383,8 @@ void Scene::DrawScene(GLFWwindow* window)
     glDepthMask(GL_FALSE);
     grid.Draw(camera, 'R');
     for (int i = 1; i < shapes.size(); i++)
-        shapes[i]->Draw(shader);
-    cursor.Draw(shader);
+        shapes[i]->Draw();
+    cursor.Draw();
     if (grabEnabled && (xLocked || yLocked || zLocked))
         movementAxis.Draw(shader, currentTranslationOrigin, 'R');
     if (stereoscopy)
@@ -393,8 +395,8 @@ void Scene::DrawScene(GLFWwindow* window)
         shader.setMat4("scene", sceneMatrix);
         grid.Draw(camera, 'L');
         for (int i = 1; i < shapes.size(); i++)
-            shapes[i]->Draw(shader);
-        cursor.Draw(shader);
+            shapes[i]->Draw();
+        cursor.Draw();
         if (grabEnabled && (xLocked || yLocked || zLocked))
             movementAxis.Draw(shader, currentTranslationOrigin, 'L');
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -418,7 +420,7 @@ void Scene::DrawScene(GLFWwindow* window)
             currentTranslationOrigin = centerOfMass / numberOfSelectedShapes;
             if (numberOfSelectedShapes > 1)
             {
-                centerOfGravityIndicator.Draw(shader, currentTranslationOrigin);
+                centerOfGravityIndicator.Draw(currentTranslationOrigin);
             }
         }
         else
@@ -460,17 +462,20 @@ void Scene::RemoveMarkedObjects()
 void Scene::AddShape()
 {
     bool wasAShapeAdded = true;
+	bool isADerivedShape = false;
     switch (currentItemSelectedForAdding)
     {
-    case 0:
+	case 0: // Torus
         shapes.push_back(new Torus(1.0f, 0.3f, 50, 50));
+        shapes[shapes.size() - 1]->setShader(shader);
         break;
-    case 1:
+	case 1: // Ellipsoid
         std::cout << "This option has been locked, as it is out of the scope of MKMG.\n";
         break;
         shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
+        shapes[shapes.size() - 1]->setShader(shader);
         break;
-    case 2:
+    case 2: // Point
     {
         Line* selectedLine = nullptr;
         int selectedLinesCount = 0;
@@ -485,13 +490,14 @@ void Scene::AddShape()
         }
         Point* newPoint = new Point(aa::vec3(0.0f, 0.0f, 0.0f));
         shapes.push_back(newPoint);
+        shapes[shapes.size() - 1]->setShader(shader);
         if (selectedLinesCount == 1)
         {
             selectedLine->AddPoint(newPoint);
         }
     }
     break;
-    case 3:
+	case 3: // Line
     {
         std::vector<Point*> selectedPoints;
         for (int i = 1; i < shapes.size(); i++)
@@ -504,6 +510,25 @@ void Scene::AddShape()
             }
         }
         shapes.push_back(new Line(selectedPoints));
+        shapes[shapes.size() - 1]->setShader(shader);
+        isADerivedShape = true;
+    }
+    break;
+	case 4: // Bezier Curve
+    {
+        std::vector<Point*> selectedPoints;
+        for (int i = 1; i < shapes.size(); i++)
+        {
+            Point* pointer;
+            if (pointer = dynamic_cast<Point*>(shapes[i]))
+            {
+                if (pointer->isSelected())
+                    selectedPoints.push_back(pointer);
+            }
+        }
+        shapes.push_back(new BezierCurve(selectedPoints));
+        shapes[shapes.size() - 1]->setShader(tesselationShader);
+        isADerivedShape = true;
     }
     break;
     default:
@@ -511,6 +536,8 @@ void Scene::AddShape()
         wasAShapeAdded = false;
         break;
     }
-    if (wasAShapeAdded)
+    if (wasAShapeAdded&&(!isADerivedShape))
+    {
         shapes[shapes.size() - 1]->TranslateAndConfirm(cursor.getPosition());
+    }
 }

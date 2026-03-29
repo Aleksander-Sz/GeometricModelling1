@@ -16,7 +16,8 @@ public:
 	unsigned int ID;
 	// constructor reads and builds the shader
 	Shader();
-	Shader(const char* vertexPath, const char* fragmentPath);
+	Shader(const char* vertexPath, const char* fragmentPath) : Shader(vertexPath, nullptr, nullptr, fragmentPath) {};
+	Shader(const char* vertexPath, const char* tessellationControlPath, const char* tessellationEvalPath, const char* fragmentPath);
 	// use/activate the shader
 	void use();
 	// utility uniform functions

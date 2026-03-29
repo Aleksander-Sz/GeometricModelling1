@@ -412,39 +412,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureMouse)
 		return;
-/*	if (scene->AltPressed)
-	{
-		aa::vec3 cameraTarget = scene->camera.cameraPos + scene->camera.cameraFront;
-		float cameraRadius = aa::length(scene->camera.cameraPos - cameraTarget);
-
-		const float sensitivity = 0.3f;
-		xoffset *= sensitivity;
-		yoffset *= sensitivity;
-
-		scene->camera.yaw -= xoffset;
-		scene->camera.pitch -= yoffset;
-
-		if (scene->camera.pitch > 89.0f)
-			scene->camera.pitch = 89.0f;
-		if (scene->camera.pitch < -89.0f)
-			scene->camera.pitch = -89.0f;
-
-		// Convert to radians
-		float yawRad = aa::radians(scene->camera.yaw);
-		float pitchRad = aa::radians(scene->camera.pitch);
-
-		// Spherical coordinates
-		aa::vec3 offset;
-		offset.x = cameraRadius * cos(pitchRad) * cos(yawRad);
-		offset.y = cameraRadius * sin(pitchRad);
-		offset.z = cameraRadius * cos(pitchRad) * sin(yawRad);
-
-		// New position
-		scene->camera.cameraPos = cameraTarget + offset;
-
-		// Always look at target
-		scene->camera.cameraFront = aa::normalize(cameraTarget - scene->camera.cameraPos);
-	}*/
 	if (scene->camera.orbitingCamera)
 	{
 		scene->camera.radius -= (float)yoffset * 0.1f;
@@ -462,8 +429,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 int main()
 {
 	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
@@ -523,6 +490,7 @@ int main()
 	// Rendering commands here
 	
 	Torus* torus = new Torus(1.0f, 0.3f, 50, 50);
+	torus->setShader(scene->shader);
 	scene->shapes.push_back(torus);
 	//Point point(aa::vec3(0.0f, 0.1f, 0.0f));
 	//scene->shapes.push_back(&point);
@@ -532,6 +500,7 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	std::cout << glGetString(GL_VERSION) << "\n";
 	
 	//glViewport(0, 0, windowWidth, windowHeight);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -636,7 +605,7 @@ int main()
 		}
 		ImGui::Separator();
 		ImGui::Text("Add objects");
-		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Future objects..." };
+		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Bezier C0", "Future objects..." };
 		ImGui::Combo("Shapes", &(scene->currentItemSelectedForAdding), items, IM_ARRAYSIZE(items));
 		if (ImGui::Button("Add Shape"))
 		{
