@@ -158,11 +158,24 @@ void Meshable::Draw()
 	shader.setMat4("model", model);
 	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
 	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
-	if (dynamic_cast<BezierCurve*>(this))
+	BezierCurve* thisBC = dynamic_cast<BezierCurve*>(this);
+	if (thisBC)
 	{
 		// This is a BezierCurve
+		if (thisBC->displayControlPolyline)
+		{
+			glLineWidth(0.5f);
+			shader.setVec3("color", aa::vec3(0.8f, 0.8f, 0.8f));
+			glDrawArrays(GL_LINE_STRIP, 0, vertices.size() / 3);
+		}
+		thisBC->tessellationShader.use();
+		glBindVertexArray(VAO);
+		thisBC->tessellationShader.setMat4("model", model);
+		glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
+		thisBC->tessellationShader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
 		glPatchParameteri(GL_PATCH_VERTICES, 4);
 		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
+		
 	}
 	else if (dynamic_cast<Line*>(this))
 	{
@@ -581,6 +594,15 @@ void BezierCurve::Mesh()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 
 	glBindVertexArray(0);
+}
+void BezierCurve::PrintImGuiOptions()
+{
+	Line::PrintImGuiOptions();
+	ImGui::Checkbox("Display Control Polyline", &displayControlPolyline);
+}
+void BezierCurve::setTessellationShader(Shader& _shader)
+{
+	tessellationShader = _shader;
 }
 
 Grid::Grid()

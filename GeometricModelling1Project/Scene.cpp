@@ -484,13 +484,11 @@ void Scene::AddShape()
     {
 	case 0: // Torus
         shapes.push_back(new Torus(1.0f, 0.3f, 50, 50));
-        shapes[shapes.size() - 1]->setShader(shader);
         break;
 	case 1: // Ellipsoid
         std::cout << "This option has been locked, as it is out of the scope of MKMG.\n";
         break;
         shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
-        shapes[shapes.size() - 1]->setShader(shader);
         break;
     case 2: // Point
     {
@@ -507,7 +505,6 @@ void Scene::AddShape()
         }
         Point* newPoint = new Point(aa::vec3(0.0f, 0.0f, 0.0f));
         shapes.push_back(newPoint);
-        shapes[shapes.size() - 1]->setShader(shader);
         if (selectedLinesCount == 1)
         {
             selectedLine->AddPoint(newPoint);
@@ -527,7 +524,6 @@ void Scene::AddShape()
             }
         }
         shapes.push_back(new Line(selectedPoints));
-        shapes[shapes.size() - 1]->setShader(shader);
         isADerivedShape = true;
     }
     break;
@@ -543,8 +539,9 @@ void Scene::AddShape()
                     selectedPoints.push_back(pointer);
             }
         }
-        shapes.push_back(new BezierCurve(selectedPoints));
-        shapes[shapes.size() - 1]->setShader(tessellationShader);
+        BezierCurve* newCurve = new BezierCurve(selectedPoints);
+        shapes.push_back(newCurve);
+        newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
     break;
@@ -553,6 +550,7 @@ void Scene::AddShape()
         wasAShapeAdded = false;
         break;
     }
+    shapes[shapes.size() - 1]->setShader(shader);
     if (wasAShapeAdded&&(!isADerivedShape))
     {
         shapes[shapes.size() - 1]->TranslateAndConfirm(cursor.getPosition());

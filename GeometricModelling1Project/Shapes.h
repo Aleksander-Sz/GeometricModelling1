@@ -114,6 +114,10 @@ class BezierCurve : public Line
 public:
 	BezierCurve(std::vector<Point*> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; };
 	void Mesh() override;
+	void PrintImGuiOptions() override;
+	bool displayControlPolyline = false;
+	void setTessellationShader(Shader& _shader);
+	Shader tessellationShader;
 };
 
 class Grid
