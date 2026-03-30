@@ -162,8 +162,7 @@ void Meshable::Draw()
 	{
 		// This is a BezierCurve
 		glPatchParameteri(GL_PATCH_VERTICES, 4);
-		glLineWidth(5.0f);
-		glDrawArrays(GL_PATCHES, 0, 4);
+		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
 	}
 	else if (dynamic_cast<Line*>(this))
 	{
@@ -537,6 +536,51 @@ void Line::RemoveDeletedPoints()
 			i--;
 		}
 	}
+}
+
+// BezierCurve class functions
+void BezierCurve::Mesh()
+{
+	vertices.clear();
+	indices.clear();
+	if (points.size() < 2)
+		return; // Nothing to mesh
+	int numberOfSegments = points.size() / 3;
+	// First point in the curve:
+	aa::vec3 pointLocation = points[0]->getPosition();
+	vertices.push_back(pointLocation.x);
+	vertices.push_back(pointLocation.y);
+	vertices.push_back(pointLocation.z);
+	for (int i = 0; i < numberOfSegments; i++)
+	{
+		for (int j = 1; j <= 3; j++)
+		{
+			int pointIndex = i * 3 + j;
+			if (pointIndex >= points.size())
+				pointIndex = points.size() - 1; // If there are not enough points for the last segment, repeat the last point
+			aa::vec3 pointLocation = points[pointIndex]->getPosition();
+			vertices.push_back(pointLocation.x);
+			vertices.push_back(pointLocation.y);
+			vertices.push_back(pointLocation.z);
+		}
+		for (int j = 0; j < 4; j++)
+		{
+			indices.push_back(i * 3 + j);
+		}
+	}
+	//prepare for drawing
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
 }
 
 Grid::Grid()

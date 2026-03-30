@@ -95,7 +95,7 @@ class Line : public Meshable
 {
 public:
 	Line(std::vector<Point*> _points);
-	void Mesh();
+	virtual void Mesh();
 	void PrintImGuiOptions() override;
 	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;
 	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
@@ -113,6 +113,7 @@ class BezierCurve : public Line
 {
 public:
 	BezierCurve(std::vector<Point*> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; };
+	void Mesh() override;
 };
 
 class Grid

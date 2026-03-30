@@ -1,6 +1,6 @@
 #version 410 core
 
-layout (isolines, equal_spacing, cw) in;
+layout (isolines, equal_spacing) in;
 
 uniform mat4 model;
 uniform mat4 scene;
@@ -24,7 +24,15 @@ void main()
 	vec3 p2 = tcsPos[2].xyz;
 	vec3 p3 = tcsPos[3].xyz;
 
+	//p1 = vec3(0.0, 1.0, 0.0);
+	//p2 = vec3(2.0, 1.5, 0.0);
+
 	vec3 position = Bezier(t, p0, p1, p2, p3);
 
+	//gl_Position = vec4(t * 2.0 - 1.0, t*t, 0.0, 1.0);
 	gl_Position = projection * view * scene * model * vec4(position, 1.0f);
+	//if(t<0.5)
+	//	gl_Position = projection * view * vec4(-5.0, 0.0, 1.0, 1.0);
+	//else
+	//	gl_Position = projection * view * vec4(0.0, 5.5, 0.0, 1.0);
 }
