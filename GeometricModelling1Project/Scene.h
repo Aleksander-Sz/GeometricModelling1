@@ -70,7 +70,7 @@ public:
 	aa::vec2 getTransformationCenterScreenSpacePosition();
 	Axis movementAxis;
 	Shader shader;
-	Shader tesselationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/BezierTessellationControlShader.glsl", "Shaders/BezierTessellationEvaluationShader.glsl", "Shaders/FragmentShader.glsl");
+	Shader tessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/BezierTessellationControlShader.glsl", "Shaders/BezierTessellationEvaluationShader.glsl", "Shaders/FragmentShader.glsl");
 	void DrawScene(GLFWwindow* window);
 	Grid grid = Grid::getInstance();
 	bool stereoscopy = false;
