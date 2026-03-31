@@ -586,18 +586,21 @@ int main()
 				shape->MarkForDeletion();
 				scene->RemoveMarkedObjects();
 			}
-			Line* linePointer = dynamic_cast<Line*>(shape);
-			if (linePointer != nullptr)
+			else
 			{
-				if (ImGui::Button("Add Selected Points"))
+				Line* linePointer = dynamic_cast<Line*>(shape);
+				if (linePointer != nullptr)
 				{
-					// traversing all of the selected objects and adding all the points to the line
-					for (int i = 1; i < scene->shapes.size(); i++)
+					if (ImGui::Button("Add Selected Points"))
 					{
-						Point* pointPointer = dynamic_cast<Point*>(scene->shapes[i]);
-						if (pointPointer != nullptr && scene->shapes[i]->isSelected())
+						// traversing all of the selected objects and adding all the points to the line
+						for (int i = 1; i < scene->shapes.size(); i++)
 						{
-							linePointer->AddPoint(pointPointer);
+							Point* pointPointer = dynamic_cast<Point*>(scene->shapes[i]);
+							if (pointPointer != nullptr && scene->shapes[i]->isSelected())
+							{
+								linePointer->AddPoint(pointPointer);
+							}
 						}
 					}
 				}

@@ -148,7 +148,7 @@ void Shape::setShader(Shader& _shader)
 	shader = _shader;
 }
 
-// Meshable class functions
+// Meshable class functions // Updaty nie co klatke
 void Meshable::Draw()
 {
 	if (dirty)
@@ -558,7 +558,7 @@ void BezierCurve::Mesh()
 	indices.clear();
 	if (points.size() < 2)
 		return; // Nothing to mesh
-	int numberOfSegments = points.size() / 3;
+	int numberOfSegments = (points.size() + 1) / 3;
 	// First point in the curve:
 	aa::vec3 pointLocation = points[0]->getPosition();
 	vertices.push_back(pointLocation.x);
