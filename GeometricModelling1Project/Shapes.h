@@ -17,7 +17,7 @@ public:
 	virtual void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f));
 	virtual void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f));
 	virtual void Translate(aa::vec3 t);
-	void TranslateAndConfirm(aa::vec3 t);
+	virtual void TranslateAndConfirm(aa::vec3 t);
 	void setModel(aa::mat4 m);
 	void resetModel();
 	virtual void ConfirmTransformations();
@@ -33,8 +33,8 @@ public:
 	void MarkForDeletion();
 	bool isMarkedForDeletion();
 	void setShader(Shader& _shader);
-protected:
 	bool dirty = true;
+protected:
 	unsigned int VAO = 0, VBO = 0;
 	aa::mat4 model = aa::mat4(1.0f);
 	aa::mat4 modelBackup = aa::mat4(1.0f);
@@ -62,6 +62,13 @@ public:
 	Point(aa::vec3 coords);
 	void Draw() override;
 	void PrintImGuiOptions() override;
+	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Translate(aa::vec3 t) override;
+	void TranslateAndConfirm(aa::vec3 t) override;
+	std::vector<Shape*> dependentShapes;
+private:
+	void InvalidateDependentShapes();
 };
 
 class Torus : public Meshable
@@ -95,6 +102,7 @@ class Line : public Meshable
 {
 public:
 	Line(std::vector<Point*> _points);
+	~Line() override;
 	virtual void Mesh();
 	void PrintImGuiOptions() override;
 	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;

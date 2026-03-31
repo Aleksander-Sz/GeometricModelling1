@@ -228,6 +228,33 @@ void Point::PrintImGuiOptions()
 {
 	ImGui::Text("This is a point, it has no mesh options.");
 }
+void Point::Scale(aa::vec3 s, aa::vec3 origin)
+{
+	Shape::Scale(s, origin);
+	InvalidateDependentShapes();
+}
+void Point::Rotate(float angle, aa::Axis axis, aa::vec3 pivot)
+{
+	Shape::Rotate(angle, axis, pivot);
+	InvalidateDependentShapes();
+}
+void Point::Translate(aa::vec3 t)
+{
+	Shape::Translate(t);
+	InvalidateDependentShapes();
+}
+void Point::TranslateAndConfirm(aa::vec3 t)
+{
+	this->Translate(t);
+	this->ConfirmTransformations();
+}
+void Point::InvalidateDependentShapes()
+{
+	for (int i = 0; i < dependentShapes.size(); i++)
+	{
+		dependentShapes[i]->dirty = true;
+	}
+}
 
 // Torus class functions
 Torus::Torus(float _R, float _r, unsigned int _s1, unsigned int _s2)
@@ -443,8 +470,20 @@ Line::Line(std::vector<Point*> _points)
 	glGenBuffers(1, &EBO);
 	Mesh();
 }
+Line::~Line()
+{
+	for (int i = 0; i < points.size(); i++)
+	{
+		for (int j = 0; j < points[i]->dependentShapes.size(); j++)
+		{
+			if (points[i]->dependentShapes[j] == this)
+				points[i]->dependentShapes.erase(points[i]->dependentShapes.begin() + j);
+		}
+	}
+}
 void Line::Mesh()
 {
+	dirty = false;
 	vertices.clear();
 	indices.clear();
 	if (points.size() < 2)
@@ -538,6 +577,8 @@ void Line::AddPoint(Point* point)
 	if (point == nullptr)
 		return;
 	points.push_back(point);
+	point->dependentShapes.push_back(this);
+	dirty = true;
 }
 void Line::RemoveDeletedPoints()
 {
@@ -549,11 +590,13 @@ void Line::RemoveDeletedPoints()
 			i--;
 		}
 	}
+	dirty = true;
 }
 
 // BezierCurve class functions
 void BezierCurve::Mesh()
 {
+	dirty = false;
 	vertices.clear();
 	indices.clear();
 	if (points.size() < 2)
@@ -605,6 +648,7 @@ void BezierCurve::setTessellationShader(Shader& _shader)
 	tessellationShader = _shader;
 }
 
+// Grid Class Functions
 Grid::Grid()
 {
 	glGenVertexArrays(1, &VAO);
