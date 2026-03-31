@@ -20,7 +20,8 @@ void Scene::LockXAxis()
     }
     if (rotatingEnabled)
         xLocked = true;
-    MoveSelectedObjects(unlockedTranslationBackup);
+    if (grabEnabled)
+        MoveSelectedObjects(unlockedTranslationBackup);
 }
 void Scene::LockYAxis()
 {
@@ -34,7 +35,8 @@ void Scene::LockYAxis()
     }
     if (rotatingEnabled)
         yLocked = true;
-    MoveSelectedObjects(unlockedTranslationBackup);
+    if (grabEnabled)
+        MoveSelectedObjects(unlockedTranslationBackup);
 }
 void Scene::LockZAxis()
 {
@@ -48,7 +50,8 @@ void Scene::LockZAxis()
     }
     if (rotatingEnabled)
         zLocked = true;
-    MoveSelectedObjects(unlockedTranslationBackup);
+    if (grabEnabled)
+        MoveSelectedObjects(unlockedTranslationBackup);
 }
 void Scene::toggleGrab()
 {
@@ -66,6 +69,7 @@ void Scene::toggleGrab()
         else
         {
             grabMouseOrigin = aa::vec2(lastX, lastY);
+			unlockedTranslationBackup = aa::vec3(0.0f);
         }
         grabEnabled = !grabEnabled;
     }
@@ -97,6 +101,7 @@ void Scene::toggleRotating()
     xLocked = false;
     yLocked = true; // default rotation axis
     zLocked = false;
+    movementAxis = Axis('y');
     if (selectedShape != nullptr)
     {
         if (rotatingEnabled)
@@ -402,8 +407,18 @@ void Scene::DrawScene(GLFWwindow* window)
     for (int i = 1; i < shapes.size(); i++)
         shapes[i]->Draw();
     cursor.Draw();
-    if (grabEnabled && (xLocked || yLocked || zLocked))
-        movementAxis.Draw(shader, currentTranslationOrigin, 'R');
+    if ((grabEnabled || rotatingEnabled) && (xLocked || yLocked || zLocked))
+    {
+        if(grabEnabled)
+            movementAxis.Draw(shader, currentTranslationOrigin, 'R');
+        else
+        {
+            if (transformAroundCursor)
+                movementAxis.Draw(shader, cursor.getPosition(), 'R');
+            else
+                movementAxis.Draw(shader, currentTranslationOrigin, 'R');
+        }
+    }
     if (stereoscopy)
     {
         glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
