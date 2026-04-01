@@ -158,7 +158,7 @@ void Meshable::Draw()
 	shader.setMat4("model", model);
 	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
 	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
-	BezierCurve* thisBC = dynamic_cast<BezierCurve*>(this);
+	BezierCurveC0* thisBC = dynamic_cast<BezierCurveC0*>(this);
 	if (thisBC)
 	{
 		// This is a BezierCurve
@@ -464,6 +464,10 @@ void Ellipsoid::PrintImGuiOptions()
 Line::Line(std::vector<Point*> _points)
 {
 	points = _points;
+	for (int i = 0; i < points.size(); i++)
+	{
+		points[i]->dependentShapes.push_back(this);
+	}
 	shapeName = "Polyline";
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -593,8 +597,8 @@ void Line::RemoveDeletedPoints()
 	dirty = true;
 }
 
-// BezierCurve class functions
-void BezierCurve::Mesh()
+// BezierCurveC0 class functions
+void BezierCurveC0::Mesh()
 {
 	dirty = false;
 	vertices.clear();
@@ -638,17 +642,92 @@ void BezierCurve::Mesh()
 
 	glBindVertexArray(0);
 }
-void BezierCurve::PrintImGuiOptions()
+void BezierCurveC0::PrintImGuiOptions()
 {
 	Line::PrintImGuiOptions();
 	ImGui::Checkbox("Display Control Polyline", &displayControlPolyline);
 }
-void BezierCurve::setTessellationShader(Shader& _shader)
+void BezierCurveC0::setTessellationShader(Shader& _shader)
 {
 	tessellationShader = _shader;
 }
 
-// Grid Class Functions
+// BezierCurveC1 class functions
+void BezierCurveC1::Mesh()
+{
+	dirty = false;
+	vertices.clear();
+	indices.clear();
+	if (points.size() < 2)
+		return; // Nothing to mesh
+	int numberOfSegments = (points.size() - 1) / 2;
+	if (points.size() < 4)
+		numberOfSegments = 1;
+	std::cout << "Number of segments: " << numberOfSegments << "\n";
+	aa::vec3 previous1;
+	aa::vec3 previous2;
+	// First segment of the curve:
+	for (int i = 0; i < 4; i++)
+	{
+		int pointIndex = i;
+		if (pointIndex >= points.size())
+			pointIndex = points.size() - 1;
+		aa::vec3 pointLocation = points[pointIndex]->getPosition();
+		vertices.push_back(pointLocation.x);
+		vertices.push_back(pointLocation.y);
+		vertices.push_back(pointLocation.z);
+		indices.push_back(i);
+		if (i == 2)
+			previous2 = pointLocation;
+		else if (i == 3)
+			previous1 = pointLocation;
+	}
+	int pointsSize = points.size();
+	for (int i = 1; i < numberOfSegments; i++)
+	{
+		// calculating the first point, to maintaing first derivative continuity
+	
+		aa::vec3 derivativeVector = previous1 - previous2;
+		aa::vec3 newPoint = previous1 + derivativeVector;
+		vertices.push_back(newPoint.x);
+		vertices.push_back(newPoint.y);
+		vertices.push_back(newPoint.z);
+
+		for (int j = 0; j < 2; j++)
+		{
+			int pointIndex = i * 2 + j + 2;
+			if (pointIndex >= points.size())
+				pointIndex = points.size() - 1; // If there are not enough points for the last segment, repeat the last point
+			aa::vec3 pointLocation = points[pointIndex]->getPosition();
+			vertices.push_back(pointLocation.x);
+			vertices.push_back(pointLocation.y);
+			vertices.push_back(pointLocation.z);
+			if(j==0)
+				previous2 = pointLocation;
+			else if(j==1)
+				previous1 = pointLocation;
+		}
+		for (int j = 0; j < 4; j++)
+		{
+			indices.push_back(i * 3 + j);
+		}
+	}
+	//prepare for drawing
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
+}
+
+// Grid class functions
 Grid::Grid()
 {
 	glGenVertexArrays(1, &VAO);

@@ -117,15 +117,22 @@ protected:
 	std::vector<Point*> points;
 };
 
-class BezierCurve : public Line
+class BezierCurveC0 : public Line
 {
 public:
-	BezierCurve(std::vector<Point*> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; };
+	BezierCurveC0(std::vector<Point*> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; };
 	void Mesh() override;
 	void PrintImGuiOptions() override;
 	bool displayControlPolyline = false;
 	void setTessellationShader(Shader& _shader);
 	Shader tessellationShader;
+};
+
+class BezierCurveC1 : public BezierCurveC0
+{
+public:
+	BezierCurveC1(std::vector<Point*> _controlPoints) : BezierCurveC0(_controlPoints) { };
+	void Mesh() override;
 };
 
 class Grid

@@ -542,7 +542,7 @@ void Scene::AddShape()
         isADerivedShape = true;
     }
     break;
-	case 4: // Bezier Curve
+	case 4: // Bezier Curve C0
     {
         std::vector<Point*> selectedPoints;
         for (int i = 1; i < shapes.size(); i++)
@@ -554,12 +554,29 @@ void Scene::AddShape()
                     selectedPoints.push_back(pointer);
             }
         }
-        BezierCurve* newCurve = new BezierCurve(selectedPoints);
+        BezierCurveC0* newCurve = new BezierCurveC0(selectedPoints);
         shapes.push_back(newCurve);
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
     break;
+    case 5: // Bezier Curve C1
+    {
+        std::vector<Point*> selectedPoints;
+        for (int i = 1; i < shapes.size(); i++)
+        {
+            Point* pointer;
+            if (pointer = dynamic_cast<Point*>(shapes[i]))
+            {
+                if (pointer->isSelected())
+                    selectedPoints.push_back(pointer);
+            }
+        }
+        BezierCurveC1* newCurve = new BezierCurveC1(selectedPoints);
+        shapes.push_back(newCurve);
+        newCurve->setTessellationShader(tessellationShader);
+        isADerivedShape = true;
+    }
     default:
         std::cerr << "Shape not implemented yet.\n";
         wasAShapeAdded = false;
