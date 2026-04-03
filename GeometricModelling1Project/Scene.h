@@ -51,14 +51,15 @@ public:
 	Camera camera;
 	Cursor cursor = Cursor::getInstance();
 	void UpdateCursorPosition(double xpos, double ypos);
-	std::vector<Shape*> shapes;
+	//std::vector<Shape*> shapes;
+	std::vector<int> figures__REFACTORING;
 	void LeftMouseClick();
 	void DrawCursorOverlay();
 	void MoveSelectedObjects(aa::vec3 translation);
 	void ScaleSelectedObjects(float factor);
 	void RotateSelectedObjects(float angle, aa::Axis axis);
 	aa::vec3 unlockedTranslationBackup = aa::vec3(0.0f, 0.0f, 0.0f);
-	Shape* selectedShape = NULL;
+	int selectedShape = -1; // storing the index
 	void ConfirmObjectMovement();
 	void CancellObjectMovement();
 	void DeselectEverything();

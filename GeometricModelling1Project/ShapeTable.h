@@ -1,20 +1,26 @@
 #ifndef SHAPETABLE_H
 #define SHAPETABLE_H
 
-#include "Shapes.h"
 #include <vector>
 
+class Shape;
+class Point; // defined in Shapes.h
+class Line;
 
 class ShapeTable
 {
 public:
-	ShapeTable();
-	int GetShapeID(Shape* shape);
-	Shape* GetShapeByID(int id);
-	void RemoveShape(int id);
-	void MergeShapes(int id1, int id2); // Shape id2 will be merged into id1
+	//ShapeTable& getInstance();
+	static int GetShapeID(Shape* shape);
+	static Shape* GetShapeByID(int id);
+	static Point* GetPointByID(int id);
+	static Line* GetLineByID(int id);
+	static void RemoveShape(int id);
+	static void MergeShapes(int id1, int id2); // Shape id2 will be merged into id1
+	Shape* operator[](int id) { return GetShapeByID(id); };
 private:
-	std::vector<Shape*> shapePointers;
+	ShapeTable();
+	static std::vector<Shape*> shapePointers;
 };
 
 #endif

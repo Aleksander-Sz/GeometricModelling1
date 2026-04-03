@@ -463,6 +463,10 @@ void Ellipsoid::PrintImGuiOptions()
 
 Line::Line(std::vector<Point*> _points)
 {
+	for (int i = 0; i < _points.size(); i++)
+	{
+		;// points.push_back(ShapeTable::GetPointByID(0));
+	}
 	points = _points;
 	for (int i = 0; i < points.size(); i++)
 	{

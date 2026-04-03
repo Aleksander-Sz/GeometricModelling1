@@ -1,4 +1,13 @@
 #include "ShapeTable.h"
+#include "Shapes.h"
+
+std::vector<Shape*> ShapeTable::shapePointers;
+
+/*ShapeTable& ShapeTable::getInstance()
+{
+	static ShapeTable instance;
+	return instance;
+}*/
 
 ShapeTable::ShapeTable()
 {
@@ -25,10 +34,27 @@ Shape* ShapeTable::GetShapeByID(int id)
 	return shapePointers[id];
 }
 
+Point* ShapeTable::GetPointByID(int id)
+{
+	if (id < 0 || id >= shapePointers.size())
+		return nullptr;
+	Point* pointPointer = dynamic_cast<Point*>(shapePointers[id]);
+	return pointPointer;
+}
+
+Line* ShapeTable::GetLineByID(int id)
+{
+	if (id < 0 || id >= shapePointers.size())
+		return nullptr;
+	Line* linePointer = dynamic_cast<Line*>(shapePointers[id]);
+	return linePointer;
+}
+
 void ShapeTable::RemoveShape(int id)
 {
 	if (id < 0 || id >= shapePointers.size())
 		return;
+	delete shapePointers[id];
 	shapePointers[id] = nullptr;
 }
 

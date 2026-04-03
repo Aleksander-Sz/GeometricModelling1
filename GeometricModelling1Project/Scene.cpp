@@ -4,7 +4,8 @@ Scene::Scene(int windowWidth, int windowHeight, Shader _shader)
 {
 	camera = Camera(windowWidth, windowHeight);
     shader = _shader;
-    shapes.push_back(&cursor);
+    //shapes.push_back(&cursor); // SFD Scheduled for deletion
+	figures__REFACTORING.push_back(ShapeTable::GetShapeID(&cursor));
 	cursor.setShader(shader);
 	centerOfGravityIndicator.setShader(shader);
 }
@@ -60,7 +61,7 @@ void Scene::toggleGrab()
     xLocked = false;
     yLocked = false;
     zLocked = false;
-	if (selectedShape != nullptr)
+	if (selectedShape != -1)
     {
         if(grabEnabled)
         {
@@ -81,7 +82,7 @@ void Scene::toggleScaling()
     xLocked = false;
     yLocked = false;
     zLocked = false;
-    if (selectedShape != nullptr)
+    if (selectedShape != -1)
     {
         if (scalingEnabled)
         {
@@ -102,7 +103,7 @@ void Scene::toggleRotating()
     yLocked = true; // default rotation axis
     zLocked = false;
     movementAxis = Axis('y');
-    if (selectedShape != nullptr)
+    if (selectedShape != -1)
     {
         if (rotatingEnabled)
         {
@@ -132,16 +133,16 @@ void Scene::LeftMouseClick()
         Shape* previousShape = nullptr;
         if (!shiftPressed)
         {
-            previousShape = selectedShape;
+            previousShape = ShapeTable::GetShapeByID(selectedShape);
             DeselectEverything();
         }
         Shape* newSelectedShape = nullptr;
         //
         float minDistance = 1000.0f;
         int closestObject = 0;
-        for (int i = 0; i < shapes.size(); i++)
+        for (int i = 0; i < figures__REFACTORING.size(); i++)
         {
-            aa::vec2 objectPosition = shapes[i]->getScreenSpacePosition(camera);
+            aa::vec2 objectPosition = ShapeTable::GetShapeByID(figures__REFACTORING[i])->getScreenSpacePosition(camera);
             float distance = aa::length(objectPosition - aa::vec2(lastX,lastY));
             if (distance < minDistance)
             {
@@ -151,21 +152,21 @@ void Scene::LeftMouseClick()
         }
         bool isSelected = false;
         if (minDistance < 30.0f)
-            isSelected = shapes[closestObject]->Select();
+            isSelected = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject])->Select();
         if (isSelected)
-            newSelectedShape = shapes[closestObject];
+            newSelectedShape = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject]);
         //
         if (!shiftPressed && previousShape == newSelectedShape)
             return;
         if (newSelectedShape != nullptr)
         {
             std::cout << newSelectedShape->Name() << "\n";
-            if (selectedShape != nullptr)
+            if (selectedShape != -1)
             {
                 ;//selectedShape->Select(true); // Deselect current shape
             }
-            if(selectedShape==nullptr)
-                selectedShape = newSelectedShape;
+            if(selectedShape==-1)
+                selectedShape = ShapeTable::GetShapeID(newSelectedShape);
         }
         else
         {
@@ -203,7 +204,7 @@ void Scene::DrawCursorOverlay()
     if (grabEnabled)
     {
         ImGui::Text("Object Position:");
-        aa::vec3 objectPosition = selectedShape->getPosition(); // TODO correct this
+        aa::vec3 objectPosition = ShapeTable::GetShapeByID(selectedShape)->getPosition(); // TODO correct this
         if(numberOfSelectedShapes>1)
             objectPosition = centerOfGravityIndicator.getPosition();
         ImGui::Text("X: %.2f", objectPosition.x);
@@ -248,79 +249,79 @@ void Scene::MoveSelectedObjects(aa::vec3 translation)
     translation.x *= xLockFactor;
     translation.y *= yLockFactor;
     translation.z *= zLockFactor;
-    for (Shape* shape : shapes)
+    for (int shapeID : figures__REFACTORING)
     {
-        if (shape->isSelected())
+        if (ShapeTable::GetShapeByID(shapeID)->isSelected())
         {
             translation = (inverseSceneMatrix * aa::vec4(translation, 1.0f)).xyz;
-            shape->Translate(translation);
+            ShapeTable::GetShapeByID(shapeID)->Translate(translation);
         }
     }
 }
 void Scene::ScaleSelectedObjects(float factor)
 {
     aa::vec3 scaling = aa::vec3(factor, factor, factor);
-    for (int i = 1; i < shapes.size(); i++)
+    for (int i = 1; i < figures__REFACTORING.size(); i++)
     {
-        if (shapes[i]->isSelected())
+        if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
         {
             scaling = (inverseSceneMatrix * aa::vec4(scaling, 1.0f)).xyz;
             if(transformAroundCursor)
-                shapes[i]->Scale(scaling, cursor.getPosition());
+                ShapeTable::GetShapeByID(figures__REFACTORING[i])->Scale(scaling, cursor.getPosition());
             else
-                shapes[i]->Scale(scaling, currentTranslationOrigin);
+                ShapeTable::GetShapeByID(figures__REFACTORING[i])->Scale(scaling, currentTranslationOrigin);
         }
     }
 }
 void Scene::RotateSelectedObjects(float angle, aa::Axis axis)
 {
-    for (int i = 1; i < shapes.size(); i++)
+    for (int i = 1; i < figures__REFACTORING.size(); i++)
     {
-        if (shapes[i]->isSelected())
+        if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
         {
             if (transformAroundCursor)
-                shapes[i]->Rotate(angle, axis, cursor.getPosition());
+                ShapeTable::GetShapeByID(figures__REFACTORING[i])->Rotate(angle, axis, cursor.getPosition());
             else
-                shapes[i]->Rotate(angle, axis, currentTranslationOrigin);
+                ShapeTable::GetShapeByID(figures__REFACTORING[i])->Rotate(angle, axis, currentTranslationOrigin);
         }
     }
 }
 void Scene::CancellObjectMovement()
 {
-    for (Shape* shape : shapes)
+    for (int shapeID : figures__REFACTORING)
     {
-        if (shape->isSelected())
+        if (ShapeTable::GetShapeByID(shapeID)->isSelected())
         {
-            shape->CancelTransformations();
+            ShapeTable::GetShapeByID(shapeID)->CancelTransformations();
         }
     }
 }
 void Scene::ConfirmObjectMovement()
 {
-    for (Shape* shape : shapes)
+    for (int shapeID : figures__REFACTORING)
     {
-        if (shape->isSelected())
+        if (ShapeTable::GetShapeByID(shapeID)->isSelected())
         {
-            shape->ConfirmTransformations();
+            ShapeTable::GetShapeByID(shapeID)->ConfirmTransformations();
         }
     }
 }
 void Scene::DeselectEverything()
 {
-    selectedShape = NULL;
-    for (int i = 0; i < shapes.size(); i++)
+    selectedShape = -1;
+    for (int i = 0; i < figures__REFACTORING.size(); i++)
     {
-        shapes[i]->Select(true);
+        ShapeTable::GetShapeByID(figures__REFACTORING[i])->Select(true);
     }
 }
 void Scene::DeleteSelectedObjects()
 {
-    selectedShape = NULL;
-    for (int i = 1; i < shapes.size(); i++)
+    selectedShape = -1;
+    for (int i = 1; i < figures__REFACTORING.size(); i++)
     {
-        if (shapes[i]->isSelected())
+        if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
         {
-            shapes[i]->MarkForDeletion();
+            ShapeTable::GetShapeByID(figures__REFACTORING[i])->MarkForDeletion();
         }
     }
     RemoveMarkedObjects();
@@ -338,13 +339,13 @@ void Scene::EndBoxSelect(aa::vec2 location)
     int rightBoundry    = std::max(boxSelectOrigin.x, location.x);
     int topBoundry      = std::max(boxSelectOrigin.y, location.y);
     int bottomBoundry   = std::min(boxSelectOrigin.y, location.y);
-    for (int i = 1; i < shapes.size(); i++)
+    for (int i = 1; i < figures__REFACTORING.size(); i++)
     {
-        aa::vec2 shapeLocation = shapes[i]->getScreenSpacePosition(camera);
+        aa::vec2 shapeLocation = ShapeTable::GetShapeByID(figures__REFACTORING[i])->getScreenSpacePosition(camera);
         if (shapeLocation.x >= leftBoundry && shapeLocation.x <= rightBoundry && shapeLocation.y >= bottomBoundry && shapeLocation.y <= topBoundry)
         {
-            shapes[i]->Select();
-            selectedShape = shapes[i];
+            ShapeTable::GetShapeByID(figures__REFACTORING[i])->Select();
+            selectedShape = figures__REFACTORING[i];
         }
     }
 }
@@ -404,8 +405,8 @@ void Scene::DrawScene(GLFWwindow* window)
         glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
     glDepthMask(GL_FALSE);
     grid.Draw(camera, 'R');
-    for (int i = 1; i < shapes.size(); i++)
-        shapes[i]->Draw();
+    for (int i = 1; i < figures__REFACTORING.size(); i++)
+        ShapeTable::GetShapeByID(figures__REFACTORING[i])->Draw();
     cursor.Draw();
     if ((grabEnabled || rotatingEnabled) && (xLocked || yLocked || zLocked))
     {
@@ -419,32 +420,18 @@ void Scene::DrawScene(GLFWwindow* window)
                 movementAxis.Draw(shader, currentTranslationOrigin, 'R');
         }
     }
-    if (stereoscopy)
-    {
-        glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        shader.setMat4("projection", camera.projectionLeft());
-        shader.setMat4("scene", sceneMatrix);
-        grid.Draw(camera, 'L');
-        for (int i = 1; i < shapes.size(); i++)
-            shapes[i]->Draw();
-        cursor.Draw();
-        if (grabEnabled && (xLocked || yLocked || zLocked))
-            movementAxis.Draw(shader, currentTranslationOrigin, 'L');
-        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    }
 
     //Multiple Selection Center Of Gravity
     if (!grabEnabled && !scalingEnabled && !rotatingEnabled)
     {
         numberOfSelectedShapes = 0;
         aa::vec3 centerOfMass = aa::vec3(0.0f, 0.0f, 0.0f);
-        for (int i = 1; i < shapes.size(); i++)
+        for (int i = 1; i < figures__REFACTORING.size(); i++)
         {
-            if (shapes[i]->isSelected())
+            if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
             {
                 numberOfSelectedShapes++;
-                centerOfMass += shapes[i]->getPosition();
+                centerOfMass += ShapeTable::GetShapeByID(figures__REFACTORING[i])->getPosition();
             }
         }
         if (numberOfSelectedShapes > 0)
@@ -472,20 +459,20 @@ void Scene::DrawScene(GLFWwindow* window)
 
 void Scene::RemoveMarkedObjects()
 {
-    for (int i = 1; i < shapes.size(); i++)
+    for (int i = 1; i < figures__REFACTORING.size(); i++)
     {
-        Line* linePointer = dynamic_cast<Line*>(shapes[i]);
+        Line* linePointer = (ShapeTable::GetLineByID(figures__REFACTORING[i]));
         if (linePointer != nullptr)
         {
             linePointer->RemoveDeletedPoints();
         }
     }
-    for (int i = 1; i < shapes.size(); i++)
+    for (int i = 1; i < figures__REFACTORING.size(); i++)
     {
-        if (shapes[i]->isMarkedForDeletion())
+        if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isMarkedForDeletion())
         {
-            delete shapes[i];
-            shapes.erase(shapes.begin() + i);
+            ShapeTable::RemoveShape(figures__REFACTORING[i]);
+            figures__REFACTORING.erase(figures__REFACTORING.begin() + i);
             i--;
         }
     }
@@ -498,20 +485,29 @@ void Scene::AddShape()
     switch (currentItemSelectedForAdding)
     {
 	case 0: // Torus
-        shapes.push_back(new Torus(1.0f, 0.3f, 50, 50));
+    {
+		Torus* newTorus = new Torus(1.0f, 0.3f, 50, 50);
+        //shapes.push_back(newTorus); // SFD Scheduled for deletion
+		figures__REFACTORING.push_back(ShapeTable::GetShapeID(newTorus));
+    }
         break;
 	case 1: // Ellipsoid
+    {
         std::cout << "This option has been locked, as it is out of the scope of MKMG.\n";
         break;
-        shapes.push_back(new Ellipsoid(1.0f, 1.2f, 0.8f, 50));
+		Ellipsoid* newEllipsoid = new Ellipsoid(1.0f, 1.2f, 0.8f, 50);
+        //shapes.push_back(newEllipsoid); // SFD Scheduled for deletion
+        figures__REFACTORING.push_back(ShapeTable::GetShapeID(newEllipsoid));
         break;
+
+    }
     case 2: // Point
     {
         Line* selectedLine = nullptr;
         int selectedLinesCount = 0;
-        for (int i = 1; i < shapes.size(); i++)
+        for (int i = 1; i < figures__REFACTORING.size(); i++)
         {
-            Line* current = dynamic_cast<Line*>(shapes[i]);
+            Line* current = ShapeTable::GetLineByID(figures__REFACTORING[i]);
             if (current && current->isSelected())
             {
                 selectedLinesCount++;
@@ -519,7 +515,8 @@ void Scene::AddShape()
             }
         }
         Point* newPoint = new Point(aa::vec3(0.0f, 0.0f, 0.0f));
-        shapes.push_back(newPoint);
+        //shapes.push_back(newPoint); // SFD Scheduled for deletion
+		figures__REFACTORING.push_back(ShapeTable::GetShapeID(newPoint));
         if (selectedLinesCount == 1)
         {
             selectedLine->AddPoint(newPoint);
@@ -529,33 +526,36 @@ void Scene::AddShape()
 	case 3: // Line
     {
         std::vector<Point*> selectedPoints;
-        for (int i = 1; i < shapes.size(); i++)
+        for (int i = 1; i < figures__REFACTORING.size(); i++)
         {
             Point* pointer;
-            if (pointer = dynamic_cast<Point*>(shapes[i]))
+            if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
             {
                 if (pointer->isSelected())
                     selectedPoints.push_back(pointer);
             }
         }
-        shapes.push_back(new Line(selectedPoints));
+		Line* newLine = new Line(selectedPoints);
+        //shapes.push_back(newLine); // SFD Scheduled for deletion
+        figures__REFACTORING.push_back(ShapeTable::GetShapeID(newLine));
         isADerivedShape = true;
     }
     break;
 	case 4: // Bezier Curve C0
     {
         std::vector<Point*> selectedPoints;
-        for (int i = 1; i < shapes.size(); i++)
+        for (int i = 1; i < figures__REFACTORING.size(); i++)
         {
             Point* pointer;
-            if (pointer = dynamic_cast<Point*>(shapes[i]))
+            if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
             {
                 if (pointer->isSelected())
                     selectedPoints.push_back(pointer);
             }
         }
         BezierCurveC0* newCurve = new BezierCurveC0(selectedPoints);
-        shapes.push_back(newCurve);
+        //shapes.push_back(newCurve); // SFD Scheduled for deletion
+		figures__REFACTORING.push_back(ShapeTable::GetShapeID(newCurve));
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
@@ -563,28 +563,30 @@ void Scene::AddShape()
     case 5: // Bezier Curve C1
     {
         std::vector<Point*> selectedPoints;
-        for (int i = 1; i < shapes.size(); i++)
+        for (int i = 1; i < figures__REFACTORING.size(); i++)
         {
             Point* pointer;
-            if (pointer = dynamic_cast<Point*>(shapes[i]))
+            if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
             {
                 if (pointer->isSelected())
                     selectedPoints.push_back(pointer);
             }
         }
         BezierCurveC1* newCurve = new BezierCurveC1(selectedPoints);
-        shapes.push_back(newCurve);
+        //shapes.push_back(newCurve); // SFD Scheduled for deletion
+		figures__REFACTORING.push_back(ShapeTable::GetShapeID(newCurve));
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
+    break;
     default:
         std::cerr << "Shape not implemented yet.\n";
         wasAShapeAdded = false;
         break;
     }
-    shapes[shapes.size() - 1]->setShader(shader);
+    ShapeTable::GetShapeByID(figures__REFACTORING[figures__REFACTORING.size() - 1])->setShader(shader);
     if (wasAShapeAdded&&(!isADerivedShape))
     {
-        shapes[shapes.size() - 1]->TranslateAndConfirm(cursor.getPosition());
+        ShapeTable::GetShapeByID(figures__REFACTORING[figures__REFACTORING.size() - 1])->TranslateAndConfirm(cursor.getPosition());
     }
 }

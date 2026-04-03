@@ -324,7 +324,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	{
 		if (scene->grabEnabled||scene->scalingEnabled||scene->rotatingEnabled)
 		{
-			float distance = aa::length(scene->selectedShape->getPosition() - scene->camera.cameraPos);
+			float distance = aa::length(ShapeTable::GetShapeByID(scene->selectedShape)->getPosition() - scene->camera.cameraPos);
 
 			float fovRad = aa::radians(scene->camera.zoom); // assuming zoom = FOV
 			float viewHeight = 2.0f * distance * tan(fovRad * 0.5f);
@@ -491,7 +491,8 @@ int main()
 	
 	Torus* torus = new Torus(1.0f, 0.3f, 50, 50);
 	torus->setShader(scene->shader);
-	scene->shapes.push_back(torus);
+	//scene->shapes.push_back(torus); // SFD Scheduled for deletion
+	scene->figures__REFACTORING.push_back(ShapeTable::GetShapeID(torus));
 	//Point point(aa::vec3(0.0f, 0.1f, 0.0f));
 	//scene->shapes.push_back(&point);
 	torus->Rotate(aa::radians(90.0f),aa::Axis::X);
@@ -536,35 +537,33 @@ int main()
 		ImGui::Separator();
 		if (ImGui::BeginListBox("##Object Selection", ImVec2(400, 200)))
 		{
-			for (int i = 0; i < scene->shapes.size(); i++)
+			for (int i = 0; i < scene->figures__REFACTORING.size(); i++)
 			{
-				if (scene->shapes[i]->isMarkedForDeletion())
+				if (ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->isMarkedForDeletion())
 					continue;
 				ImGui::PushID(i);
-				std::string fullObjectName = scene->shapes[i]->Name();
-				//if (typeid(&(scene->shapes[i])) != typeid(Cursor))
-				//	fullObjectName += " " + std::to_string(i);
-				if (ImGui::Selectable((fullObjectName).c_str(), scene->shapes[i]->isSelected()))
+				std::string fullObjectName = ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->Name();
+				if (ImGui::Selectable((fullObjectName).c_str(), ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->isSelected()))
 				{
 					if (!scene->shiftPressed)
 					{
 						scene->DeselectEverything();
 					}
-					scene->shapes[i]->Select();
-					if(scene->selectedShape==nullptr)
-						scene->selectedShape = scene->shapes[i];
+					ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->Select();
+					if(scene->selectedShape==-1)
+						scene->selectedShape = scene->figures__REFACTORING[i];
 				}
 				ImGui::PopID();
 			}
 			ImGui::EndListBox();
 		}
 		ImGui::Text("Object parameters:");
-		Shape* shape = scene->selectedShape;
-		if (shape != nullptr)
+		int shape = scene->selectedShape;
+		if (shape != -1)
 		{
 			char buffer[64] = "";
-			strcpy_s(buffer, (shape->Name()).c_str());
-			if (shape->Name() != "3D Cursor" && ImGui::InputText("Object name", buffer, IM_ARRAYSIZE(buffer)))
+			strcpy_s(buffer, (ShapeTable::GetShapeByID(shape)->Name()).c_str());
+			if (ShapeTable::GetShapeByID(shape)->Name() != "3D Cursor" && ImGui::InputText("Object name", buffer, IM_ARRAYSIZE(buffer)))
 			{
 				std::string newName = std::string(buffer);
 				if (newName == "3D Cursor")
@@ -573,31 +572,31 @@ int main()
 				}
 				else
 				{
-					shape->setName(newName);
+					ShapeTable::GetShapeByID(shape)->setName(newName);
 				}
 			}
-			shape->PrintImGuiOptions();
+			ShapeTable::GetShapeByID(shape)->PrintImGuiOptions();
 			ImGui::Separator();
 			//scene->shapes[i]->PrintImGuiTransformOptions(); // Temporarily Disabled
-			if (shape->Name() != "3D Cursor" && ImGui::Button("Delete object"))
+			if (ShapeTable::GetShapeByID(shape)->Name() != "3D Cursor" && ImGui::Button("Delete object"))
 			{
 				scene->grabEnabled = false;
 				scene->DeselectEverything();
-				shape->MarkForDeletion();
+				ShapeTable::GetShapeByID(shape)->MarkForDeletion();
 				scene->RemoveMarkedObjects();
 			}
 			else
 			{
-				Line* linePointer = dynamic_cast<Line*>(shape);
+				Line* linePointer = ShapeTable::GetLineByID(shape);
 				if (linePointer != nullptr)
 				{
 					if (ImGui::Button("Add Selected Points"))
 					{
 						// traversing all of the selected objects and adding all the points to the line
-						for (int i = 1; i < scene->shapes.size(); i++)
+						for (int i = 1; i < scene->figures__REFACTORING.size(); i++)
 						{
-							Point* pointPointer = dynamic_cast<Point*>(scene->shapes[i]);
-							if (pointPointer != nullptr && scene->shapes[i]->isSelected())
+							Point* pointPointer = ShapeTable::GetPointByID(scene->figures__REFACTORING[i]);
+							if (pointPointer != nullptr && ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->isSelected())
 							{
 								linePointer->AddPoint(pointPointer);
 							}
