@@ -125,7 +125,7 @@ protected:
 class BezierCurveC0 : public Line
 {
 public:
-	BezierCurveC0(std::vector<int> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; };
+	BezierCurveC0(std::vector<int> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; Mesh(); };
 	void Mesh() override;
 	void PrintImGuiOptions() override;
 	bool displayControlPolyline = false;
@@ -136,7 +136,7 @@ public:
 class BezierCurveC1 : public BezierCurveC0
 {
 public:
-	BezierCurveC1(std::vector<int> _controlPoints) : BezierCurveC0(_controlPoints) { };
+	BezierCurveC1(std::vector<int> _controlPoints) : BezierCurveC0(_controlPoints) { Mesh(); };
 	void Mesh() override;
 };
 
