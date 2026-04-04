@@ -174,7 +174,11 @@ void Meshable::Draw()
 		glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
 		thisBC->tessellationShader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
 		glPatchParameteri(GL_PATCH_VERTICES, 4);
+		thisBC->tessellationShader.setVec2("tRange", aa::vec2(0.0f, 0.5f));
 		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
+		thisBC->tessellationShader.setVec2("tRange", aa::vec2(0.5f, 1.0f));
+		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
+		// Splitting into two draw calls to achieve subdivisions over 64
 		
 	}
 	else if (dynamic_cast<Line*>(this))

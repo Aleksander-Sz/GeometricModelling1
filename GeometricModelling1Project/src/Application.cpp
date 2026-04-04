@@ -503,6 +503,11 @@ int main()
 	Shader ourShader("Shaders/VertexShader.glsl","Shaders/FragmentShader.glsl");
 	Scene sceneObject = Scene(windowWidth, windowHeight, ourShader);
 	scene = &sceneObject;
+	
+	// For checking max tessellation level:
+	int maxLevel;
+	glGetIntegerv(GL_MAX_TESS_GEN_LEVEL, &maxLevel);
+	std::cout << "Maximum tessellation level: " << maxLevel << "\n";
 
 	// Rendering commands here
 	

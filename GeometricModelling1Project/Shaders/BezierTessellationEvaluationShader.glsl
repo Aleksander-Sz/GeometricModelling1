@@ -6,6 +6,7 @@ uniform mat4 model;
 uniform mat4 scene;
 uniform mat4 view;
 uniform mat4 projection;
+uniform vec2 tRange;
 
 in vec3 tcsPos[];
 
@@ -30,7 +31,7 @@ void main()
 	vec3 p2 = tcsPos[2].xyz;
 	vec3 p3 = tcsPos[3].xyz;
 
-	vec3 position = Bezier(t, p0, p1, p2, p3);
+	vec3 position = Bezier(mix(tRange.x, tRange.y, t), p0, p1, p2, p3);
 
 	gl_Position = projection * view * scene * model * vec4(position, 1.0f);
 }
