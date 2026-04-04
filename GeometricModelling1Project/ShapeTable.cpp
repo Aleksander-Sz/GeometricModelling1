@@ -14,6 +14,12 @@ ShapeTable::ShapeTable()
 	;
 }
 
+int ShapeTable::AddShape(Shape* shape)
+{
+	shapePointers.push_back(shape);
+	return shapePointers.size() - 1;
+}
+
 int ShapeTable::GetShapeID(Shape* shape)
 {
 	for (size_t i = 0; i < shapePointers.size(); i++)

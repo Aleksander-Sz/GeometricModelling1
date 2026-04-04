@@ -41,7 +41,7 @@ void processInput(GLFWwindow* window)
 				scene->grabEnabled = false;
 				scene->scalingEnabled = false;
 				scene->rotatingEnabled = false;
-				scene->xLocked = scene->yLocked = scene->zLocked = false;
+				scene->lockedAxis = NONE;
 			}
 			else
 			{
@@ -123,7 +123,10 @@ void processInput(GLFWwindow* window)
 	{
 		if (!scene->xPressed)
 		{
-			scene->LockXAxis();
+			if (scene->shiftPressed)
+				scene->LockYZAxis();
+			else
+				scene->LockXAxis();
 		}
 		scene->xPressed = true;
 	}
@@ -133,7 +136,10 @@ void processInput(GLFWwindow* window)
 	{
 		if (!scene->yPressed)
 		{
-			scene->LockYAxis();
+			if (scene->shiftPressed)
+				scene->LockXZAxis();
+			else
+				scene->LockYAxis();
 		}
 		scene->yPressed = true;
 	}
@@ -143,7 +149,10 @@ void processInput(GLFWwindow* window)
 	{
 		if (!scene->zPressed)
 		{
-			scene->LockZAxis();
+			if (scene->shiftPressed)
+				scene->LockXYAxis();
+			else
+				scene->LockZAxis();
 		}
 		scene->zPressed = true;
 	}
@@ -206,7 +215,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		double mouseReleaseTime = glfwGetTime();
 		if (mouseReleaseTime - scene->mouseRightPressTime <= 0.2)
 		{
-			scene->cursor.UpdatePosition(scene->camera, scene->lastX, scene->lastY, false, false, false);
+			scene->cursor.UpdatePosition(scene->camera, scene->lastX, scene->lastY, NONE);
 			scene->AddShape();
 		}
 	}
@@ -364,19 +373,19 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 					rotationOrigin = scene->cursor.getPosition();
 				aa::vec3 rotation3DStart = project3DPoint(scene->mouseLeftPressPosition.x, scene->mouseLeftPressPosition.y);
 				aa::vec3 rotation3DEnd = project3DPoint(xpos, ypos);
-				if (scene->xLocked)
+				if (scene->lockedAxis==X)
 				{
 					rotationOrigin.x = 0.0f;
 					rotation3DStart.x = 0.0f;
 					rotation3DEnd.x = 0.0f;
 				}
-				else if (scene->yLocked)
+				else if (scene->lockedAxis==Y)
 				{
 					rotationOrigin.y = 0.0f;
 					rotation3DStart.y = 0.0f;
 					rotation3DEnd.y = 0.0f;
 				}
-				else if (scene->zLocked)
+				else if (scene->lockedAxis==Z)
 				{
 					rotationOrigin.z = 0.0f;
 					rotation3DStart.z = 0.0f;
@@ -388,15 +397,15 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 				aa::vec3 crossProduct = aa::normalize(aa::cross(firstRotationVector, secondRotationVector));
 				//std::cout << crossProduct.x + crossProduct.y + crossProduct.z << " sign\n";
 				angle *= crossProduct.x + crossProduct.y + crossProduct.z;
-				if (scene->xLocked)
+				if (scene->lockedAxis==X)
 				{
 					scene->RotateSelectedObjects(angle, aa::Axis::X);
 				}
-				if (scene->yLocked)
+				if (scene->lockedAxis==Y)
 				{
 					scene->RotateSelectedObjects(angle, aa::Axis::Y);
 				}
-				if (scene->zLocked)
+				if (scene->lockedAxis==Z)
 				{
 					scene->RotateSelectedObjects(angle, aa::Axis::Z);
 				}
@@ -491,7 +500,6 @@ int main()
 	
 	Torus* torus = new Torus(1.0f, 0.3f, 50, 50);
 	torus->setShader(scene->shader);
-	//scene->shapes.push_back(torus); // SFD Scheduled for deletion
 	scene->figures__REFACTORING.push_back(ShapeTable::GetShapeID(torus));
 	//Point point(aa::vec3(0.0f, 0.1f, 0.0f));
 	//scene->shapes.push_back(&point);

@@ -4,7 +4,6 @@ Scene::Scene(int windowWidth, int windowHeight, Shader _shader)
 {
 	camera = Camera(windowWidth, windowHeight);
     shader = _shader;
-    //shapes.push_back(&cursor); // SFD Scheduled for deletion
 	figures__REFACTORING.push_back(ShapeTable::GetShapeID(&cursor));
 	cursor.setShader(shader);
 	centerOfGravityIndicator.setShader(shader);
@@ -13,54 +12,103 @@ void Scene::LockXAxis()
 {
     if (!grabEnabled && !rotatingEnabled)
         return;
-    if (xLocked = !xLocked)
+    if (lockedAxis == X)
     {
-        yLocked = false;
-        zLocked = false;
-        movementAxis = Axis('x');
+        if (rotatingEnabled)
+            return; // not allowing for unlocked movement in grab mode
+        lockedAxis = NONE;
     }
-    if (rotatingEnabled)
-        xLocked = true;
-    if (grabEnabled)
-        MoveSelectedObjects(unlockedTranslationBackup);
+    else
+    {
+        lockedAxis = X;
+        movementAxis.SetAxis(X);
+    }
 }
 void Scene::LockYAxis()
 {
     if (!grabEnabled && !rotatingEnabled)
         return;
-    if (yLocked = !yLocked)
+    if (lockedAxis == Y)
     {
-        xLocked = false;
-        zLocked = false;
-        movementAxis = Axis('y');
+        if (rotatingEnabled)
+            return; // not allowing for unlocked movement in grab mode
+        lockedAxis = NONE;
     }
-    if (rotatingEnabled)
-        yLocked = true;
-    if (grabEnabled)
-        MoveSelectedObjects(unlockedTranslationBackup);
+    else
+    {
+        lockedAxis = Y;
+        movementAxis.SetAxis(Y);
+    }
 }
 void Scene::LockZAxis()
 {
     if (!grabEnabled && !rotatingEnabled)
         return;
-    if (zLocked = !zLocked)
+    if (lockedAxis == Z)
     {
-        xLocked = false;
-        yLocked = false;
-        movementAxis = Axis('z');
+        if (rotatingEnabled)
+            return; // not allowing for unlocked movement in grab mode
+        lockedAxis = NONE;
     }
-    if (rotatingEnabled)
-        zLocked = true;
-    if (grabEnabled)
-        MoveSelectedObjects(unlockedTranslationBackup);
+    else
+    {
+        lockedAxis = Z;
+        movementAxis.SetAxis(Z);
+    }
+}
+void Scene::LockXYAxis()
+{
+    if (!grabEnabled)
+        return;
+    if (lockedAxis == notZ)
+    {
+        if (rotatingEnabled)
+            return; // not allowing for unlocked movement in grab mode
+        lockedAxis = NONE;
+    }
+    else
+    {
+        lockedAxis = notZ;
+        movementAxis.SetAxis(notZ); // to be updated
+    }
+}
+void Scene::LockXZAxis()
+{
+    if (!grabEnabled)
+        return;
+    if (lockedAxis == notY)
+    {
+        if (rotatingEnabled)
+            return; // not allowing for unlocked movement in grab mode
+        lockedAxis = NONE;
+    }
+    else
+    {
+        lockedAxis = notY;
+        movementAxis.SetAxis(notY); // to be updated
+    }
+}
+void Scene::LockYZAxis()
+{
+    if (!grabEnabled)
+        return;
+    if (lockedAxis == notX)
+    {
+        if (rotatingEnabled)
+            return; // not allowing for unlocked movement in grab mode
+        lockedAxis = NONE;
+    }
+    else
+    {
+        lockedAxis = notX;
+        movementAxis.SetAxis(notX); // to be updated
+    }
 }
 void Scene::toggleGrab()
 {
     if (scalingEnabled || rotatingEnabled)
         return;
-    xLocked = false;
-    yLocked = false;
-    zLocked = false;
+    lockedAxis = NONE;
 	if (selectedShape != -1)
     {
         if(grabEnabled)
@@ -79,9 +127,7 @@ void Scene::toggleScaling()
 {
     if (grabEnabled || rotatingEnabled)
         return;
-    xLocked = false;
-    yLocked = false;
-    zLocked = false;
+    lockedAxis = NONE;
     if (selectedShape != -1)
     {
         if (scalingEnabled)
@@ -99,10 +145,8 @@ void Scene::toggleRotating()
 {
     if (grabEnabled || scalingEnabled)
         return;
-    xLocked = false;
-    yLocked = true; // default rotation axis
-    zLocked = false;
-    movementAxis = Axis('y');
+    lockedAxis = Y;
+    movementAxis = Axis(Y);
     if (selectedShape != -1)
     {
         if (rotatingEnabled)
@@ -118,7 +162,7 @@ void Scene::toggleRotating()
 }
 void Scene::UpdateCursorPosition(double xpos, double ypos)
 {
-	cursor.UpdatePosition(camera, xpos, ypos, xLocked, yLocked, zLocked);
+	cursor.UpdatePosition(camera, xpos, ypos, lockedAxis);
 }
 void Scene::LeftMouseClick()
 {
@@ -126,7 +170,7 @@ void Scene::LeftMouseClick()
     {
         ConfirmObjectMovement();
         rotatingEnabled = scalingEnabled = grabEnabled = false;
-        xLocked = yLocked = zLocked = false;
+        lockedAxis = NONE;
 	}
     else
     {
@@ -234,12 +278,27 @@ void Scene::MoveSelectedObjects(aa::vec3 translation)
     float xLockFactor = 0.0f;
     float yLockFactor = 0.0f;
     float zLockFactor = 0.0f;
-    if (xLocked)
+    if (lockedAxis==X)
         xLockFactor = 1.0f;
-    else if (yLocked)
+    else if (lockedAxis==Y)
         yLockFactor = 1.0f;
-    else if (zLocked)
+    else if (lockedAxis==Z)
         zLockFactor = 1.0f;
+    else if (lockedAxis == notX)
+    {
+        yLockFactor = 1.0f;
+        zLockFactor = 1.0f;
+    }
+    else if (lockedAxis == notY)
+    {
+        xLockFactor = 1.0f;
+        zLockFactor = 1.0f;
+    }
+    else if (lockedAxis == notZ)
+    {
+        xLockFactor = 1.0f;
+        yLockFactor = 1.0f;
+    }
     else
     {
         xLockFactor = 1.0f;
@@ -408,7 +467,7 @@ void Scene::DrawScene(GLFWwindow* window)
     for (int i = 1; i < figures__REFACTORING.size(); i++)
         ShapeTable::GetShapeByID(figures__REFACTORING[i])->Draw();
     cursor.Draw();
-    if ((grabEnabled || rotatingEnabled) && (xLocked || yLocked || zLocked))
+    if ((grabEnabled || rotatingEnabled) && (lockedAxis!=NONE))
     {
         if(grabEnabled)
             movementAxis.Draw(shader, currentTranslationOrigin, 'R');
@@ -487,8 +546,7 @@ void Scene::AddShape()
 	case 0: // Torus
     {
 		Torus* newTorus = new Torus(1.0f, 0.3f, 50, 50);
-        //shapes.push_back(newTorus); // SFD Scheduled for deletion
-		figures__REFACTORING.push_back(ShapeTable::GetShapeID(newTorus));
+		figures__REFACTORING.push_back(ShapeTable::AddShape(newTorus));
     }
         break;
 	case 1: // Ellipsoid
@@ -496,8 +554,7 @@ void Scene::AddShape()
         std::cout << "This option has been locked, as it is out of the scope of MKMG.\n";
         break;
 		Ellipsoid* newEllipsoid = new Ellipsoid(1.0f, 1.2f, 0.8f, 50);
-        //shapes.push_back(newEllipsoid); // SFD Scheduled for deletion
-        figures__REFACTORING.push_back(ShapeTable::GetShapeID(newEllipsoid));
+        figures__REFACTORING.push_back(ShapeTable::AddShape(newEllipsoid));
         break;
 
     }
@@ -515,8 +572,7 @@ void Scene::AddShape()
             }
         }
         Point* newPoint = new Point(aa::vec3(0.0f, 0.0f, 0.0f));
-        //shapes.push_back(newPoint); // SFD Scheduled for deletion
-		figures__REFACTORING.push_back(ShapeTable::GetShapeID(newPoint));
+		figures__REFACTORING.push_back(ShapeTable::AddShape(newPoint));
         if (selectedLinesCount == 1)
         {
             selectedLine->AddPoint(newPoint);
@@ -536,8 +592,7 @@ void Scene::AddShape()
             }
         }
 		Line* newLine = new Line(selectedPoints);
-        //shapes.push_back(newLine); // SFD Scheduled for deletion
-        figures__REFACTORING.push_back(ShapeTable::GetShapeID(newLine));
+        figures__REFACTORING.push_back(ShapeTable::AddShape(newLine));
         isADerivedShape = true;
     }
     break;
@@ -554,8 +609,7 @@ void Scene::AddShape()
             }
         }
         BezierCurveC0* newCurve = new BezierCurveC0(selectedPoints);
-        //shapes.push_back(newCurve); // SFD Scheduled for deletion
-		figures__REFACTORING.push_back(ShapeTable::GetShapeID(newCurve));
+		figures__REFACTORING.push_back(ShapeTable::AddShape(newCurve));
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
@@ -573,8 +627,7 @@ void Scene::AddShape()
             }
         }
         BezierCurveC1* newCurve = new BezierCurveC1(selectedPoints);
-        //shapes.push_back(newCurve); // SFD Scheduled for deletion
-		figures__REFACTORING.push_back(ShapeTable::GetShapeID(newCurve));
+		figures__REFACTORING.push_back(ShapeTable::AddShape(newCurve));
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }

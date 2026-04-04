@@ -10,6 +10,10 @@
 #include <imgui_impl_opengl3.h>
 #include <iostream>
 
+enum LockAxis {
+	NONE, X, Y, Z, notX, notY, notZ
+};
+
 class Shape
 {
 public:
@@ -154,7 +158,7 @@ public:
 	static Cursor& centerOfGravityIndicator();
 	void Draw() override;
 	void Draw(aa::vec3 position);
-	void UpdatePosition(Camera& camera, double xpos, double ypos, bool xLocked, bool yLocked, bool zLocked);
+	void UpdatePosition(Camera& camera, double xpos, double ypos, LockAxis lockedAxis);
 	void PrintImGuiOptions();
 	void Translate(aa::vec3 t) override;
 	void ConfirmTransformations() override;
@@ -172,13 +176,18 @@ class Axis
 {
 public:
 	Axis();
-	Axis(char _axis);
-	void SetAxis(aa::mat4 _model, aa::vec3 _color);
+	Axis(LockAxis _axis);
+	void SetAxis(LockAxis _axis);
 	void Draw(Shader& shader, aa::vec3 translationOrigin, char eye = 0);
 private:
+	LockAxis lockedAxis = NONE;
 	unsigned int VAO = 0, VBO = 0;
-	aa::mat4 model = aa::mat4(1.0f);
-	aa::vec3 color = aa::vec3(0.0f);
+	aa::mat4 modelX = aa::scale(aa::vec3(100.0f, 100.0f, 100.0f));
+	aa::mat4 modelY = aa::scale(aa::rotate(aa::Axis::Z, aa::radians(90.0f)), aa::vec3(100.0f, 100.0f, 100.0f));
+	aa::mat4 modelZ = aa::scale(aa::rotate(aa::Axis::Y, aa::radians(90.0f)), aa::vec3(100.0f, 100.0f, 100.0f));
+	aa::vec3 colorX = aa::vec3(0.8f, 0.1f, 0.1f);
+	aa::vec3 colorY = aa::vec3(0.1f, 0.8f, 0.1f);
+	aa::vec3 colorZ = aa::vec3(0.1f, 0.1f, 0.8f);
 };
 
 class BoxSelect

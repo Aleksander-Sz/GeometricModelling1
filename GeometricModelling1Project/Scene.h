@@ -35,12 +35,13 @@ public:
 	bool rotatingEnabled = false;
 	bool transformAroundCursor = false;
 	aa::vec2 grabMouseOrigin;
-	bool xLocked = false;
-	bool yLocked = false;
-	bool zLocked = false;
+	LockAxis lockedAxis;
 	void LockXAxis();
 	void LockYAxis();
 	void LockZAxis();
+	void LockXYAxis();
+	void LockXZAxis();
+	void LockYZAxis();
 	void toggleGrab();
 	void toggleScaling();
 	void toggleRotating();
@@ -69,7 +70,7 @@ public:
 	bool boxSelectActive = false;
 	aa::vec3 currentTranslationOrigin = aa::vec3(0.0f);
 	aa::vec2 getTransformationCenterScreenSpacePosition();
-	Axis movementAxis;
+	Axis movementAxis = Axis(X);
 	Shader shader;
 	Shader tessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/BezierTessellationControlShader.glsl", "Shaders/BezierTessellationEvaluationShader.glsl", "Shaders/FragmentShader.glsl");
 	void DrawScene(GLFWwindow* window);

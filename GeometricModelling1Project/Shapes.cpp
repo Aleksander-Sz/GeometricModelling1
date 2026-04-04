@@ -667,7 +667,6 @@ void BezierCurveC1::Mesh()
 	int numberOfSegments = (points.size() - 1) / 2;
 	if (points.size() < 4)
 		numberOfSegments = 1;
-	std::cout << "Number of segments: " << numberOfSegments << "\n";
 	aa::vec3 previous1;
 	aa::vec3 previous2;
 	// First segment of the curve:
@@ -860,7 +859,7 @@ Cursor::Cursor(bool _isCenterOfGravity)
 
 	glBindVertexArray(0);
 }
-void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos, bool xLocked, bool yLocked, bool zLocked)
+void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos, LockAxis lockedAxis)
 {
 	float x_ndc = (2.0f * xpos) / camera.windowWidth - 1.0f;
 	float y_ndc = 1.0f - (2.0f * ypos) / camera.windowHeight;
@@ -880,11 +879,11 @@ void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos, bool xLock
 
 	// Place cursor some fixed distance in front of camera
 	float distance = aa::distance(camera.cameraPos, location);
-	if (xLocked)
+	if (lockedAxis==X)
 		locationBackup.x = location.x = (camera.cameraPos + rayDir * distance).x;
-	else if (yLocked)
+	else if (lockedAxis==Y)
 		locationBackup.y = location.y = (camera.cameraPos + rayDir * distance).y;
-	else if (zLocked)
+	else if (lockedAxis==Z)
 		locationBackup.z = location.z = (camera.cameraPos + rayDir * distance).z;
 	else
 		locationBackup = location = camera.cameraPos + rayDir * distance;
@@ -922,38 +921,12 @@ void Cursor::CancelTransformations()
 // Axis class functions
 Axis::Axis()
 {
-	model = aa::mat4(1.0f);
-	color = aa::vec3(0.0f);
 	VAO = 0;
 	VBO = 0;
 }
-Axis::Axis(char _axis)
+Axis::Axis(LockAxis _axis)
 {
-	model = aa::mat4::identity();
-	switch (_axis)
-	{
-	case 'x':
-		color = aa::vec3(0.8f, 0.1f, 0.1f);
-		break;
-	case 'y':
-		model = aa::rotate(model, aa::Axis::Z, aa::radians(90.0f));
-		color = aa::vec3(0.1f, 0.8f, 0.1f);
-		break;
-	case 'z':
-		model = aa::rotate(model, aa::Axis::Y, aa::radians(90.0f));
-		color = aa::vec3(0.1f, 0.1f, 0.8f);
-		break;
-	default:
-		std::cerr << "Invalid axis specified, defaulting to x-axis.\n";
-		break;
-	}
-	model = aa::scale(model, aa::vec3(100.0f, 100.0f, 100.0f));
-	this->SetAxis(model, color);
-}
-void Axis::SetAxis(aa::mat4 _model, aa::vec3 _color)
-{
-	model = _model;
-	color = _color;
+	lockedAxis = _axis;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glBindVertexArray(VAO);
@@ -967,14 +940,61 @@ void Axis::SetAxis(aa::mat4 _model, aa::vec3 _color)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 	glBindVertexArray(0);
 }
+void Axis::SetAxis(LockAxis _axis)
+{
+	lockedAxis = _axis;
+}
 void Axis::Draw(Shader& shader, aa::vec3 translationOrigin, char eye)
 {
+	aa::mat4 model1;
+	aa::mat4 model2;
+	aa::vec3 color1;
+	aa::vec3 color2;
+	switch (lockedAxis)
+	{
+	case X:
+		model1 = modelX;
+		color1 = colorX;
+		break;
+	case Y:
+		model1 = modelY;
+		color1 = colorY;
+		break;
+	case Z:
+		model1 = modelZ;
+		color1 = colorZ;
+		break;
+	case notX:
+		model1 = modelY;
+		color1 = colorY;
+		model2 = modelZ;
+		color2 = colorZ;
+		break;
+	case notY:
+		model1 = modelX;
+		color1 = colorX;
+		model2 = modelZ;
+		color2 = colorZ;
+		break;
+	case notZ:
+		model1 = modelX;
+		color1 = colorX;
+		model2 = modelY;
+		color2 = colorY;
+		break;
+	}
 	shader.use();
 	glBindVertexArray(VAO);
-	shader.setMat4("model", aa::translate(model, translationOrigin));
-	shader.setVec3("color", color);
+	shader.setMat4("model", aa::translate(model1, translationOrigin));
+	shader.setVec3("color", color1);
 	glLineWidth(1.0f);
 	glDrawArrays(GL_LINES, 0, 2);
+	if (lockedAxis == notX || lockedAxis == notY || lockedAxis == notZ)
+	{
+		shader.setMat4("model", aa::translate(model2, translationOrigin));
+		shader.setVec3("color", color2);
+		glDrawArrays(GL_LINES, 0, 2);
+	}
 	glBindVertexArray(0);
 }
 

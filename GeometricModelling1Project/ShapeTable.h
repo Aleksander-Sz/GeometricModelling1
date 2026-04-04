@@ -11,6 +11,7 @@ class ShapeTable
 {
 public:
 	//ShapeTable& getInstance();
+	static int AddShape(Shape* shape);
 	static int GetShapeID(Shape* shape);
 	static Shape* GetShapeByID(int id);
 	static Point* GetPointByID(int id);
