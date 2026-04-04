@@ -252,7 +252,7 @@ void Point::InvalidateDependentShapes()
 {
 	for (int i = 0; i < dependentShapes.size(); i++)
 	{
-		dependentShapes[i]->dirty = true;
+		ShapeTable::GetShapeByID(dependentShapes[i])->dirty = true;
 	}
 }
 
@@ -461,16 +461,12 @@ void Ellipsoid::PrintImGuiOptions()
 	dirty |= ImGui::InputInt("s", (int*)&s, 3, 500);
 }
 
-Line::Line(std::vector<Point*> _points)
+Line::Line(std::vector<int> _points)
 {
-	for (int i = 0; i < _points.size(); i++)
-	{
-		;// points.push_back(ShapeTable::GetPointByID(0));
-	}
 	points = _points;
 	for (int i = 0; i < points.size(); i++)
 	{
-		points[i]->dependentShapes.push_back(this);
+		ShapeTable::GetPointByID(points[i])->dependentShapes.push_back(ShapeTable::GetShapeID(this));
 	}
 	shapeName = "Polyline";
 	glGenVertexArrays(1, &VAO);
@@ -482,10 +478,10 @@ Line::~Line()
 {
 	for (int i = 0; i < points.size(); i++)
 	{
-		for (int j = 0; j < points[i]->dependentShapes.size(); j++)
+		for (int j = 0; j < ShapeTable::GetPointByID(points[i])->dependentShapes.size(); j++)
 		{
-			if (points[i]->dependentShapes[j] == this)
-				points[i]->dependentShapes.erase(points[i]->dependentShapes.begin() + j);
+			if (ShapeTable::GetPointByID(points[i])->dependentShapes[j] == ShapeTable::GetShapeID(this))
+				ShapeTable::GetPointByID(points[i])->dependentShapes.erase(ShapeTable::GetPointByID(points[i])->dependentShapes.begin() + j);
 		}
 	}
 }
@@ -498,7 +494,7 @@ void Line::Mesh()
 		return; // Nothing to mesh
 	for (int i = 0; i < points.size(); i++)
 	{
-		aa::vec3 pointLocation = points[i]->getPosition();
+		aa::vec3 pointLocation = ShapeTable::GetShapeByID(points[i])->getPosition();
 		vertices.push_back(pointLocation.x);
 		vertices.push_back(pointLocation.y);
 		vertices.push_back(pointLocation.z);
@@ -525,9 +521,9 @@ void Line::PrintImGuiOptions()
 		for (int i = 0; i < points.size(); i++)
 		{
 			ImGui::PushID(i);
-			if (ImGui::Selectable((points[i]->Name()).c_str(), points[i]->isSelected()))
+			if (ImGui::Selectable((ShapeTable::GetShapeByID(points[i])->Name()).c_str(), ShapeTable::GetShapeByID(points[i])->isSelected()))
 			{
-				points[i]->Select();
+				ShapeTable::GetPointByID(points[i])->Select();
 			}
 			ImGui::PopID();
 		}
@@ -539,35 +535,35 @@ void Line::Scale(aa::vec3 s, aa::vec3 origin)
 {
 	for (int i = 0; i < points.size(); i++)
 	{
-		points[i]->Scale(s, origin);
+		ShapeTable::GetPointByID(points[i])->Scale(s, origin);
 	}
 }
 void Line::Rotate(float angle, aa::Axis axis, aa::vec3 pivot)
 {
 	for (int i = 0; i < points.size(); i++)
 	{
-		points[i]->Rotate(angle, axis, pivot);
+		ShapeTable::GetPointByID(points[i])->Rotate(angle, axis, pivot);
 	}
 }
 void Line::Translate(aa::vec3 t)
 {
 	for (int i = 0; i < points.size(); i++)
 	{
-		points[i]->Translate(t);
+		ShapeTable::GetPointByID(points[i])->Translate(t);
 	}
 }
 void Line::ConfirmTransformations()
 {
 	for (int i = 0; i < points.size(); i++)
 	{
-		points[i]->ConfirmTransformations();
+		ShapeTable::GetPointByID(points[i])->ConfirmTransformations();
 	}
 }
 void Line::CancelTransformations()
 {
 	for (int i = 0; i < points.size(); i++)
 	{
-		points[i]->CancelTransformations();
+		ShapeTable::GetPointByID(points[i])->CancelTransformations();
 	}
 }
 aa::vec3 Line::getPosition()
@@ -575,24 +571,24 @@ aa::vec3 Line::getPosition()
 	aa::vec3 averagePosition(0.0f, 0.0f, 0.0f);
 	for (int i = 0; i < points.size(); i++)
 	{
-		averagePosition += points[i]->getPosition();
+		averagePosition += ShapeTable::GetPointByID(points[i])->getPosition();
 	}
 	averagePosition /= (float)points.size();
 	return averagePosition;
 }
-void Line::AddPoint(Point* point)
+void Line::AddPoint(int point)
 {
-	if (point == nullptr)
+	if (ShapeTable::GetShapeByID(point) == nullptr)
 		return;
 	points.push_back(point);
-	point->dependentShapes.push_back(this);
+	ShapeTable::GetPointByID(point)->dependentShapes.push_back(ShapeTable::GetShapeID(this));
 	dirty = true;
 }
 void Line::RemoveDeletedPoints()
 {
 	for (int i = 0; i < points.size(); i++)
 	{
-		if (points[i]->isMarkedForDeletion())
+		if (ShapeTable::GetShapeByID(points[i])->isMarkedForDeletion())
 		{
 			points.erase(points.begin() + i);
 			i--;
@@ -611,7 +607,7 @@ void BezierCurveC0::Mesh()
 		return; // Nothing to mesh
 	int numberOfSegments = (points.size() + 1) / 3;
 	// First point in the curve:
-	aa::vec3 pointLocation = points[0]->getPosition();
+	aa::vec3 pointLocation = ShapeTable::GetPointByID(points[0])->getPosition();
 	vertices.push_back(pointLocation.x);
 	vertices.push_back(pointLocation.y);
 	vertices.push_back(pointLocation.z);
@@ -622,7 +618,7 @@ void BezierCurveC0::Mesh()
 			int pointIndex = i * 3 + j;
 			if (pointIndex >= points.size())
 				pointIndex = points.size() - 1; // If there are not enough points for the last segment, repeat the last point
-			aa::vec3 pointLocation = points[pointIndex]->getPosition();
+			aa::vec3 pointLocation = ShapeTable::GetPointByID(points[pointIndex])->getPosition();
 			vertices.push_back(pointLocation.x);
 			vertices.push_back(pointLocation.y);
 			vertices.push_back(pointLocation.z);
@@ -675,7 +671,7 @@ void BezierCurveC1::Mesh()
 		int pointIndex = i;
 		if (pointIndex >= points.size())
 			pointIndex = points.size() - 1;
-		aa::vec3 pointLocation = points[pointIndex]->getPosition();
+		aa::vec3 pointLocation = ShapeTable::GetPointByID(points[pointIndex])->getPosition();
 		vertices.push_back(pointLocation.x);
 		vertices.push_back(pointLocation.y);
 		vertices.push_back(pointLocation.z);
@@ -701,7 +697,7 @@ void BezierCurveC1::Mesh()
 			int pointIndex = i * 2 + j + 2;
 			if (pointIndex >= points.size())
 				pointIndex = points.size() - 1; // If there are not enough points for the last segment, repeat the last point
-			aa::vec3 pointLocation = points[pointIndex]->getPosition();
+			aa::vec3 pointLocation = ShapeTable::GetShapeByID(points[pointIndex])->getPosition();
 			vertices.push_back(pointLocation.x);
 			vertices.push_back(pointLocation.y);
 			vertices.push_back(pointLocation.z);

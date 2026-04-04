@@ -17,7 +17,8 @@ public:
 	static Point* GetPointByID(int id);
 	static Line* GetLineByID(int id);
 	static void RemoveShape(int id);
-	static void MergeShapes(int id1, int id2); // Shape id2 will be merged into id1
+	static void MergeShapes(std::vector<int> _shapes); // All of the shapes will be merged to the first one
+	// any attribute edition or object transformations should be done beforehand
 	Shape* operator[](int id) { return GetShapeByID(id); };
 private:
 	ShapeTable();

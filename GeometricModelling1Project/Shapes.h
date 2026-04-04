@@ -71,7 +71,7 @@ public:
 	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
 	void Translate(aa::vec3 t) override;
 	void TranslateAndConfirm(aa::vec3 t) override;
-	std::vector<Shape*> dependentShapes;
+	std::vector<int> dependentShapes;
 private:
 	void InvalidateDependentShapes();
 };
@@ -106,7 +106,7 @@ private:
 class Line : public Meshable
 {
 public:
-	Line(std::vector<Point*> _points);
+	Line(std::vector<int> _points);
 	~Line() override;
 	virtual void Mesh();
 	void PrintImGuiOptions() override;
@@ -115,17 +115,17 @@ public:
 	void Translate(aa::vec3 t) override;
 	void ConfirmTransformations() override;
 	void CancelTransformations() override;
-	void AddPoint(Point* point);
+	void AddPoint(int point);
 	aa::vec3 getPosition() override;
 	void RemoveDeletedPoints(); // removes all the points marked for deletion from the points vector
 protected:
-	std::vector<Point*> points;
+	std::vector<int> points;
 };
 
 class BezierCurveC0 : public Line
 {
 public:
-	BezierCurveC0(std::vector<Point*> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; };
+	BezierCurveC0(std::vector<int> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; };
 	void Mesh() override;
 	void PrintImGuiOptions() override;
 	bool displayControlPolyline = false;
@@ -136,7 +136,7 @@ public:
 class BezierCurveC1 : public BezierCurveC0
 {
 public:
-	BezierCurveC1(std::vector<Point*> _controlPoints) : BezierCurveC0(_controlPoints) { };
+	BezierCurveC1(std::vector<int> _controlPoints) : BezierCurveC0(_controlPoints) { };
 	void Mesh() override;
 };
 

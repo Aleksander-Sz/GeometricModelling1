@@ -119,6 +119,14 @@ void processInput(GLFWwindow* window)
 	}
 	if (glfwGetKey(window, ROTATE_KEY) == GLFW_RELEASE)
 		scene->rPressed = false;
+	if (glfwGetKey(window, MERGE_POINTS_KEY) == GLFW_PRESS)
+	{
+		if (!scene->mPressed)
+			scene->MergeSelectedPoints();
+		scene->mPressed = true;
+	}
+	if (glfwGetKey(window, MERGE_POINTS_KEY) == GLFW_RELEASE)
+		scene->mPressed = false;
 	if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
 	{
 		if (!scene->xPressed)
@@ -606,7 +614,7 @@ int main()
 							Point* pointPointer = ShapeTable::GetPointByID(scene->figures__REFACTORING[i]);
 							if (pointPointer != nullptr && ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->isSelected())
 							{
-								linePointer->AddPoint(pointPointer);
+								linePointer->AddPoint(scene->figures__REFACTORING[i]);
 							}
 						}
 					}

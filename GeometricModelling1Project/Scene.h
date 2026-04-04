@@ -20,6 +20,7 @@ public:
 	bool gPressed = false;
 	bool fPressed = false;
 	bool rPressed = false;
+	bool mPressed = false;
 	bool xPressed = false;
 	bool yPressed = false;
 	bool zPressed = false;
@@ -65,6 +66,7 @@ public:
 	void CancellObjectMovement();
 	void DeselectEverything();
 	void DeleteSelectedObjects();
+	void MergeSelectedPoints();
 	void StartBoxSelect(aa::vec2 location);
 	void EndBoxSelect(aa::vec2 location);
 	bool boxSelectActive = false;

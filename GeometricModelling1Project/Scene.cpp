@@ -385,6 +385,30 @@ void Scene::DeleteSelectedObjects()
     }
     RemoveMarkedObjects();
 }
+void Scene::MergeSelectedPoints()
+{
+    std::vector<int> pointsToBeMerged;
+    for (int i = 1; i < figures__REFACTORING.size(); i++)
+    {
+        Point* point = ShapeTable::GetPointByID(figures__REFACTORING[i]);
+        if (point != nullptr)
+        {
+            if (point->isSelected())
+            {
+                pointsToBeMerged.push_back(figures__REFACTORING[i]);
+                // If this is at least the second point, we will remove its id from the scene shapes
+                if (pointsToBeMerged.size() > 1)
+                {
+                    figures__REFACTORING.erase(figures__REFACTORING.begin() + i);
+                    i--;
+                }
+            }
+        }
+    }
+    if (pointsToBeMerged.size() < 2)
+        return; // nothing to merge
+    ShapeTable::MergeShapes(pointsToBeMerged);
+}
 void Scene::StartBoxSelect(aa::vec2 location)
 {
     boxSelectOrigin = location;
@@ -572,23 +596,24 @@ void Scene::AddShape()
             }
         }
         Point* newPoint = new Point(aa::vec3(0.0f, 0.0f, 0.0f));
-		figures__REFACTORING.push_back(ShapeTable::AddShape(newPoint));
+        int newPointID = ShapeTable::AddShape(newPoint);
+		figures__REFACTORING.push_back(newPointID);
         if (selectedLinesCount == 1)
         {
-            selectedLine->AddPoint(newPoint);
+            selectedLine->AddPoint(newPointID);
         }
     }
     break;
 	case 3: // Line
     {
-        std::vector<Point*> selectedPoints;
+        std::vector<int> selectedPoints;
         for (int i = 1; i < figures__REFACTORING.size(); i++)
         {
             Point* pointer;
             if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
             {
                 if (pointer->isSelected())
-                    selectedPoints.push_back(pointer);
+                    selectedPoints.push_back(figures__REFACTORING[i]);
             }
         }
 		Line* newLine = new Line(selectedPoints);
@@ -598,14 +623,14 @@ void Scene::AddShape()
     break;
 	case 4: // Bezier Curve C0
     {
-        std::vector<Point*> selectedPoints;
+        std::vector<int> selectedPoints;
         for (int i = 1; i < figures__REFACTORING.size(); i++)
         {
             Point* pointer;
             if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
             {
                 if (pointer->isSelected())
-                    selectedPoints.push_back(pointer);
+                    selectedPoints.push_back(figures__REFACTORING[i]);
             }
         }
         BezierCurveC0* newCurve = new BezierCurveC0(selectedPoints);
@@ -616,14 +641,14 @@ void Scene::AddShape()
     break;
     case 5: // Bezier Curve C1
     {
-        std::vector<Point*> selectedPoints;
+        std::vector<int> selectedPoints;
         for (int i = 1; i < figures__REFACTORING.size(); i++)
         {
             Point* pointer;
             if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
             {
                 if (pointer->isSelected())
-                    selectedPoints.push_back(pointer);
+                    selectedPoints.push_back(figures__REFACTORING[i]);
             }
         }
         BezierCurveC1* newCurve = new BezierCurveC1(selectedPoints);
