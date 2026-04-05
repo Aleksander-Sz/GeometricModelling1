@@ -159,7 +159,28 @@ void Meshable::Draw()
 	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
 	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
 	BezierCurveC0* thisBC = dynamic_cast<BezierCurveC0*>(this);
-	if (thisBC)
+	BezierCurveC2* thisBC2 = dynamic_cast<BezierCurveC2*>(this);
+	if (thisBC2)
+	{
+		// This is a BezierCurveC2
+		thisBC->tessellationShader.use();
+		glBindVertexArray(VAO);
+		thisBC->tessellationShader.setMat4("model", model);
+		glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
+		thisBC->tessellationShader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
+		glPatchParameteri(GL_PATCH_VERTICES, 4);
+		thisBC->tessellationShader.setVec2("tRange", aa::vec2(0.0f, 0.5f));
+		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
+		thisBC->tessellationShader.setVec2("tRange", aa::vec2(0.5f, 1.0f));
+		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
+		// Splitting into two draw calls to achieve subdivisions over 64
+		// Let's now draw the Bernstein Points
+		shader.use();
+		shader.setVec3("color", aa::vec3(1.0f, 0.0f, 0.0f));
+		glPointSize(5.0f);
+		glDrawArrays(GL_POINTS, 0, thisBC2->bernsteinPoints.size());
+	}
+	else if (thisBC)
 	{
 		// This is a BezierCurve
 		if (thisBC->displayControlPolyline)
@@ -179,7 +200,6 @@ void Meshable::Draw()
 		thisBC->tessellationShader.setVec2("tRange", aa::vec2(0.5f, 1.0f));
 		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
 		// Splitting into two draw calls to achieve subdivisions over 64
-		
 	}
 	else if (dynamic_cast<Line*>(this))
 	{
@@ -465,6 +485,7 @@ void Ellipsoid::PrintImGuiOptions()
 	dirty |= ImGui::InputInt("s", (int*)&s, 3, 500);
 }
 
+// Line class functions
 Line::Line(std::vector<int> _points)
 {
 	points = _points;
@@ -491,6 +512,12 @@ Line::~Line()
 }
 void Line::Mesh()
 {
+	BezierCurveC2* bc2 = dynamic_cast<BezierCurveC2*>(this);
+	if (bc2!=nullptr)
+	{
+		bc2->Mesh(); // using the Mesh() method from the C2 curve class
+		return;
+	}
 	dirty = false;
 	vertices.clear();
 	indices.clear();
@@ -720,6 +747,47 @@ void BezierCurveC1::Mesh()
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
+}
+
+// BezierCurveC2 class functions
+void BezierCurveC2::Mesh()
+{
+	dirty = false;
+	vertices.clear();
+	bernsteinPoints.clear();
+	indices.clear();
+	int segmentCount = points.size() - 3;
+	if (segmentCount < 1)
+		return; // nothing to mesh
+	for (int i = 0; i < segmentCount; i++)
+	{
+		aa::vec3 P0 = ShapeTable::GetPointByID(points[i])->getPosition(); 
+		aa::vec3 P1 = ShapeTable::GetPointByID(points[i+1])->getPosition();
+		aa::vec3 P2 = ShapeTable::GetPointByID(points[i+2])->getPosition();
+		aa::vec3 P3 = ShapeTable::GetPointByID(points[i+3])->getPosition();
+		if(i==0)
+			bernsteinPoints.push_back((P0 + 4 * P1 + P2) / 6.0f); // first point only for first segment
+		bernsteinPoints.push_back((4 * P1 + 2 * P2) / 6.0f);
+		bernsteinPoints.push_back((2 * P1 + 4 * P2) / 6.0f);
+		bernsteinPoints.push_back((P1 + 4 * P2 + P3) / 6.0f);
+		indices.push_back(i * 3);
+		indices.push_back(i * 3 + 1);
+		indices.push_back(i * 3 + 2);
+		indices.push_back(i * 3 + 3);
+	}
+	//prepare for drawing
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, bernsteinPoints.size() * 3 * sizeof(float), bernsteinPoints.data(), GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);

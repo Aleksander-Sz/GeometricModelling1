@@ -657,6 +657,23 @@ void Scene::AddShape()
         isADerivedShape = true;
     }
     break;
+    case 6: // Bezier Curve C0
+    {
+        std::vector<int> selectedPoints;
+        for (int i = 1; i < figures__REFACTORING.size(); i++)
+        {
+            Point* pointer;
+            if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
+            {
+                if (pointer->isSelected())
+                    selectedPoints.push_back(figures__REFACTORING[i]);
+            }
+        }
+        BezierCurveC2* newCurve = new BezierCurveC2(selectedPoints);
+        figures__REFACTORING.push_back(ShapeTable::AddShape(newCurve));
+        newCurve->setTessellationShader(tessellationShader);
+        isADerivedShape = true;
+    }
     default:
         std::cerr << "Shape not implemented yet.\n";
         wasAShapeAdded = false;

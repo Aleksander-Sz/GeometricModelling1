@@ -125,7 +125,7 @@ protected:
 class BezierCurveC0 : public Line
 {
 public:
-	BezierCurveC0(std::vector<int> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve"; Mesh(); };
+	BezierCurveC0(std::vector<int> _controlPoints) : Line(_controlPoints) { shapeName = "Bezier Curve C0"; Mesh(); };
 	void Mesh() override;
 	void PrintImGuiOptions() override;
 	bool displayControlPolyline = false;
@@ -136,8 +136,16 @@ public:
 class BezierCurveC1 : public BezierCurveC0
 {
 public:
-	BezierCurveC1(std::vector<int> _controlPoints) : BezierCurveC0(_controlPoints) { Mesh(); };
+	BezierCurveC1(std::vector<int> _controlPoints) : BezierCurveC0(_controlPoints) { shapeName = "Bezier Curve C1"; Mesh(); };
 	void Mesh() override;
+};
+
+class BezierCurveC2 : public BezierCurveC0
+{
+public:
+	BezierCurveC2(std::vector<int> _controlPoints) : BezierCurveC0(_controlPoints) { shapeName = "Bezier Curve C2"; Mesh(); };
+	void Mesh() override;
+	std::vector<aa::vec3> bernsteinPoints;
 };
 
 class Grid
