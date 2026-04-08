@@ -178,27 +178,67 @@ void Scene::LeftMouseClick()
         if (!shiftPressed)
         {
             previousShape = ShapeTable::GetShapeByID(selectedShape);
-            DeselectEverything();
+            DeselectEverything(); // this will deselect all of the shapes
+            // but we still need to deselect the virtual points
+            for (int i = 0; i < figures__REFACTORING.size(); i++)
+            {
+                IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
+                if (shapeWithVirtualPoints != nullptr)
+                {
+                    if(shapeWithVirtualPoints->containsSelectedVirtualPoints>0)
+                    shapeWithVirtualPoints->ConfirmSelection(false, true);
+                }
+			}
         }
         Shape* newSelectedShape = nullptr;
         //
         float minDistance = 1000.0f;
         int closestObject = 0;
+        bool virtualPointIsClosest = false; // If the closest point is a virtual point belonging to a shape,
+        // this variable will be set to true
         for (int i = 0; i < figures__REFACTORING.size(); i++)
         {
+			// check distance from cursor to object position in screen space
             aa::vec2 objectPosition = ShapeTable::GetShapeByID(figures__REFACTORING[i])->getScreenSpacePosition(camera);
             float distance = aa::length(objectPosition - aa::vec2(lastX,lastY));
             if (distance < minDistance)
             {
                 minDistance = distance;
                 closestObject = i;
+				virtualPointIsClosest = false;
+            }
+
+            // now we will deal with selecting virtual points
+            IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
+            if (shapeWithVirtualPoints != nullptr)
+            {
+                distance = shapeWithVirtualPoints->LeftClick(camera, aa::vec2(lastX, lastY));
+				if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestObject = i;
+					virtualPointIsClosest = true;
+                }
             }
         }
         bool isSelected = false;
         if (minDistance < 30.0f)
-            isSelected = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject])->Select();
-        if (isSelected)
-            newSelectedShape = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject]);
+        {
+            if (virtualPointIsClosest) // selection logic for virtual points
+            {
+                IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[closestObject]));
+                if (shapeWithVirtualPoints != nullptr)
+                {
+					shapeWithVirtualPoints->ConfirmSelection(shiftPressed);
+                }
+            }
+            else // selection logic for shapes
+            {
+                isSelected = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject])->Select();
+                if (isSelected)
+                    newSelectedShape = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject]);
+            }
+        }
         //
         if (!shiftPressed && previousShape == newSelectedShape)
             return;

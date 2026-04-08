@@ -71,6 +71,7 @@ public:
 	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
 	void Translate(aa::vec3 t) override;
 	void TranslateAndConfirm(aa::vec3 t) override;
+	void CancelTransformations() override;
 	std::vector<int> dependentShapes;
 private:
 	void InvalidateDependentShapes();
@@ -140,12 +141,25 @@ public:
 	void Mesh() override;
 };
 
-class BezierCurveC2 : public BezierCurveC0
+class IContainsVirtualPoints
+{
+public:
+	virtual float LeftClick(Camera& camera, aa::vec2 clickPos) = 0; // returns the distance to the closest point, stashes it for selection
+	virtual void ConfirmSelection(bool shiftPressed, bool justDeselectEverything = false) = 0; // Used, if no closer point was found
+	int containsSelectedVirtualPoints = 0;
+protected:
+	int preparedVirtualPoint = -1; // Used to store the index of the virtual point that is currently prepared for selection, -1 if no virtual point is prepared
+};
+
+class BezierCurveC2 : public BezierCurveC0, public IContainsVirtualPoints
 {
 public:
 	BezierCurveC2(std::vector<int> _controlPoints) : BezierCurveC0(_controlPoints) { shapeName = "Bezier Curve C2"; Mesh(); };
 	void Mesh() override;
 	std::vector<aa::vec3> bernsteinPoints;
+	std::vector<bool> isBernsteinPointSelected;
+	float LeftClick(Camera& camera, aa::vec2 clickPos) override;
+	void ConfirmSelection(bool shiftPressed, bool justDeselectEverything) override;
 };
 
 class Grid

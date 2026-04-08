@@ -179,6 +179,24 @@ void Meshable::Draw()
 		shader.setVec3("color", aa::vec3(1.0f, 0.0f, 0.0f));
 		glPointSize(5.0f);
 		glDrawArrays(GL_POINTS, 0, thisBC2->bernsteinPoints.size());
+		// Drawing the selected Bernstein Point:
+		glPointSize(15.0f);
+		shader.setVec3("color", aa::vec3(1.0f, 1.0f, 0.6f));
+		for (int i = 0; i < thisBC2->isBernsteinPointSelected.size(); i++)
+		{
+			if (thisBC2->isBernsteinPointSelected[i])
+			{
+				glDrawArrays(GL_POINTS, i, 1);
+			}
+		}
+
+		// Control Polyline
+		if (thisBC->displayControlPolyline)
+		{
+			glLineWidth(0.5f);
+			shader.setVec3("color", aa::vec3(0.8f, 0.8f, 0.8f));
+			glDrawArrays(GL_LINE_STRIP, 0, thisBC2->bernsteinPoints.size());
+		}
 	}
 	else if (thisBC)
 	{
@@ -271,6 +289,11 @@ void Point::TranslateAndConfirm(aa::vec3 t)
 {
 	this->Translate(t);
 	this->ConfirmTransformations();
+}
+void Point::CancelTransformations()
+{
+	Shape::CancelTransformations();
+	InvalidateDependentShapes();
 }
 void Point::InvalidateDependentShapes()
 {
@@ -783,6 +806,7 @@ void BezierCurveC2::Mesh()
 		indices.push_back(i * 3 + 2);
 		indices.push_back(i * 3 + 3);
 	}
+	isBernsteinPointSelected.resize(bernsteinPoints.size(), false);
 	//prepare for drawing
 	glBindVertexArray(VAO);
 
@@ -796,6 +820,59 @@ void BezierCurveC2::Mesh()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 
 	glBindVertexArray(0);
+}
+float BezierCurveC2::LeftClick(Camera& camera, aa::vec2 clickPos)
+{
+	if (bernsteinPoints.size() < 1)
+		return std::numeric_limits<float>::max();
+	float minDistance = std::numeric_limits<float>::max();
+	int closestPoint = -1;
+	for (int i = 0; i < bernsteinPoints.size(); i++)
+	{
+		// Get the screen space position of the Bernstein point
+		// clip space transform
+		aa::vec4 clipSpacePos = camera.projection() * camera.view() * aa::vec4(bernsteinPoints[i], 1.0f);
+
+		aa::vec2 screenPos = aa::vec2(-1000.0f, -1000.0f);
+		// Perspective Division
+		if (clipSpacePos.w != 0.0f) {
+			aa::vec3 ndc = clipSpacePos.xyz / clipSpacePos.w;
+
+			float screenX = ((ndc.x + 1.0f) / 2.0f) * camera.windowWidth;
+			float screenY = ((1.0f - ndc.y) / 2.0f) * camera.windowHeight;
+
+			screenPos = aa::vec2(screenX, screenY);
+		}
+
+		float distance = aa::length(screenPos - clickPos);
+
+		if(distance<minDistance)
+		{
+			minDistance = distance;
+			closestPoint = i;
+		}
+	}
+	preparedVirtualPoint = closestPoint;
+	return minDistance;
+}
+void BezierCurveC2::ConfirmSelection(bool shiftPressed, bool justDeselectEverything)
+{
+	if (!shiftPressed || justDeselectEverything)
+	{
+		for (int i = 0; i < isBernsteinPointSelected.size(); i++) // deselect all other points
+		{
+			isBernsteinPointSelected[i] = false;
+		}
+	}
+	if (preparedVirtualPoint != -1 && !justDeselectEverything)
+	{
+		bool wasAPointSelectedOrDeselected = isBernsteinPointSelected[preparedVirtualPoint] = !isBernsteinPointSelected[preparedVirtualPoint];
+		if (wasAPointSelectedOrDeselected == true)
+			containsSelectedVirtualPoints++;
+		else
+			containsSelectedVirtualPoints--;
+	}
+	preparedVirtualPoint = -1;
 }
 
 // Grid class functions
