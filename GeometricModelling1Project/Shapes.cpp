@@ -176,9 +176,12 @@ void Meshable::Draw()
 		// Splitting into two draw calls to achieve subdivisions over 64
 		// Let's now draw the Bernstein Points
 		shader.use();
-		shader.setVec3("color", aa::vec3(1.0f, 0.0f, 0.0f));
-		glPointSize(5.0f);
-		glDrawArrays(GL_POINTS, 0, thisBC2->bernsteinPoints.size());
+		if (thisBC2->displayBernsteinPoints)
+		{
+			shader.setVec3("color", aa::vec3(1.0f, 0.0f, 0.0f));
+			glPointSize(5.0f);
+			glDrawArrays(GL_POINTS, 0, thisBC2->bernsteinPoints.size());
+		}
 		// Drawing the selected Bernstein Point:
 		glPointSize(15.0f);
 		shader.setVec3("color", aa::vec3(1.0f, 1.0f, 0.6f));
@@ -817,6 +820,11 @@ void BezierCurveC2::Mesh()
 
 	glBindVertexArray(0);
 }
+void BezierCurveC2::PrintImGuiOptions()
+{
+	BezierCurveC0::PrintImGuiOptions();
+	ImGui::Checkbox("Display Bernstein Points", &displayBernsteinPoints);
+}
 float BezierCurveC2::LeftClick(Camera& camera, aa::vec2 clickPos)
 {
 	if (bernsteinPoints.size() < 1)
@@ -859,7 +867,7 @@ void BezierCurveC2::ConfirmSelection(bool shiftPressed, bool justDeselectEveryth
 	}
 	if (preparedVirtualPoint != -1 && !justDeselectEverything)
 	{
-		bool wasAPointSelectedOrDeselected = selectedVirtualPoint != preparedVirtualPoint;
+		bool wasAPointSelectedOrDeselected = (selectedVirtualPoint != preparedVirtualPoint);
 		if (wasAPointSelectedOrDeselected == true)
 		{
 			containsSelectedVirtualPoints = 1;
@@ -886,8 +894,6 @@ void BezierCurveC2::VirtualPointsTranslate(aa::vec3 translation)
 	switch (pointInSegment)
 	{
 	case 0: // editing the point 'above' the Bernstein polyline
-		//
-	
 	case 1: // editing the previous de Boor point
 	case 2: // editing the next de Boor point
 		ShapeTable::GetShapeByID(points[deBoorIndex])->Translate(translation * 3.0f / 2.0f);
@@ -899,12 +905,14 @@ void BezierCurveC2::VirtualPointsConfirmTransformations()
 	int deBoorIndex = (selectedVirtualPoint + 4) / 3;
 	ShapeTable::GetShapeByID(points[deBoorIndex])->ConfirmTransformations();
 	currentlyTranslatingVirtualPoints = false;
+	containsSelectedVirtualPoints = 0;
 }
 void BezierCurveC2::VirtualPointsCancelTransformations()
 {
 	int deBoorIndex = (selectedVirtualPoint + 4) / 3;
 	ShapeTable::GetShapeByID(points[deBoorIndex])->CancelTransformations();
 	currentlyTranslatingVirtualPoints = false;
+	containsSelectedVirtualPoints = 0;
 }
 
 // Grid class functions

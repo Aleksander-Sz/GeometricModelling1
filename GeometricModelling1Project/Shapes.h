@@ -165,6 +165,8 @@ public:
 	void Mesh() override;
 	std::vector<aa::vec3> bernsteinPoints;
 	int selectedVirtualPoint = -1;
+	void PrintImGuiOptions() override;
+	bool displayBernsteinPoints = false;
 	// IContainsVirtualPoints interface functions
 	float LeftClick(Camera& camera, aa::vec2 clickPos) override;
 	void ConfirmSelection(bool shiftPressed, bool justDeselectEverything) override;
