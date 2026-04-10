@@ -182,12 +182,9 @@ void Meshable::Draw()
 		// Drawing the selected Bernstein Point:
 		glPointSize(15.0f);
 		shader.setVec3("color", aa::vec3(1.0f, 1.0f, 0.6f));
-		for (int i = 0; i < thisBC2->isBernsteinPointSelected.size(); i++)
+		if (thisBC2->selectedVirtualPoint != -1)
 		{
-			if (thisBC2->isBernsteinPointSelected[i])
-			{
-				glDrawArrays(GL_POINTS, i, 1);
-			}
+			glDrawArrays(GL_POINTS, thisBC2->selectedVirtualPoint, 1);
 		}
 
 		// Control Polyline
@@ -806,7 +803,6 @@ void BezierCurveC2::Mesh()
 		indices.push_back(i * 3 + 2);
 		indices.push_back(i * 3 + 3);
 	}
-	isBernsteinPointSelected.resize(bernsteinPoints.size(), false);
 	//prepare for drawing
 	glBindVertexArray(VAO);
 
@@ -859,20 +855,56 @@ void BezierCurveC2::ConfirmSelection(bool shiftPressed, bool justDeselectEveryth
 {
 	if (!shiftPressed || justDeselectEverything)
 	{
-		for (int i = 0; i < isBernsteinPointSelected.size(); i++) // deselect all other points
-		{
-			isBernsteinPointSelected[i] = false;
-		}
+		selectedVirtualPoint = -1; // deselect the point
 	}
 	if (preparedVirtualPoint != -1 && !justDeselectEverything)
 	{
-		bool wasAPointSelectedOrDeselected = isBernsteinPointSelected[preparedVirtualPoint] = !isBernsteinPointSelected[preparedVirtualPoint];
+		bool wasAPointSelectedOrDeselected = selectedVirtualPoint != preparedVirtualPoint;
 		if (wasAPointSelectedOrDeselected == true)
-			containsSelectedVirtualPoints++;
+		{
+			containsSelectedVirtualPoints = 1;
+			selectedVirtualPoint = preparedVirtualPoint;
+		}
 		else
-			containsSelectedVirtualPoints--;
+		{
+			containsSelectedVirtualPoints = 0;
+			selectedVirtualPoint = -1;
+		}
 	}
 	preparedVirtualPoint = -1;
+}
+void BezierCurveC2::VirtualPointsTranslate(aa::vec3 translation)
+{
+	if (!currentlyTranslatingVirtualPoints) // just started translating, backup the original position
+	{
+		virtualPointPositionBackup = bernsteinPoints[selectedVirtualPoint];
+	}
+	aa::vec3 newPosition = virtualPointPositionBackup + translation;
+	// Three cases, the selected point can be the first, second or third point of a segment, each case has a different formula
+	int deBoorIndex = (selectedVirtualPoint + 4) / 3;
+	int pointInSegment = selectedVirtualPoint % 3;
+	switch (pointInSegment)
+	{
+	case 0: // editing the point 'above' the Bernstein polyline
+		//
+	
+	case 1: // editing the previous de Boor point
+	case 2: // editing the next de Boor point
+		ShapeTable::GetShapeByID(points[deBoorIndex])->Translate(translation * 3.0f / 2.0f);
+		break;
+	}
+}
+void BezierCurveC2::VirtualPointsConfirmTransformations()
+{
+	int deBoorIndex = (selectedVirtualPoint + 4) / 3;
+	ShapeTable::GetShapeByID(points[deBoorIndex])->ConfirmTransformations();
+	currentlyTranslatingVirtualPoints = false;
+}
+void BezierCurveC2::VirtualPointsCancelTransformations()
+{
+	int deBoorIndex = (selectedVirtualPoint + 4) / 3;
+	ShapeTable::GetShapeByID(points[deBoorIndex])->CancelTransformations();
+	currentlyTranslatingVirtualPoints = false;
 }
 
 // Grid class functions

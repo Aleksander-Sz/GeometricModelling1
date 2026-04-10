@@ -122,6 +122,19 @@ void Scene::toggleGrab()
         }
         grabEnabled = !grabEnabled;
     }
+    else if (typeOfShapeCurrentlySelected == VIRTUAL_POINT_SELECTED)
+    {
+        if (grabEnabled)
+        {
+            ConfirmObjectMovement();
+        }
+        else
+        {
+            grabMouseOrigin = aa::vec2(lastX, lastY);
+            unlockedTranslationBackup = aa::vec3(0.0f);
+        }
+        grabEnabled = !grabEnabled;
+    }
 }
 void Scene::toggleScaling()
 {
@@ -231,12 +244,28 @@ void Scene::LeftMouseClick()
                 {
 					shapeWithVirtualPoints->ConfirmSelection(shiftPressed);
                 }
+				typeOfShapeCurrentlySelected = VIRTUAL_POINT_SELECTED;
+                // Now let's deselect all the real shapes
+				DeselectEverything();
             }
             else // selection logic for shapes
             {
                 isSelected = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject])->Select();
                 if (isSelected)
+                {
                     newSelectedShape = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject]);
+                    typeOfShapeCurrentlySelected = SHAPE_SELECTED;
+                    // now let's deselect all the virtual points
+                    for (int i = 0; i < figures__REFACTORING.size(); i++)
+                    {
+                        IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
+                        if (shapeWithVirtualPoints != nullptr)
+                        {
+                            if (shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
+                                shapeWithVirtualPoints->ConfirmSelection(false, true);
+                        }
+                    }
+                }
             }
         }
         //
@@ -285,7 +314,7 @@ void Scene::DrawCursorOverlay()
     ImGui::Begin("CursorOverlay", nullptr, flags);
 
     //show object position in grab mode
-    if (grabEnabled)
+    if (grabEnabled&&typeOfShapeCurrentlySelected==SHAPE_SELECTED)
     {
         ImGui::Text("Object Position:");
         aa::vec3 objectPosition = ShapeTable::GetShapeByID(selectedShape)->getPosition(); // TODO correct this
@@ -348,12 +377,27 @@ void Scene::MoveSelectedObjects(aa::vec3 translation)
     translation.x *= xLockFactor;
     translation.y *= yLockFactor;
     translation.z *= zLockFactor;
-    for (int shapeID : figures__REFACTORING)
+    if (typeOfShapeCurrentlySelected == SHAPE_SELECTED)
     {
-        if (ShapeTable::GetShapeByID(shapeID)->isSelected())
+        for (int shapeID : figures__REFACTORING) // real shapes selected
         {
-            translation = (inverseSceneMatrix * aa::vec4(translation, 1.0f)).xyz;
-            ShapeTable::GetShapeByID(shapeID)->Translate(translation);
+            if (ShapeTable::GetShapeByID(shapeID)->isSelected())
+            {
+                translation = (inverseSceneMatrix * aa::vec4(translation, 1.0f)).xyz;
+                ShapeTable::GetShapeByID(shapeID)->Translate(translation);
+            }
+        }
+    }
+    else // Virtual points selected
+    {
+        for (int shapeID : figures__REFACTORING) // real shapes selected
+        {
+			IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(shapeID));
+            if (shapeWithVirtualPoints!=nullptr&&shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
+            {
+                translation = (inverseSceneMatrix * aa::vec4(translation, 1.0f)).xyz;
+                shapeWithVirtualPoints->VirtualPointsTranslate(translation);
+            }
         }
     }
 }
@@ -393,6 +437,12 @@ void Scene::CancellObjectMovement()
         {
             ShapeTable::GetShapeByID(shapeID)->CancelTransformations();
         }
+        // now let's check if the object has selected virtual points
+        IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(shapeID));
+        if (shapeWithVirtualPoints != nullptr && shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
+        {
+            shapeWithVirtualPoints->VirtualPointsCancelTransformations();
+        }
     }
 }
 void Scene::ConfirmObjectMovement()
@@ -402,6 +452,12 @@ void Scene::ConfirmObjectMovement()
         if (ShapeTable::GetShapeByID(shapeID)->isSelected())
         {
             ShapeTable::GetShapeByID(shapeID)->ConfirmTransformations();
+        }
+        // now let's check if the object has selected virtual points
+		IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(shapeID));
+		if (shapeWithVirtualPoints != nullptr && shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
+        {
+			shapeWithVirtualPoints->VirtualPointsConfirmTransformations();
         }
     }
 }

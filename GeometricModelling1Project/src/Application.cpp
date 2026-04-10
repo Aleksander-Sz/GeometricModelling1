@@ -341,7 +341,17 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	{
 		if (scene->grabEnabled||scene->scalingEnabled||scene->rotatingEnabled)
 		{
-			float distance = aa::length(ShapeTable::GetShapeByID(scene->selectedShape)->getPosition() - scene->camera.cameraPos);
+			float distance;
+			if (scene->typeOfShapeCurrentlySelected == SHAPE_SELECTED)
+			{
+				distance = aa::length(ShapeTable::GetShapeByID(scene->selectedShape)->getPosition() - scene->camera.cameraPos);
+			}
+			else
+			{
+				distance = aa::length(scene->currentTranslationOrigin - scene->camera.cameraPos);
+				if (distance < 0.1f)
+					distance = 0.1f;
+			}
 
 			float fovRad = aa::radians(scene->camera.zoom); // assuming zoom = FOV
 			float viewHeight = 2.0f * distance * tan(fovRad * 0.5f);

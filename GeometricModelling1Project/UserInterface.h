@@ -12,5 +12,4 @@
 #define CURSOR_JUMP_KEY GLFW_KEY_V
 #define MERGE_POINTS_KEY GLFW_KEY_M
 
-
 #endif

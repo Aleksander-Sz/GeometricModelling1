@@ -10,6 +10,10 @@
 #include <imgui_impl_opengl3.h>
 #include <iostream>
 
+// system constants
+#define SHAPE_SELECTED 10
+#define VIRTUAL_POINT_SELECTED 11
+
 enum LockAxis {
 	NONE, X, Y, Z, notX, notY, notZ
 };
@@ -147,6 +151,9 @@ public:
 	virtual float LeftClick(Camera& camera, aa::vec2 clickPos) = 0; // returns the distance to the closest point, stashes it for selection
 	virtual void ConfirmSelection(bool shiftPressed, bool justDeselectEverything = false) = 0; // Used, if no closer point was found
 	int containsSelectedVirtualPoints = 0;
+	virtual void VirtualPointsTranslate(aa::vec3 t) = 0;
+	virtual void VirtualPointsConfirmTransformations() = 0;
+	virtual void VirtualPointsCancelTransformations() = 0;
 protected:
 	int preparedVirtualPoint = -1; // Used to store the index of the virtual point that is currently prepared for selection, -1 if no virtual point is prepared
 };
@@ -157,9 +164,15 @@ public:
 	BezierCurveC2(std::vector<int> _controlPoints) : BezierCurveC0(_controlPoints) { shapeName = "Bezier Curve C2"; Mesh(); };
 	void Mesh() override;
 	std::vector<aa::vec3> bernsteinPoints;
-	std::vector<bool> isBernsteinPointSelected;
+	int selectedVirtualPoint = -1;
+	// IContainsVirtualPoints interface functions
 	float LeftClick(Camera& camera, aa::vec2 clickPos) override;
 	void ConfirmSelection(bool shiftPressed, bool justDeselectEverything) override;
+	void VirtualPointsTranslate(aa::vec3 t) override;
+	void VirtualPointsConfirmTransformations() override;
+	void VirtualPointsCancelTransformations() override;
+	bool currentlyTranslatingVirtualPoints = false;
+	aa::vec3 virtualPointPositionBackup = NULL;
 };
 
 class Grid
