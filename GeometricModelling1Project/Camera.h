@@ -11,6 +11,8 @@ public:
 	aa::vec3 cameraPos = aa::vec3(0.0f, 0.0f, 3.0f);
 	aa::vec3 cameraFront = aa::vec3(0.0f, 0.0f, -1.0f);
 	aa::vec3 cameraUp = aa::vec3(0.0f, 1.0f, 0.0f);
+	
+	aa::vec3 orbitingCameraTarget = aa::vec3(0.0f, 0.0f, 0.0f);
 
 	float yaw = -90.0f;
 	float pitch = 0.0f;

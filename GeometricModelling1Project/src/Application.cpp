@@ -277,8 +277,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 			xOffset *= sensitivity;
 			yOffset *= sensitivity;
 
-			scene->camera.cameraPos += yOffset * aa::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
-			scene->camera.cameraPos -= xOffset * aa::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
+			aa::vec3 forward = yOffset * aa::normalize(cross(cross(scene->camera.cameraFront, scene->camera.cameraUp), scene->camera.cameraFront));
+			aa::vec3 sideways = xOffset * aa::normalize(cross(scene->camera.cameraFront, scene->camera.cameraUp));
+			scene->camera.cameraPos += forward;
+			scene->camera.cameraPos -= sideways;
+			scene->camera.orbitingCameraTarget += forward;
+			scene->camera.orbitingCameraTarget -= sideways;
 		}
 		else if (scene->boxSelectActive)
 		{

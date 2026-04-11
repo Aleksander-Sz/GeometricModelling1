@@ -20,8 +20,8 @@ aa::mat4 Camera::view()
 			radius = 1.0f;
 		if (radius > 30.0f)
 			radius = 30.0f;
-		cameraPos = -cameraFront * radius;
-		view = aa::lookAt(cameraPos, aa::vec3(0.0f), cameraUp);
+		cameraPos = orbitingCameraTarget + (-cameraFront * radius);
+		view = aa::lookAt(cameraPos, orbitingCameraTarget, cameraUp);
 	}
 	else
 	{
