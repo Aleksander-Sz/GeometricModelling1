@@ -64,7 +64,7 @@ public:
 	int selectedShape = -1; // storing the index
 	void ConfirmObjectMovement();
 	void CancellObjectMovement();
-	void DeselectEverything();
+	void DeselectEverything(bool includingVirtualPoints = true);
 	void DeleteSelectedObjects();
 	void MergeSelectedPoints();
 	void StartBoxSelect(aa::vec2 location);

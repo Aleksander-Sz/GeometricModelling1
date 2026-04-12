@@ -11,6 +11,7 @@
 #include <iostream>
 
 // system constants
+#define NONE_SELECTED 0
 #define SHAPE_SELECTED 10
 #define VIRTUAL_POINT_SELECTED 11
 

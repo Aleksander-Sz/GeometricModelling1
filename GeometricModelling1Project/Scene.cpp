@@ -193,7 +193,7 @@ void Scene::LeftMouseClick()
             previousShape = ShapeTable::GetShapeByID(selectedShape);
             DeselectEverything(); // this will deselect all of the shapes
             // but we still need to deselect the virtual points
-            for (int i = 0; i < figures__REFACTORING.size(); i++)
+            /*for (int i = 0; i < figures__REFACTORING.size(); i++)
             {
                 IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
                 if (shapeWithVirtualPoints != nullptr)
@@ -201,7 +201,7 @@ void Scene::LeftMouseClick()
                     if(shapeWithVirtualPoints->containsSelectedVirtualPoints>0)
                     shapeWithVirtualPoints->ConfirmSelection(false, true);
                 }
-			}
+			}*/
         }
         Shape* newSelectedShape = nullptr;
         //
@@ -246,7 +246,7 @@ void Scene::LeftMouseClick()
                 }
 				typeOfShapeCurrentlySelected = VIRTUAL_POINT_SELECTED;
                 // Now let's deselect all the real shapes
-				DeselectEverything();
+				DeselectEverything(false);
             }
             else // selection logic for shapes
             {
@@ -461,12 +461,21 @@ void Scene::ConfirmObjectMovement()
         }
     }
 }
-void Scene::DeselectEverything()
+void Scene::DeselectEverything(bool includingVirtualPoints)
 {
     selectedShape = -1;
     for (int i = 0; i < figures__REFACTORING.size(); i++)
     {
         ShapeTable::GetShapeByID(figures__REFACTORING[i])->Select(true);
+        if (includingVirtualPoints)
+        {
+            IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
+            if (shapeWithVirtualPoints != nullptr)
+            {
+                if (shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
+                    shapeWithVirtualPoints->ConfirmSelection(false, true);
+            }
+        }
     }
 }
 void Scene::DeleteSelectedObjects()

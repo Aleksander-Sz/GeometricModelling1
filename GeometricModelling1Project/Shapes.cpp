@@ -829,6 +829,8 @@ float BezierCurveC2::LeftClick(Camera& camera, aa::vec2 clickPos)
 {
 	if (bernsteinPoints.size() < 1)
 		return std::numeric_limits<float>::max();
+	if (displayBernsteinPoints == false)
+		return std::numeric_limits<float>::max();
 	float minDistance = std::numeric_limits<float>::max();
 	int closestPoint = -1;
 	for (int i = 0; i < bernsteinPoints.size(); i++)
@@ -905,14 +907,12 @@ void BezierCurveC2::VirtualPointsConfirmTransformations()
 	int deBoorIndex = (selectedVirtualPoint + 4) / 3;
 	ShapeTable::GetShapeByID(points[deBoorIndex])->ConfirmTransformations();
 	currentlyTranslatingVirtualPoints = false;
-	containsSelectedVirtualPoints = 0;
 }
 void BezierCurveC2::VirtualPointsCancelTransformations()
 {
 	int deBoorIndex = (selectedVirtualPoint + 4) / 3;
 	ShapeTable::GetShapeByID(points[deBoorIndex])->CancelTransformations();
 	currentlyTranslatingVirtualPoints = false;
-	containsSelectedVirtualPoints = 0;
 }
 
 // Grid class functions
