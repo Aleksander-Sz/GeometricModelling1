@@ -253,6 +253,34 @@ aa::vec3 project3DPoint(double xpos, double ypos)
 	return scene->camera.cameraPos + rayDir * distance;
 }
 
+aa::vec3 project3DPointOnAPlane(double xpos, double ypos)
+{
+	// Below is code pasted from an old unused function, keep in mind
+	float x_ndc = (2.0f * xpos) / scene->camera.windowWidth - 1.0f;
+	float y_ndc = 1.0f - (2.0f * ypos) / scene->camera.windowHeight;
+
+	aa::vec4 ray_clip = aa::vec4(x_ndc, y_ndc, -1.0f, 1.0f);
+
+	aa::mat4 invVP = scene->camera.inverseViewProjection();
+
+	// Unproject to world space
+	aa::vec4 worldPos = invVP * ray_clip;
+
+	// Perspective divide
+	worldPos = worldPos / worldPos.w;
+
+	// Compute ray direction
+	aa::vec3 rayDir = aa::normalize(aa::vec3(worldPos.xyz) - scene->camera.cameraPos);
+
+	// Calculate the intersection with the plane
+	aa::vec3 planeNormal = aa::normalize(scene->camera.cameraFront);
+	if (aa::dot(rayDir, planeNormal) == 0.0f)
+		return aa::vec3(0.0f); // Just in case, this should never happen, if the FoV is smaller than 180 degrees
+	float t = aa::dot(scene->currentTranslationOrigin - scene->camera.cameraPos, planeNormal) / aa::dot(rayDir, planeNormal);
+	aa::vec3 intersectionPoint = scene->camera.cameraPos + rayDir * t;
+	return intersectionPoint;
+}
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	float xOffset = xpos - scene->lastX;
@@ -357,23 +385,27 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 					distance = 0.1f;
 			}
 
-			float fovRad = aa::radians(scene->camera.zoom); // assuming zoom = FOV
-			float viewHeight = 2.0f * distance * tan(fovRad * 0.5f);
+			//float fovRad = aa::radians(scene->camera.zoom); // assuming zoom = FOV
+			//float viewHeight = 2.0f * distance * tan(fovRad * 0.5f);
 
-			float worldPerPixel = viewHeight / scene->camera.windowHeight;
+			//float worldPerPixel = viewHeight / scene->camera.windowHeight;
 
-			aa::vec3 forward = aa::normalize(scene->camera.cameraFront);
-			aa::vec3 right = aa::normalize(aa::cross(forward, scene->camera.cameraUp));
-			aa::vec3 up = aa::normalize(aa::cross(right, forward));
+			//aa::vec3 forward = aa::normalize(scene->camera.cameraFront);
+			//aa::vec3 right = aa::normalize(aa::cross(forward, scene->camera.cameraUp));
+			//aa::vec3 up = aa::normalize(aa::cross(right, forward));
 
-			float xOffsetSinceMoveStart = xpos - scene->grabMouseOrigin.x;
-			float yOffsetSinceMoveStart = ypos - scene->grabMouseOrigin.y;
-
-			aa::vec3 worldDelta =
-				right * (xOffsetSinceMoveStart * worldPerPixel)
-				- up * (yOffsetSinceMoveStart * worldPerPixel);
 			if (scene->grabEnabled)
+			{
+				// Let's cast two rays, one from the initial mouse position and one from the current mouse position
+				// We will calculate the intersection of those rays with a plane parrallel to the camera's view plane
+				// and going through the currentTranslationOrigin
+				aa::vec3 projectedInitialPoint = project3DPointOnAPlane(scene->grabMouseOrigin.x, scene->grabMouseOrigin.y);
+				aa::vec3 projectedTranslationPoint = project3DPointOnAPlane(xpos, ypos);
+			
+				aa::vec3 worldDelta = projectedTranslationPoint - projectedInitialPoint;
+
 				scene->MoveSelectedObjects(worldDelta);
+			}
 			else if (scene->scalingEnabled)
 			{
 				aa::vec2 scalingOrigin = scene->getTransformationCenterScreenSpacePosition();
@@ -384,7 +416,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 				if (startDistance > 5.0f)
 				{
 					float factor = endDistance / startDistance;
-					//std::cout << factor << "\n";
 					scene->ScaleSelectedObjects(factor);
 				}
 			}
@@ -585,8 +616,28 @@ int main()
 						scene->DeselectEverything();
 					}
 					ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->Select();
-					if(scene->selectedShape==-1)
-						scene->selectedShape = scene->figures__REFACTORING[i];
+					if (ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->isSelected())
+					{
+						if (scene->selectedShape == -1)
+						{
+							scene->selectedShape = scene->figures__REFACTORING[i];
+							scene->typeOfShapeCurrentlySelected = SHAPE_SELECTED;
+							// now let's deselect all the virtual points
+							for (int i = 0; i < scene->figures__REFACTORING.size(); i++)
+							{
+								IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(scene->figures__REFACTORING[i]));
+								if (shapeWithVirtualPoints != nullptr)
+								{
+									if (shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
+										shapeWithVirtualPoints->ConfirmSelection(false, true);
+								}
+							}
+						}
+					}
+					else
+					{
+						scene->typeOfShapeCurrentlySelected = NONE_SELECTED;
+					}
 				}
 				ImGui::PopID();
 			}

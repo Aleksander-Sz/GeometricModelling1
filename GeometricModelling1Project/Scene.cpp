@@ -192,16 +192,7 @@ void Scene::LeftMouseClick()
         {
             previousShape = ShapeTable::GetShapeByID(selectedShape);
             DeselectEverything(); // this will deselect all of the shapes
-            // but we still need to deselect the virtual points
-            /*for (int i = 0; i < figures__REFACTORING.size(); i++)
-            {
-                IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
-                if (shapeWithVirtualPoints != nullptr)
-                {
-                    if(shapeWithVirtualPoints->containsSelectedVirtualPoints>0)
-                    shapeWithVirtualPoints->ConfirmSelection(false, true);
-                }
-			}*/
+            typeOfShapeCurrentlySelected = NONE_SELECTED;
         }
         Shape* newSelectedShape = nullptr;
         //
@@ -614,20 +605,34 @@ void Scene::DrawScene(GLFWwindow* window)
     {
         numberOfSelectedShapes = 0;
         aa::vec3 centerOfMass = aa::vec3(0.0f, 0.0f, 0.0f);
-        for (int i = 1; i < figures__REFACTORING.size(); i++)
+        if (typeOfShapeCurrentlySelected == VIRTUAL_POINT_SELECTED)
         {
-            if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
+			for (int i = 0; i < figures__REFACTORING.size(); i++)
             {
-                numberOfSelectedShapes++;
-                centerOfMass += ShapeTable::GetShapeByID(figures__REFACTORING[i])->getPosition();
+                IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
+                if (shapeWithVirtualPoints != nullptr && shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
+                {
+                    currentTranslationOrigin = shapeWithVirtualPoints->GetVirtualPointsPosition();
+                }
             }
         }
-        if (numberOfSelectedShapes > 0)
+        else if (typeOfShapeCurrentlySelected == SHAPE_SELECTED)
         {
-            currentTranslationOrigin = centerOfMass / numberOfSelectedShapes;
-            if (numberOfSelectedShapes > 1)
+            for (int i = 1; i < figures__REFACTORING.size(); i++)
             {
-                centerOfGravityIndicator.Draw(currentTranslationOrigin);
+                if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
+                {
+                    numberOfSelectedShapes++;
+                    centerOfMass += ShapeTable::GetShapeByID(figures__REFACTORING[i])->getPosition();
+                }
+            }
+            if (numberOfSelectedShapes > 0)
+            {
+                currentTranslationOrigin = centerOfMass / numberOfSelectedShapes;
+                if (numberOfSelectedShapes > 1)
+                {
+                    centerOfGravityIndicator.Draw(currentTranslationOrigin);
+                }
             }
         }
         else

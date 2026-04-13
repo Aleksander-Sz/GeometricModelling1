@@ -155,6 +155,7 @@ public:
 	virtual void VirtualPointsTranslate(aa::vec3 t) = 0;
 	virtual void VirtualPointsConfirmTransformations() = 0;
 	virtual void VirtualPointsCancelTransformations() = 0;
+	virtual aa::vec3 GetVirtualPointsPosition() = 0;
 protected:
 	int preparedVirtualPoint = -1; // Used to store the index of the virtual point that is currently prepared for selection, -1 if no virtual point is prepared
 };
@@ -174,6 +175,7 @@ public:
 	void VirtualPointsTranslate(aa::vec3 t) override;
 	void VirtualPointsConfirmTransformations() override;
 	void VirtualPointsCancelTransformations() override;
+	aa::vec3 GetVirtualPointsPosition() override;
 	bool currentlyTranslatingVirtualPoints = false;
 	aa::vec3 virtualPointPositionBackup = NULL;
 };

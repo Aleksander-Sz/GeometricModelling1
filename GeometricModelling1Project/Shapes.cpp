@@ -922,6 +922,12 @@ void BezierCurveC2::VirtualPointsCancelTransformations()
 	ShapeTable::GetShapeByID(points[deBoorIndex])->CancelTransformations();
 	currentlyTranslatingVirtualPoints = false;
 }
+aa::vec3 BezierCurveC2::GetVirtualPointsPosition()
+{
+	if (selectedVirtualPoint == -1)
+		return aa::vec3(0.0f, 0.0f, 0.0f); // shouldn't happen
+	return bernsteinPoints[selectedVirtualPoint] = ShapeTable::GetShapeByID(points[(selectedVirtualPoint + 4) / 3])->getPosition();
+}
 
 // Grid class functions
 Grid::Grid()
