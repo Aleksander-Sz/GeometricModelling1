@@ -253,7 +253,7 @@ aa::vec3 project3DPoint(double xpos, double ypos)
 	return scene->camera.cameraPos + rayDir * distance;
 }
 
-aa::vec3 project3DPointOnAPlane(double xpos, double ypos)
+aa::vec3 project3DPointOnAPlane(double xpos, double ypos, aa::vec3 planeNormal)
 {
 	// Below is code pasted from an old unused function, keep in mind
 	float x_ndc = (2.0f * xpos) / scene->camera.windowWidth - 1.0f;
@@ -273,7 +273,7 @@ aa::vec3 project3DPointOnAPlane(double xpos, double ypos)
 	aa::vec3 rayDir = aa::normalize(aa::vec3(worldPos.xyz) - scene->camera.cameraPos);
 
 	// Calculate the intersection with the plane
-	aa::vec3 planeNormal = aa::normalize(scene->camera.cameraFront);
+	//aa::vec3 planeNormal = aa::normalize(scene->camera.cameraFront);
 	if (aa::dot(rayDir, planeNormal) == 0.0f)
 		return aa::vec3(0.0f); // Just in case, this should never happen, if the FoV is smaller than 180 degrees
 	float t = aa::dot(scene->currentTranslationOrigin - scene->camera.cameraPos, planeNormal) / aa::dot(rayDir, planeNormal);
@@ -399,11 +399,37 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 				// Let's cast two rays, one from the initial mouse position and one from the current mouse position
 				// We will calculate the intersection of those rays with a plane parrallel to the camera's view plane
 				// and going through the currentTranslationOrigin
-				aa::vec3 projectedInitialPoint = project3DPointOnAPlane(scene->grabMouseOrigin.x, scene->grabMouseOrigin.y);
-				aa::vec3 projectedTranslationPoint = project3DPointOnAPlane(xpos, ypos);
+				aa::vec3 planeNormal = aa::normalize(scene->camera.cameraFront);
+				if(scene->lockedAxis==notX)
+					planeNormal = aa::vec3(1.0f, 0.0f, 0.0f);
+				else if (scene->lockedAxis == notY)
+					planeNormal = aa::vec3(0.0f, 1.0f, 0.0f);
+				else if (scene->lockedAxis == notZ)
+					planeNormal = aa::vec3(0.0f, 0.0f, 1.0f);
+				else if (scene->lockedAxis == X)
+					planeNormal = aa::normalize(aa::cross(scene->camera.cameraUp, aa::vec3(1.0f, 0.0f, 0.0f)));
+				else if (scene->lockedAxis == Y)
+				{
+					// Here there is a chance, that the camera is looking perfectly up or down, in that case the cross product will be zero
+					if (aa::dot(scene->camera.cameraUp, aa::vec3(0.0f, 1.0f, 0.0f)) > 0.8f)
+					{
+						aa::vec3 cameraRight = aa::normalize(aa::cross(scene->camera.cameraFront, scene->camera.cameraUp));
+						planeNormal = aa::normalize(aa::cross(cameraRight, aa::vec3(0.0f, 1.0f, 0.0f)));
+					}
+					else
+						planeNormal = aa::normalize(aa::cross(scene->camera.cameraUp, aa::vec3(0.0f, 1.0f, 0.0f)));
+				}
+				else if (scene->lockedAxis == Z)
+					planeNormal = aa::normalize(aa::cross(scene->camera.cameraUp, aa::vec3(0.0f, 0.0f, 1.0f)));
+				if (planeNormal.x == 0.0f && planeNormal.y == 0.0f && planeNormal.z == 0.0f)
+					planeNormal = aa::normalize(scene->camera.cameraFront);
+				aa::vec3 projectedInitialPoint = project3DPointOnAPlane(scene->grabMouseOrigin.x, scene->grabMouseOrigin.y, planeNormal);
+				aa::vec3 projectedTranslationPoint = project3DPointOnAPlane(xpos, ypos, planeNormal);
 			
 				aa::vec3 worldDelta = projectedTranslationPoint - projectedInitialPoint;
 
+				if(aa::length(worldDelta) > 50.0f)
+					worldDelta = worldDelta / aa::length(worldDelta) * 50.0f;
 				scene->MoveSelectedObjects(worldDelta);
 			}
 			else if (scene->scalingEnabled)
@@ -558,7 +584,7 @@ int main()
 	
 	Torus* torus = new Torus(1.0f, 0.3f, 50, 50);
 	torus->setShader(scene->shader);
-	scene->figures__REFACTORING.push_back(ShapeTable::GetShapeID(torus));
+	scene->shapes.push_back(ShapeTable::GetShapeID(torus));
 	//Point point(aa::vec3(0.0f, 0.1f, 0.0f));
 	//scene->shapes.push_back(&point);
 	torus->Rotate(aa::radians(90.0f),aa::Axis::X);
@@ -603,29 +629,29 @@ int main()
 		ImGui::Separator();
 		if (ImGui::BeginListBox("##Object Selection", ImVec2(400, 200)))
 		{
-			for (int i = 0; i < scene->figures__REFACTORING.size(); i++)
+			for (int i = 0; i < scene->shapes.size(); i++)
 			{
-				if (ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->isMarkedForDeletion())
+				if (ShapeTable::GetShapeByID(scene->shapes[i])->isMarkedForDeletion())
 					continue;
 				ImGui::PushID(i);
-				std::string fullObjectName = ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->Name();
-				if (ImGui::Selectable((fullObjectName).c_str(), ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->isSelected()))
+				std::string fullObjectName = ShapeTable::GetShapeByID(scene->shapes[i])->Name();
+				if (ImGui::Selectable((fullObjectName).c_str(), ShapeTable::GetShapeByID(scene->shapes[i])->isSelected()))
 				{
 					if (!scene->shiftPressed)
 					{
 						scene->DeselectEverything();
 					}
-					ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->Select();
-					if (ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->isSelected())
+					ShapeTable::GetShapeByID(scene->shapes[i])->Select();
+					if (ShapeTable::GetShapeByID(scene->shapes[i])->isSelected())
 					{
 						if (scene->selectedShape == -1)
 						{
-							scene->selectedShape = scene->figures__REFACTORING[i];
+							scene->selectedShape = scene->shapes[i];
 							scene->typeOfShapeCurrentlySelected = SHAPE_SELECTED;
 							// now let's deselect all the virtual points
-							for (int i = 0; i < scene->figures__REFACTORING.size(); i++)
+							for (int i = 0; i < scene->shapes.size(); i++)
 							{
-								IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(scene->figures__REFACTORING[i]));
+								IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(scene->shapes[i]));
 								if (shapeWithVirtualPoints != nullptr)
 								{
 									if (shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
@@ -679,12 +705,12 @@ int main()
 					if (ImGui::Button("Add Selected Points"))
 					{
 						// traversing all of the selected objects and adding all the points to the line
-						for (int i = 1; i < scene->figures__REFACTORING.size(); i++)
+						for (int i = 1; i < scene->shapes.size(); i++)
 						{
-							Point* pointPointer = ShapeTable::GetPointByID(scene->figures__REFACTORING[i]);
-							if (pointPointer != nullptr && ShapeTable::GetShapeByID(scene->figures__REFACTORING[i])->isSelected())
+							Point* pointPointer = ShapeTable::GetPointByID(scene->shapes[i]);
+							if (pointPointer != nullptr && ShapeTable::GetShapeByID(scene->shapes[i])->isSelected())
 							{
-								linePointer->AddPoint(scene->figures__REFACTORING[i]);
+								linePointer->AddPoint(scene->shapes[i]);
 							}
 						}
 					}

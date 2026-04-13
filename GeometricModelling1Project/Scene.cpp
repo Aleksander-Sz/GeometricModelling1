@@ -4,7 +4,7 @@ Scene::Scene(int windowWidth, int windowHeight, Shader _shader)
 {
 	camera = Camera(windowWidth, windowHeight);
     shader = _shader;
-	figures__REFACTORING.push_back(ShapeTable::GetShapeID(&cursor));
+	shapes.push_back(ShapeTable::GetShapeID(&cursor));
 	cursor.setShader(shader);
 	centerOfGravityIndicator.setShader(shader);
 }
@@ -200,10 +200,10 @@ void Scene::LeftMouseClick()
         int closestObject = 0;
         bool virtualPointIsClosest = false; // If the closest point is a virtual point belonging to a shape,
         // this variable will be set to true
-        for (int i = 0; i < figures__REFACTORING.size(); i++)
+        for (int i = 0; i < shapes.size(); i++)
         {
 			// check distance from cursor to object position in screen space
-            aa::vec2 objectPosition = ShapeTable::GetShapeByID(figures__REFACTORING[i])->getScreenSpacePosition(camera);
+            aa::vec2 objectPosition = ShapeTable::GetShapeByID(shapes[i])->getScreenSpacePosition(camera);
             float distance = aa::length(objectPosition - aa::vec2(lastX,lastY));
             if (distance < minDistance)
             {
@@ -213,7 +213,7 @@ void Scene::LeftMouseClick()
             }
 
             // now we will deal with selecting virtual points
-            IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
+            IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(shapes[i]));
             if (shapeWithVirtualPoints != nullptr)
             {
                 distance = shapeWithVirtualPoints->LeftClick(camera, aa::vec2(lastX, lastY));
@@ -230,7 +230,7 @@ void Scene::LeftMouseClick()
         {
             if (virtualPointIsClosest) // selection logic for virtual points
             {
-                IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[closestObject]));
+                IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(shapes[closestObject]));
                 if (shapeWithVirtualPoints != nullptr)
                 {
 					shapeWithVirtualPoints->ConfirmSelection(shiftPressed);
@@ -241,15 +241,15 @@ void Scene::LeftMouseClick()
             }
             else // selection logic for shapes
             {
-                isSelected = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject])->Select();
+                isSelected = ShapeTable::GetShapeByID(shapes[closestObject])->Select();
                 if (isSelected)
                 {
-                    newSelectedShape = ShapeTable::GetShapeByID(figures__REFACTORING[closestObject]);
+                    newSelectedShape = ShapeTable::GetShapeByID(shapes[closestObject]);
                     typeOfShapeCurrentlySelected = SHAPE_SELECTED;
                     // now let's deselect all the virtual points
-                    for (int i = 0; i < figures__REFACTORING.size(); i++)
+                    for (int i = 0; i < shapes.size(); i++)
                     {
-                        IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
+                        IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(shapes[i]));
                         if (shapeWithVirtualPoints != nullptr)
                         {
                             if (shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
@@ -370,7 +370,7 @@ void Scene::MoveSelectedObjects(aa::vec3 translation)
     translation.z *= zLockFactor;
     if (typeOfShapeCurrentlySelected == SHAPE_SELECTED)
     {
-        for (int shapeID : figures__REFACTORING) // real shapes selected
+        for (int shapeID : shapes) // real shapes selected
         {
             if (ShapeTable::GetShapeByID(shapeID)->isSelected())
             {
@@ -381,7 +381,7 @@ void Scene::MoveSelectedObjects(aa::vec3 translation)
     }
     else // Virtual points selected
     {
-        for (int shapeID : figures__REFACTORING) // real shapes selected
+        for (int shapeID : shapes) // real shapes selected
         {
 			IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(shapeID));
             if (shapeWithVirtualPoints!=nullptr&&shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
@@ -395,34 +395,34 @@ void Scene::MoveSelectedObjects(aa::vec3 translation)
 void Scene::ScaleSelectedObjects(float factor)
 {
     aa::vec3 scaling = aa::vec3(factor, factor, factor);
-    for (int i = 1; i < figures__REFACTORING.size(); i++)
+    for (int i = 1; i < shapes.size(); i++)
     {
-        if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
+        if (ShapeTable::GetShapeByID(shapes[i])->isSelected())
         {
             scaling = (inverseSceneMatrix * aa::vec4(scaling, 1.0f)).xyz;
             if(transformAroundCursor)
-                ShapeTable::GetShapeByID(figures__REFACTORING[i])->Scale(scaling, cursor.getPosition());
+                ShapeTable::GetShapeByID(shapes[i])->Scale(scaling, cursor.getPosition());
             else
-                ShapeTable::GetShapeByID(figures__REFACTORING[i])->Scale(scaling, currentTranslationOrigin);
+                ShapeTable::GetShapeByID(shapes[i])->Scale(scaling, currentTranslationOrigin);
         }
     }
 }
 void Scene::RotateSelectedObjects(float angle, aa::Axis axis)
 {
-    for (int i = 1; i < figures__REFACTORING.size(); i++)
+    for (int i = 1; i < shapes.size(); i++)
     {
-        if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
+        if (ShapeTable::GetShapeByID(shapes[i])->isSelected())
         {
             if (transformAroundCursor)
-                ShapeTable::GetShapeByID(figures__REFACTORING[i])->Rotate(angle, axis, cursor.getPosition());
+                ShapeTable::GetShapeByID(shapes[i])->Rotate(angle, axis, cursor.getPosition());
             else
-                ShapeTable::GetShapeByID(figures__REFACTORING[i])->Rotate(angle, axis, currentTranslationOrigin);
+                ShapeTable::GetShapeByID(shapes[i])->Rotate(angle, axis, currentTranslationOrigin);
         }
     }
 }
 void Scene::CancellObjectMovement()
 {
-    for (int shapeID : figures__REFACTORING)
+    for (int shapeID : shapes)
     {
         if (ShapeTable::GetShapeByID(shapeID)->isSelected())
         {
@@ -438,7 +438,7 @@ void Scene::CancellObjectMovement()
 }
 void Scene::ConfirmObjectMovement()
 {
-    for (int shapeID : figures__REFACTORING)
+    for (int shapeID : shapes)
     {
         if (ShapeTable::GetShapeByID(shapeID)->isSelected())
         {
@@ -455,12 +455,12 @@ void Scene::ConfirmObjectMovement()
 void Scene::DeselectEverything(bool includingVirtualPoints)
 {
     selectedShape = -1;
-    for (int i = 0; i < figures__REFACTORING.size(); i++)
+    for (int i = 0; i < shapes.size(); i++)
     {
-        ShapeTable::GetShapeByID(figures__REFACTORING[i])->Select(true);
+        ShapeTable::GetShapeByID(shapes[i])->Select(true);
         if (includingVirtualPoints)
         {
-            IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
+            IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(shapes[i]));
             if (shapeWithVirtualPoints != nullptr)
             {
                 if (shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
@@ -472,11 +472,11 @@ void Scene::DeselectEverything(bool includingVirtualPoints)
 void Scene::DeleteSelectedObjects()
 {
     selectedShape = -1;
-    for (int i = 1; i < figures__REFACTORING.size(); i++)
+    for (int i = 1; i < shapes.size(); i++)
     {
-        if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
+        if (ShapeTable::GetShapeByID(shapes[i])->isSelected())
         {
-            ShapeTable::GetShapeByID(figures__REFACTORING[i])->MarkForDeletion();
+            ShapeTable::GetShapeByID(shapes[i])->MarkForDeletion();
         }
     }
     RemoveMarkedObjects();
@@ -484,18 +484,18 @@ void Scene::DeleteSelectedObjects()
 void Scene::MergeSelectedPoints()
 {
     std::vector<int> pointsToBeMerged;
-    for (int i = 1; i < figures__REFACTORING.size(); i++)
+    for (int i = 1; i < shapes.size(); i++)
     {
-        Point* point = ShapeTable::GetPointByID(figures__REFACTORING[i]);
+        Point* point = ShapeTable::GetPointByID(shapes[i]);
         if (point != nullptr)
         {
             if (point->isSelected())
             {
-                pointsToBeMerged.push_back(figures__REFACTORING[i]);
+                pointsToBeMerged.push_back(shapes[i]);
                 // If this is at least the second point, we will remove its id from the scene shapes
                 if (pointsToBeMerged.size() > 1)
                 {
-                    figures__REFACTORING.erase(figures__REFACTORING.begin() + i);
+                    shapes.erase(shapes.begin() + i);
                     i--;
                 }
             }
@@ -518,13 +518,13 @@ void Scene::EndBoxSelect(aa::vec2 location)
     int rightBoundry    = std::max(boxSelectOrigin.x, location.x);
     int topBoundry      = std::max(boxSelectOrigin.y, location.y);
     int bottomBoundry   = std::min(boxSelectOrigin.y, location.y);
-    for (int i = 1; i < figures__REFACTORING.size(); i++)
+    for (int i = 1; i < shapes.size(); i++)
     {
-        aa::vec2 shapeLocation = ShapeTable::GetShapeByID(figures__REFACTORING[i])->getScreenSpacePosition(camera);
+        aa::vec2 shapeLocation = ShapeTable::GetShapeByID(shapes[i])->getScreenSpacePosition(camera);
         if (shapeLocation.x >= leftBoundry && shapeLocation.x <= rightBoundry && shapeLocation.y >= bottomBoundry && shapeLocation.y <= topBoundry)
         {
-            ShapeTable::GetShapeByID(figures__REFACTORING[i])->Select();
-            selectedShape = figures__REFACTORING[i];
+            ShapeTable::GetShapeByID(shapes[i])->Select();
+            selectedShape = shapes[i];
         }
     }
 }
@@ -584,8 +584,8 @@ void Scene::DrawScene(GLFWwindow* window)
         glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
     glDepthMask(GL_FALSE);
     grid.Draw(camera, 'R');
-    for (int i = 1; i < figures__REFACTORING.size(); i++)
-        ShapeTable::GetShapeByID(figures__REFACTORING[i])->Draw();
+    for (int i = 1; i < shapes.size(); i++)
+        ShapeTable::GetShapeByID(shapes[i])->Draw();
     cursor.Draw();
     if ((grabEnabled || rotatingEnabled) && (lockedAxis!=NONE))
     {
@@ -607,9 +607,9 @@ void Scene::DrawScene(GLFWwindow* window)
         aa::vec3 centerOfMass = aa::vec3(0.0f, 0.0f, 0.0f);
         if (typeOfShapeCurrentlySelected == VIRTUAL_POINT_SELECTED)
         {
-			for (int i = 0; i < figures__REFACTORING.size(); i++)
+			for (int i = 0; i < shapes.size(); i++)
             {
-                IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(figures__REFACTORING[i]));
+                IContainsVirtualPoints* shapeWithVirtualPoints = dynamic_cast<IContainsVirtualPoints*>(ShapeTable::GetShapeByID(shapes[i]));
                 if (shapeWithVirtualPoints != nullptr && shapeWithVirtualPoints->containsSelectedVirtualPoints > 0)
                 {
                     currentTranslationOrigin = shapeWithVirtualPoints->GetVirtualPointsPosition();
@@ -618,12 +618,12 @@ void Scene::DrawScene(GLFWwindow* window)
         }
         else if (typeOfShapeCurrentlySelected == SHAPE_SELECTED)
         {
-            for (int i = 1; i < figures__REFACTORING.size(); i++)
+            for (int i = 1; i < shapes.size(); i++)
             {
-                if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isSelected())
+                if (ShapeTable::GetShapeByID(shapes[i])->isSelected())
                 {
                     numberOfSelectedShapes++;
-                    centerOfMass += ShapeTable::GetShapeByID(figures__REFACTORING[i])->getPosition();
+                    centerOfMass += ShapeTable::GetShapeByID(shapes[i])->getPosition();
                 }
             }
             if (numberOfSelectedShapes > 0)
@@ -652,20 +652,20 @@ void Scene::DrawScene(GLFWwindow* window)
 
 void Scene::RemoveMarkedObjects()
 {
-    for (int i = 1; i < figures__REFACTORING.size(); i++)
+    for (int i = 1; i < shapes.size(); i++)
     {
-        Line* linePointer = (ShapeTable::GetLineByID(figures__REFACTORING[i]));
+        Line* linePointer = (ShapeTable::GetLineByID(shapes[i]));
         if (linePointer != nullptr)
         {
             linePointer->RemoveDeletedPoints();
         }
     }
-    for (int i = 1; i < figures__REFACTORING.size(); i++)
+    for (int i = 1; i < shapes.size(); i++)
     {
-        if (ShapeTable::GetShapeByID(figures__REFACTORING[i])->isMarkedForDeletion())
+        if (ShapeTable::GetShapeByID(shapes[i])->isMarkedForDeletion())
         {
-            ShapeTable::RemoveShape(figures__REFACTORING[i]);
-            figures__REFACTORING.erase(figures__REFACTORING.begin() + i);
+            ShapeTable::RemoveShape(shapes[i]);
+            shapes.erase(shapes.begin() + i);
             i--;
         }
     }
@@ -680,7 +680,7 @@ void Scene::AddShape()
 	case 0: // Torus
     {
 		Torus* newTorus = new Torus(1.0f, 0.3f, 50, 50);
-		figures__REFACTORING.push_back(ShapeTable::AddShape(newTorus));
+		shapes.push_back(ShapeTable::AddShape(newTorus));
     }
         break;
 	case 1: // Ellipsoid
@@ -688,7 +688,7 @@ void Scene::AddShape()
         std::cout << "This option has been locked, as it is out of the scope of MKMG.\n";
         break;
 		Ellipsoid* newEllipsoid = new Ellipsoid(1.0f, 1.2f, 0.8f, 50);
-        figures__REFACTORING.push_back(ShapeTable::AddShape(newEllipsoid));
+        shapes.push_back(ShapeTable::AddShape(newEllipsoid));
         break;
 
     }
@@ -696,9 +696,9 @@ void Scene::AddShape()
     {
         Line* selectedLine = nullptr;
         int selectedLinesCount = 0;
-        for (int i = 1; i < figures__REFACTORING.size(); i++)
+        for (int i = 1; i < shapes.size(); i++)
         {
-            Line* current = ShapeTable::GetLineByID(figures__REFACTORING[i]);
+            Line* current = ShapeTable::GetLineByID(shapes[i]);
             if (current && current->isSelected())
             {
                 selectedLinesCount++;
@@ -707,7 +707,7 @@ void Scene::AddShape()
         }
         Point* newPoint = new Point(aa::vec3(0.0f, 0.0f, 0.0f));
         int newPointID = ShapeTable::AddShape(newPoint);
-		figures__REFACTORING.push_back(newPointID);
+		shapes.push_back(newPointID);
         if (selectedLinesCount == 1)
         {
             selectedLine->AddPoint(newPointID);
@@ -717,34 +717,34 @@ void Scene::AddShape()
 	case 3: // Line
     {
         std::vector<int> selectedPoints;
-        for (int i = 1; i < figures__REFACTORING.size(); i++)
+        for (int i = 1; i < shapes.size(); i++)
         {
             Point* pointer;
-            if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
+            if (pointer = ShapeTable::GetPointByID(shapes[i]))
             {
                 if (pointer->isSelected())
-                    selectedPoints.push_back(figures__REFACTORING[i]);
+                    selectedPoints.push_back(shapes[i]);
             }
         }
 		Line* newLine = new Line(selectedPoints);
-        figures__REFACTORING.push_back(ShapeTable::AddShape(newLine));
+        shapes.push_back(ShapeTable::AddShape(newLine));
         isADerivedShape = true;
     }
     break;
 	case 4: // Bezier Curve C0
     {
         std::vector<int> selectedPoints;
-        for (int i = 1; i < figures__REFACTORING.size(); i++)
+        for (int i = 1; i < shapes.size(); i++)
         {
             Point* pointer;
-            if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
+            if (pointer = ShapeTable::GetPointByID(shapes[i]))
             {
                 if (pointer->isSelected())
-                    selectedPoints.push_back(figures__REFACTORING[i]);
+                    selectedPoints.push_back(shapes[i]);
             }
         }
         BezierCurveC0* newCurve = new BezierCurveC0(selectedPoints);
-		figures__REFACTORING.push_back(ShapeTable::AddShape(newCurve));
+		shapes.push_back(ShapeTable::AddShape(newCurve));
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
@@ -752,17 +752,17 @@ void Scene::AddShape()
     case 5: // Bezier Curve C1
     {
         std::vector<int> selectedPoints;
-        for (int i = 1; i < figures__REFACTORING.size(); i++)
+        for (int i = 1; i < shapes.size(); i++)
         {
             Point* pointer;
-            if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
+            if (pointer = ShapeTable::GetPointByID(shapes[i]))
             {
                 if (pointer->isSelected())
-                    selectedPoints.push_back(figures__REFACTORING[i]);
+                    selectedPoints.push_back(shapes[i]);
             }
         }
         BezierCurveC1* newCurve = new BezierCurveC1(selectedPoints);
-		figures__REFACTORING.push_back(ShapeTable::AddShape(newCurve));
+		shapes.push_back(ShapeTable::AddShape(newCurve));
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
@@ -770,17 +770,17 @@ void Scene::AddShape()
     case 6: // Bezier Curve C0
     {
         std::vector<int> selectedPoints;
-        for (int i = 1; i < figures__REFACTORING.size(); i++)
+        for (int i = 1; i < shapes.size(); i++)
         {
             Point* pointer;
-            if (pointer = ShapeTable::GetPointByID(figures__REFACTORING[i]))
+            if (pointer = ShapeTable::GetPointByID(shapes[i]))
             {
                 if (pointer->isSelected())
-                    selectedPoints.push_back(figures__REFACTORING[i]);
+                    selectedPoints.push_back(shapes[i]);
             }
         }
         BezierCurveC2* newCurve = new BezierCurveC2(selectedPoints);
-        figures__REFACTORING.push_back(ShapeTable::AddShape(newCurve));
+        shapes.push_back(ShapeTable::AddShape(newCurve));
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
@@ -789,9 +789,9 @@ void Scene::AddShape()
         wasAShapeAdded = false;
         break;
     }
-    ShapeTable::GetShapeByID(figures__REFACTORING[figures__REFACTORING.size() - 1])->setShader(shader);
+    ShapeTable::GetShapeByID(shapes[shapes.size() - 1])->setShader(shader);
     if (wasAShapeAdded&&(!isADerivedShape))
     {
-        ShapeTable::GetShapeByID(figures__REFACTORING[figures__REFACTORING.size() - 1])->TranslateAndConfirm(cursor.getPosition());
+        ShapeTable::GetShapeByID(shapes[shapes.size() - 1])->TranslateAndConfirm(cursor.getPosition());
     }
 }

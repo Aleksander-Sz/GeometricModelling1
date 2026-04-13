@@ -54,7 +54,7 @@ public:
 	Cursor cursor = Cursor::getInstance();
 	void UpdateCursorPosition(double xpos, double ypos);
 	//std::vector<Shape*> shapes;
-	std::vector<int> figures__REFACTORING;
+	std::vector<int> shapes;
 	void LeftMouseClick();
 	void DrawCursorOverlay();
 	void MoveSelectedObjects(aa::vec3 translation);
