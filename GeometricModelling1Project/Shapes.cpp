@@ -268,7 +268,15 @@ void Point::Draw()
 }
 void Point::PrintImGuiOptions()
 {
-	ImGui::Text("This is a point, it has no mesh options.");
+	aa::vec3 location = getPosition();
+	if (ImGui::DragFloat3("Point position", aa::value_ptr(location), 0.01f, -20.0f, 20.0f, "%.3f"))
+	{
+		model[3][0] = location.x;
+		model[3][1] = location.y;
+		model[3][2] = location.z;
+		ConfirmTransformations();
+		InvalidateDependentShapes();
+	}
 }
 void Point::Scale(aa::vec3 s, aa::vec3 origin)
 {
