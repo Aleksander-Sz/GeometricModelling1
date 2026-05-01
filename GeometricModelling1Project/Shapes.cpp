@@ -929,6 +929,111 @@ aa::vec3 BezierCurveC2::GetVirtualPointsPosition()
 	return bernsteinPoints[selectedVirtualPoint];
 }
 
+// Interpolating Curve class functions
+void InterpolatingCurve::Mesh()
+{
+	dirty = false;
+	vertices.clear();
+	bernsteinPoints.clear();
+	indices.clear();
+	int segmentCount = points.size() - 1;
+	if (segmentCount < 1)
+		return; // nothing to mesh
+	// Interpolation code
+
+	size_t n = points.size() - 1;
+	std::vector<float> t(n + 1);
+	t[0] = 0.0f;
+	for (size_t i = 1; i < n + 1; i++)
+	{
+		t[i] = t[i - 1] + aa::distance(ShapeTable::GetPointByID(points[i])->getPosition(), ShapeTable::GetPointByID(points[i - 1])->getPosition());
+	}
+
+	std::vector<float> h(n);
+	for (size_t i = 0; i < n; i++)
+	{
+		h[i] = t[i + 1] - t[i];
+	}
+	std::vector<float> a(n + 1), b(n + 1), c(n + 1);
+	std::vector<aa::vec3> d(n + 1);
+	std::vector<aa::vec3> M(n + 1);
+	b[0] = 1.0f;
+	d[0] = aa::vec3(0.0f);
+
+	b[n] = 1.0f;
+	d[n] = aa::vec3(0.0f);
+
+	for (int i = 1; i < n; i++)
+	{
+		a[i] = h[i - 1];
+		b[i] = 2.0f * (h[i - 1] + h[i]);
+		c[i] = h[i];
+
+		aa::vec3 term1 = (ShapeTable::GetPointByID(points[i + 1])->getPosition() - ShapeTable::GetPointByID(points[i])->getPosition()) / h[i];
+		aa::vec3 term2 = (ShapeTable::GetPointByID(points[i])->getPosition() - ShapeTable::GetPointByID(points[i - 1])->getPosition()) / h[i - 1];
+
+		d[i] = 6.0f * (term1 - term2);
+	}
+
+	// Forward sweep
+	for (int i = 1; i <= n; i++)
+	{
+		float w = a[i] / b[i - 1];
+		b[i] -= w * c[i - 1];
+		d[i] -= w * d[i - 1];
+	}
+
+	// Back substitution
+	M[n] = d[n] / b[n];
+
+	for (int i = n - 1; i >= 0; i--)
+	{
+		M[i] = (d[i] - c[i] * M[i + 1]) / b[i];
+	}
+
+	std::vector<aa::vec3> D(n + 1);
+
+	for (int i = 0; i < n; i++)
+	{
+		aa::vec3 term = (ShapeTable::GetPointByID(points[i + 1])->getPosition() - ShapeTable::GetPointByID(points[i])->getPosition()) / h[i];
+
+		D[i] = term - (h[i] / 6.0f) * (2.0f * M[i] + M[i + 1]);
+		D[i + 1] = term + (h[i] / 6.0f) * (M[i] + 2.0f * M[i + 1]);
+	}
+
+	for (int i = 0; i < segmentCount; i++)
+	{
+		aa::vec3 P0 = ShapeTable::GetPointByID(points[i])->getPosition();
+		aa::vec3 P1 = ShapeTable::GetPointByID(points[i + 1])->getPosition();
+		aa::vec3 B0 = P0;
+		aa::vec3 B1 = P0 + (h[i] / 3.0f) * D[i];
+		aa::vec3 B2 = P1 - (h[i] / 3.0f) * D[i + 1];
+		aa::vec3 B3 = P1;
+		if (i == 0)
+			bernsteinPoints.push_back(B0); // first point only for first segment
+		bernsteinPoints.push_back(B1);
+		bernsteinPoints.push_back(B2);
+		bernsteinPoints.push_back(B3);
+		indices.push_back(i * 3);
+		indices.push_back(i * 3 + 1);
+		indices.push_back(i * 3 + 2);
+		indices.push_back(i * 3 + 3);
+	}
+	//prepare for drawing
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, bernsteinPoints.size() * 3 * sizeof(float), bernsteinPoints.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
+}
+
 // Grid class functions
 Grid::Grid()
 {

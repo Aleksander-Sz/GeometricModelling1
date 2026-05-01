@@ -472,6 +472,7 @@ void Scene::DeselectEverything(bool includingVirtualPoints)
 void Scene::DeleteSelectedObjects()
 {
     selectedShape = -1;
+    typeOfShapeCurrentlySelected = NONE_SELECTED;
     for (int i = 1; i < shapes.size(); i++)
     {
         if (ShapeTable::GetShapeByID(shapes[i])->isSelected())
@@ -767,7 +768,7 @@ void Scene::AddShape()
         isADerivedShape = true;
     }
     break;
-    case 6: // Bezier Curve C0
+    case 6: // Bezier Curve C2
     {
         std::vector<int> selectedPoints;
         for (int i = 1; i < shapes.size(); i++)
@@ -784,6 +785,25 @@ void Scene::AddShape()
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
+    break;
+    case 7: // Interpolating Curve
+    {
+        std::vector<int> selectedPoints;
+        for (int i = 1; i < shapes.size(); i++)
+        {
+            Point* pointer;
+            if (pointer = ShapeTable::GetPointByID(shapes[i]))
+            {
+                if (pointer->isSelected())
+                    selectedPoints.push_back(shapes[i]);
+            }
+        }
+        InterpolatingCurve* newCurve = new InterpolatingCurve(selectedPoints);
+        shapes.push_back(ShapeTable::AddShape(newCurve));
+        newCurve->setTessellationShader(tessellationShader);
+        isADerivedShape = true;
+    }
+    break;
     default:
         std::cerr << "Shape not implemented yet.\n";
         wasAShapeAdded = false;

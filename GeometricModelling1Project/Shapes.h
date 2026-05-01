@@ -180,6 +180,13 @@ public:
 	aa::vec3 virtualPointPositionBackup = NULL;
 };
 
+class InterpolatingCurve : public BezierCurveC2
+{
+	public:
+	InterpolatingCurve(std::vector<int> _points) : BezierCurveC2(_points) { shapeName = "Interpolating Curve"; Mesh(); };
+	void Mesh() override;
+};
+
 class Grid
 {
 public:
