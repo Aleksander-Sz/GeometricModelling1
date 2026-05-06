@@ -942,11 +942,25 @@ void InterpolatingCurve::Mesh()
 	// Interpolation code
 
 	size_t n = points.size() - 1;
-	std::vector<float> t(n + 1);
-	t[0] = 0.0f;
+	std::vector<float> t;
+	std::vector<aa::vec3> pointPositions;
+	pointPositions.push_back(ShapeTable::GetPointByID(points[0])->getPosition());
+	t.push_back(0.0f);
 	for (size_t i = 1; i < n + 1; i++)
 	{
-		t[i] = t[i - 1] + aa::distance(ShapeTable::GetPointByID(points[i])->getPosition(), ShapeTable::GetPointByID(points[i - 1])->getPosition());
+		float dValue = aa::distance(ShapeTable::GetPointByID(points[i])->getPosition(), ShapeTable::GetPointByID(points[i - 1])->getPosition());
+		if (dValue > 0.0001f)
+		{
+			t.push_back(t.back() + dValue);
+			pointPositions.push_back(ShapeTable::GetPointByID(points[i])->getPosition());
+		}
+	}
+	std::cout << "n before: " << n << "\n";
+	segmentCount = n = pointPositions.size() - 1;
+	std::cout << "n after : " << n << "\n";
+	if (n < 1)
+	{
+		return;
 	}
 
 	std::vector<float> h(n);
@@ -969,8 +983,8 @@ void InterpolatingCurve::Mesh()
 		b[i] = 2.0f * (h[i - 1] + h[i]);
 		c[i] = h[i];
 
-		aa::vec3 term1 = (ShapeTable::GetPointByID(points[i + 1])->getPosition() - ShapeTable::GetPointByID(points[i])->getPosition()) / h[i];
-		aa::vec3 term2 = (ShapeTable::GetPointByID(points[i])->getPosition() - ShapeTable::GetPointByID(points[i - 1])->getPosition()) / h[i - 1];
+		aa::vec3 term1 = (pointPositions[i + 1] - pointPositions[i]) / h[i];
+		aa::vec3 term2 = (pointPositions[i] - pointPositions[i - 1]) / h[i - 1];
 
 		d[i] = 6.0f * (term1 - term2);
 	}
@@ -995,7 +1009,7 @@ void InterpolatingCurve::Mesh()
 
 	for (int i = 0; i < n; i++)
 	{
-		aa::vec3 term = (ShapeTable::GetPointByID(points[i + 1])->getPosition() - ShapeTable::GetPointByID(points[i])->getPosition()) / h[i];
+		aa::vec3 term = (pointPositions[i + 1] - pointPositions[i]) / h[i];
 
 		D[i] = term - (h[i] / 6.0f) * (2.0f * M[i] + M[i + 1]);
 		D[i + 1] = term + (h[i] / 6.0f) * (M[i] + 2.0f * M[i + 1]);
@@ -1003,8 +1017,8 @@ void InterpolatingCurve::Mesh()
 
 	for (int i = 0; i < segmentCount; i++)
 	{
-		aa::vec3 P0 = ShapeTable::GetPointByID(points[i])->getPosition();
-		aa::vec3 P1 = ShapeTable::GetPointByID(points[i + 1])->getPosition();
+		aa::vec3 P0 = pointPositions[i];
+		aa::vec3 P1 = pointPositions[i + 1];
 		aa::vec3 B0 = P0;
 		aa::vec3 B1 = P0 + (h[i] / 3.0f) * D[i];
 		aa::vec3 B2 = P1 - (h[i] / 3.0f) * D[i + 1];
