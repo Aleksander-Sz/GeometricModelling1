@@ -955,9 +955,9 @@ void InterpolatingCurve::Mesh()
 			pointPositions.push_back(ShapeTable::GetPointByID(points[i])->getPosition());
 		}
 	}
-	std::cout << "n before: " << n << "\n";
+	//std::cout << "n before: " << n << "\n";
 	segmentCount = n = pointPositions.size() - 1;
-	std::cout << "n after : " << n << "\n";
+	//std::cout << "n after : " << n << "\n";
 	if (n < 1)
 	{
 		return;
@@ -1087,18 +1087,7 @@ void Grid::Draw(Camera &camera, char eye)
 	gridShader.use();
 	gridShader.setMat4("view", camera.view());
 	aa::mat4 projection;
-	switch (eye)
-	{
-	case 0:
-		projection = camera.projection();
-		break;
-	case 'R':
-		projection = camera.projectionRight();
-		break;
-	case 'L':
-		projection = camera.projectionLeft();
-		break;
-	}
+	projection = camera.projection();
 	gridShader.setMat4("projection", projection);
 	gridShader.setMat4("model", aa::scale(aa::mat4(1.0f),aa::vec3(40.0f)));
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

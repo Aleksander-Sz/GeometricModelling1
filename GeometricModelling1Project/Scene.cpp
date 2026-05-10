@@ -561,28 +561,19 @@ void Scene::DrawScene(GLFWwindow* window)
 	tessellationShader.setMat4("view", camera.view());
     tessellationShader.setVec2("viewportSize", aa::vec2((float)camera.windowWidth, (float)camera.windowHeight));
     shader.use();
-    if (stereoscopy)
-    {
-        shader.setMat4("projection", camera.projectionRight());
-        tessellationShader.use();
-		tessellationShader.setMat4("projection", camera.projectionRight());
-        shader.use();
-    }
-    else
-    {
-        shader.setMat4("projection", camera.projection());
-		tessellationShader.use();
-		tessellationShader.setMat4("projection", camera.projection());
-        shader.use();
-    }
+
+    shader.setMat4("projection", camera.projection());
+	tessellationShader.use();
+	tessellationShader.setMat4("projection", camera.projection());
+    shader.use();
+
     sceneMatrix = aa::scale(sceneScale);
     inverseSceneMatrix = aa::scale(aa::vec3(1.0f / sceneScale.x, 1.0f / sceneScale.y, 1.0f / sceneScale.z));
     shader.setMat4("scene", sceneMatrix);
 	tessellationShader.use();
 	tessellationShader.setMat4("scene", sceneMatrix);
     shader.use();
-    if(stereoscopy)
-        glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
+
     glDepthMask(GL_FALSE);
     grid.Draw(camera, 'R');
     for (int i = 1; i < shapes.size(); i++)

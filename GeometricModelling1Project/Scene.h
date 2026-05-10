@@ -84,6 +84,8 @@ public:
 	int currentItemSelectedForAdding = 0;
 	void AddShape();
 	char typeOfShapeCurrentlySelected = 0;
+	float distanceBetweenEyes = 0.1f;
+	float convergenceDistance = 5.0f;
 private:
 	aa::mat4 sceneMatrix = aa::mat4(1.0f);
 	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);

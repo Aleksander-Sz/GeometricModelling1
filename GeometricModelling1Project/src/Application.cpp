@@ -608,10 +608,9 @@ int main()
 		ImGui::NewFrame();
 		ImGui::Begin("Menu");
 		ImGui::Text("Use WASD to move, mouse to look around, scroll to zoom.");
-		//ImGui::Checkbox("Enable stereoscopy", &(scene->stereoscopy)); // Temporarily disabled
 		ImGui::Separator();
 		ImGui::Checkbox("Transform Around the 3D Cursor", &(scene->transformAroundCursor));
-		if (ImGui::DragFloat3("Scene Scaling", aa::value_ptr(scene->sceneScale), 0.01f, 0.01f, 10.0f))
+		/*if (ImGui::DragFloat3("Scene Scaling", aa::value_ptr(scene->sceneScale), 0.01f, 0.01f, 10.0f))
 		{
 			if (scene->sceneScale.x < 0.01f)
 				scene->sceneScale.x = 0.01f;
@@ -622,9 +621,27 @@ int main()
 			if (scene->sceneScale.y > 10.0f)
 				scene->sceneScale.y = 10.0f;
 			if (scene->sceneScale.z < 0.01f)
-				scene->sceneScale.z = 0.01f;
+				scene->sceneScale.z = 0.01f;  // To be removed TODO: remove together with sceneScale!!!!!!!!!!!!
 			if (scene->sceneScale.z > 10.0f)
 				scene->sceneScale.z = 10.0f;
+		}*/
+		ImGui::Checkbox("Enable stereoscopy", &(scene->stereoscopy)); // Temporarily disabled
+		if (scene->stereoscopy)
+		{
+			if (ImGui::SliderFloat("Distance between the eyes", &(scene->distanceBetweenEyes), 0.001f, 0.05f))
+			{
+				if (scene->distanceBetweenEyes < 0.001f)
+					scene->distanceBetweenEyes = 0.001f;
+				if (scene->distanceBetweenEyes > 0.05f)
+					scene->distanceBetweenEyes = 0.05f;
+			}
+			if (ImGui::SliderFloat("Convergence distance", &(scene->convergenceDistance), 0.1f, 5.0f))
+			{
+				if (scene->convergenceDistance < 0.1f)
+					scene->convergenceDistance = 0.1f;
+				if (scene->convergenceDistance > 5.0f)
+					scene->convergenceDistance = 5.0f;
+			}
 		}
 		ImGui::Separator();
 		if (ImGui::BeginListBox("##Object Selection", ImVec2(400, 200)))
@@ -731,7 +748,23 @@ int main()
 
 		//rendering commands here
 		
-		scene->DrawScene(window);
+		if (scene->stereoscopy)
+		{
+			glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE); // Red channel for the left eye
+			scene->camera.eyeOffset = -scene->distanceBetweenEyes / 2.0f;
+			scene->camera.convergenceDistance = scene->convergenceDistance;
+			scene->DrawScene(window);
+			
+			glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE); // Cyan channel for the right eye
+			scene->camera.eyeOffset = scene->distanceBetweenEyes / 2.0f;
+			scene->DrawScene(window);
+
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE); // Reset to normal rendering
+		}
+		else
+		{
+			scene->DrawScene(window);
+		}
 
 		// -----
 		float currentFrame = glfwGetTime();

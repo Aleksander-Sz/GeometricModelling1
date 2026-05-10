@@ -24,11 +24,12 @@ public:
 
 	bool orbitingCamera = true;
 
+	float eyeOffset = 0.0f;
+	float convergenceDistance = 1.0f;
+
 	Camera(int windowWidth = 800.0f, int windowHeight = 600.0f);
 	aa::mat4 view();
-	aa::mat4 projection(float e = 0.0f);
-	aa::mat4 projectionLeft();
-	aa::mat4 projectionRight();
+	aa::mat4 projection();
 	aa::mat4 inverseViewProjection();
 };
 
