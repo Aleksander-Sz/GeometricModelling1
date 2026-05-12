@@ -187,6 +187,24 @@ class InterpolatingCurve : public BezierCurveC2
 	void Mesh() override;
 };
 
+//Surfaces
+
+class BezierSurface : public Meshable
+{
+public:
+	BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2);
+	~BezierSurface() override;
+	void Mesh() override;
+	std::vector<std::vector<int>> controlPoints;
+	void PrintImGuiOptions() override;
+	bool isC2;
+private:
+	void MeshC0();
+	void MeshC2();
+};
+
+// Auxiliary shapes
+
 class Grid
 {
 public:

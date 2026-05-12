@@ -552,8 +552,6 @@ void Scene::DrawScene(GLFWwindow* window)
     glfwGetFramebufferSize(window, &w, &h);
     glViewport(0, 0, w, h);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shader.use();
     shader.setMat4("view", camera.view());
@@ -793,6 +791,21 @@ void Scene::AddShape()
         shapes.push_back(ShapeTable::AddShape(newCurve));
         newCurve->setTessellationShader(tessellationShader);
         isADerivedShape = true;
+    }
+    break;
+	case 8: // Bezier Surface
+    {
+		BezierSurface* newSurface = new BezierSurface(aa::vec3(cursor.getPosition()), 3, 3, 5.0f, 5.0f, false);
+        for (size_t i = 0; i < newSurface->controlPoints.size(); i++)
+        {
+            for (size_t j = 0; j < newSurface->controlPoints[i].size(); j++)
+            {
+                shapes.push_back(newSurface->controlPoints[i][j]);
+                ShapeTable::GetShapeByID(shapes[shapes.size() - 1])->setShader(shader);
+            }
+        }
+        shapes.push_back(ShapeTable::AddShape(newSurface));
+		isADerivedShape = true;
     }
     break;
     default:

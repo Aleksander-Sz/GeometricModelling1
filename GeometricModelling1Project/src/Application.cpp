@@ -736,7 +736,7 @@ int main()
 		}
 		ImGui::Separator();
 		ImGui::Text("Add objects");
-		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Bezier C0", "Bezier C1", "Bezier C2", "Interpolating Curve", "Future objects..."};
+		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Bezier C0", "Bezier C1", "Bezier C2", "Interpolating Curve", "Bezier Surface", "Future objects..."};
 		ImGui::Combo("Shapes", &(scene->currentItemSelectedForAdding), items, IM_ARRAYSIZE(items));
 		if (ImGui::Button("Add Shape"))
 		{
@@ -747,6 +747,9 @@ int main()
 		ImGui::End();
 
 		//rendering commands here
+
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		if (scene->stereoscopy)
 		{
@@ -755,7 +758,7 @@ int main()
 			scene->camera.convergenceDistance = scene->convergenceDistance;
 			scene->DrawScene(window);
 			
-			glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE); // Cyan channel for the right eye
+			glColorMask(GL_FALSE, GL_FALSE, GL_TRUE, GL_TRUE); // Cyan channel for the right eye
 			scene->camera.eyeOffset = scene->distanceBetweenEyes / 2.0f;
 			scene->DrawScene(window);
 

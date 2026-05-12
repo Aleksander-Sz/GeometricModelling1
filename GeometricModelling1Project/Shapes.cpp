@@ -240,7 +240,7 @@ Point::Point(aa::vec3 coords)
 {
 	static unsigned int pointIndex = 0;
 	shapeName = "Point " + std::to_string(pointIndex++);
-	model = aa::translate(model, coords);
+	modelBackup = model = aa::translate(model, coords);
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	float center[] = { 0.0f,0.0f,0.0f };
@@ -1046,6 +1046,65 @@ void InterpolatingCurve::Mesh()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 
 	glBindVertexArray(0);
+}
+
+// BezierSurface class functions
+BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2)
+{
+	isC2 = _isC2;
+	int pointsX = a * 3 + 1;
+	int pointsZ = b * 3 + 1;
+	float stepX = dimensionX / pointsX;
+	float stepZ = dimensionZ / pointsZ;
+	position.x -= (dimensionX - stepX) / 2.0f;
+	position.z -= (dimensionZ - stepZ) / 2.0f;
+	for (size_t i = 0; i < pointsX; i++)
+	{
+		controlPoints.push_back(std::vector<int>());
+		for (size_t j = 0; j < pointsZ; j++)
+		{
+			Point* newPoint = new Point(position);
+			int id = ShapeTable::AddShape(newPoint);
+			controlPoints.back().push_back(id);
+			position.z += stepZ;
+		}
+		position.x += stepX;
+		position.z = position.z - stepZ * pointsZ;
+	}
+}
+
+BezierSurface::~BezierSurface()
+{
+	for (size_t i = 0; i < controlPoints.size(); i++)
+	{
+		for (size_t j = 0; j < controlPoints[i].size(); j++)
+		{
+			ShapeTable::GetShapeByID(controlPoints[i][j])->MarkForDeletion();
+		}
+	}
+}
+
+void BezierSurface::Mesh()
+{
+	if(isC2)
+		MeshC2();
+	else
+		MeshC0();
+}
+
+void BezierSurface::PrintImGuiOptions()
+{
+	;
+}
+
+void BezierSurface::MeshC0()
+{
+	;
+}
+
+void BezierSurface::MeshC2()
+{
+	;
 }
 
 // Grid class functions
