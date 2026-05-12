@@ -644,10 +644,10 @@ void Scene::RemoveMarkedObjects()
 {
     for (int i = 1; i < shapes.size(); i++)
     {
-        Line* linePointer = (ShapeTable::GetLineByID(shapes[i]));
-        if (linePointer != nullptr)
+        IDependentOnOtherShapes* objectPointer = (ShapeTable::GetShapeWithVirtualPointsByID(shapes[i]));
+        if (objectPointer != nullptr)
         {
-            linePointer->RemoveDeletedPoints();
+            objectPointer->RemoveDeletedPoints();
         }
     }
     for (int i = 1; i < shapes.size(); i++)

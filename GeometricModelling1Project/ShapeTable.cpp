@@ -56,9 +56,17 @@ Line* ShapeTable::GetLineByID(int id)
 	return linePointer;
 }
 
-void ShapeTable::RemoveShape(int id)
+IDependentOnOtherShapes* ShapeTable::GetShapeWithVirtualPointsByID(int id)
 {
 	if (id < 0 || id >= shapePointers.size())
+		return nullptr;
+	IDependentOnOtherShapes* objectPointer = dynamic_cast<IDependentOnOtherShapes*>(shapePointers[id]);
+	return objectPointer;
+}
+
+void ShapeTable::RemoveShape(int id)
+{
+	if (id < 0 || id >= shapePointers.size() || shapePointers[id] == nullptr)
 		return;
 	delete shapePointers[id];
 	shapePointers[id] = nullptr;

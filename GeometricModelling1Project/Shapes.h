@@ -109,7 +109,13 @@ private:
 	unsigned int s;
 };
 
-class Line : public Meshable
+class IDependentOnOtherShapes
+{
+public:
+	virtual void RemoveDeletedPoints() = 0;
+};
+
+class Line : public Meshable, public IDependentOnOtherShapes
 {
 public:
 	Line(std::vector<int> _points);
@@ -123,7 +129,7 @@ public:
 	void CancelTransformations() override;
 	void AddPoint(int point);
 	aa::vec3 getPosition() override;
-	void RemoveDeletedPoints(); // removes all the points marked for deletion from the points vector
+	void RemoveDeletedPoints() override; // removes all the points marked for deletion from the points vector
 protected:
 	std::vector<int> points;
 };
@@ -189,7 +195,7 @@ class InterpolatingCurve : public BezierCurveC2
 
 //Surfaces
 
-class BezierSurface : public Meshable
+class BezierSurface : public Meshable, public IDependentOnOtherShapes
 {
 public:
 	BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2);
@@ -197,6 +203,7 @@ public:
 	void Mesh() override;
 	std::vector<std::vector<int>> controlPoints;
 	void PrintImGuiOptions() override;
+	void RemoveDeletedPoints() override;
 	bool isC2;
 private:
 	void MeshC0();

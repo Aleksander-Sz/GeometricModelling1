@@ -1079,7 +1079,9 @@ BezierSurface::~BezierSurface()
 	{
 		for (size_t j = 0; j < controlPoints[i].size(); j++)
 		{
-			ShapeTable::GetShapeByID(controlPoints[i][j])->MarkForDeletion();
+			Shape* shapePointer = ShapeTable::GetShapeByID(controlPoints[i][j]);
+			if (shapePointer != nullptr)
+				shapePointer->MarkForDeletion();
 		}
 	}
 }
@@ -1095,6 +1097,11 @@ void BezierSurface::Mesh()
 void BezierSurface::PrintImGuiOptions()
 {
 	;
+}
+
+void BezierSurface::RemoveDeletedPoints()
+{
+	markedForDeletion = true;
 }
 
 void BezierSurface::MeshC0()
