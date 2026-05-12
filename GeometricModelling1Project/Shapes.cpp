@@ -1052,6 +1052,8 @@ void InterpolatingCurve::Mesh()
 BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2)
 {
 	isC2 = _isC2;
+	shapeName = "BezierSurface ";
+	shapeName += (isC2 ? "C2" : "C0");
 	int pointsX = a * 3 + 1;
 	int pointsZ = b * 3 + 1;
 	float stepX = dimensionX / pointsX;
@@ -1079,7 +1081,7 @@ BezierSurface::~BezierSurface()
 	{
 		for (size_t j = 0; j < controlPoints[i].size(); j++)
 		{
-			Shape* shapePointer = ShapeTable::GetShapeByID(controlPoints[i][j]);
+			Point* shapePointer = ShapeTable::GetPointByID(controlPoints[i][j]);
 			if (shapePointer != nullptr)
 				shapePointer->MarkForDeletion();
 		}
@@ -1101,7 +1103,17 @@ void BezierSurface::PrintImGuiOptions()
 
 void BezierSurface::RemoveDeletedPoints()
 {
-	markedForDeletion = true;
+	bool deleteThisSurface = false;
+	for (size_t i = 0; i < controlPoints.size(); i++)
+	{
+		for (size_t j = 0; j < controlPoints[i].size(); j++)
+		{
+			if (ShapeTable::GetPointByID(controlPoints[i][j])->isMarkedForDeletion())
+				deleteThisSurface = true;
+		}
+	}
+	if(deleteThisSurface)
+		markedForDeletion = true;
 }
 
 void BezierSurface::MeshC0()
