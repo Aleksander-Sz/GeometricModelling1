@@ -746,7 +746,7 @@ void BezierCurveC1::Mesh()
 	int pointsSize = points.size();
 	for (int i = 1; i < numberOfSegments; i++)
 	{
-		// calculating the first point, to maintaing first derivative continuity
+		// calculating the first point, to maintain first derivative continuity
 	
 		aa::vec3 derivativeVector = previous1 - previous2;
 		aa::vec3 newPoint = previous1 + derivativeVector;
@@ -1068,11 +1068,16 @@ BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, 
 			Point* newPoint = new Point(position);
 			int id = ShapeTable::AddShape(newPoint);
 			controlPoints.back().push_back(id);
+			ShapeTable::GetPointByID(id)->dependentShapes.push_back(ShapeTable::GetShapeID(this));
 			position.z += stepZ;
 		}
 		position.x += stepX;
 		position.z = position.z - stepZ * pointsZ;
 	}
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+	Mesh();
 }
 
 BezierSurface::~BezierSurface()
@@ -1090,10 +1095,52 @@ BezierSurface::~BezierSurface()
 
 void BezierSurface::Mesh()
 {
-	if(isC2)
-		MeshC2();
-	else
-		MeshC0();
+	dirty = false;
+	vertices.clear();
+	indices.clear();
+	size_t n = controlPoints.size();
+	size_t m = controlPoints[0].size();
+	for (size_t i = 0; i < n; i++)
+	{
+		for (size_t j = 0; j < m; j++)
+		{
+			aa::vec3 pointPos = ShapeTable::GetShapeByID(controlPoints[i][j])->getPosition();
+			vertices.push_back(pointPos.x);
+			vertices.push_back(pointPos.y);
+			vertices.push_back(pointPos.z);
+			unsigned int currentIndex = i * m + j;
+			unsigned int pr1 = (currentIndex - 1) % (n * m);
+			unsigned int pr2 = (currentIndex - m) % (n * m);
+			if (j != 0)
+			{
+				indices.push_back(pr1);
+				indices.push_back(currentIndex);
+			}
+			if(i!=0)
+			{
+				indices.push_back(pr2);
+				indices.push_back(currentIndex);
+			}
+			
+		}
+	}
+	//prepare for drawing
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
+	//if(isC2)
+	//	MeshC2();
+	//else
+	//	MeshC0();
 }
 
 void BezierSurface::PrintImGuiOptions()
