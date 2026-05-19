@@ -205,6 +205,9 @@ public:
 	void PrintImGuiOptions() override;
 	void RemoveDeletedPoints() override;
 	bool isC2;
+	void setTessellationShader(Shader& _shader);
+	Shader tessellationShader;
+	int subdivisions = 16;
 private:
 	void MeshC0();
 	void MeshC2();

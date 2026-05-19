@@ -75,6 +75,7 @@ public:
 	Axis movementAxis = Axis(X);
 	Shader shader;
 	Shader tessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/BezierTessellationControlShader.glsl", "Shaders/BezierTessellationEvaluationShader.glsl", "Shaders/FragmentShader.glsl");
+	Shader surfaceTessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/SurfaceTessellationControlShader.glsl", "Shaders/SurfaceTessellationEvaluationShader.glsl", "Shaders/SurfaceFragmentShader.glsl");
 	void DrawScene(GLFWwindow* window);
 	Grid grid = Grid::getInstance();
 	bool stereoscopy = false;

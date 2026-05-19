@@ -555,21 +555,32 @@ void Scene::DrawScene(GLFWwindow* window)
 
     shader.use();
     shader.setMat4("view", camera.view());
+
     tessellationShader.use();
 	tessellationShader.setMat4("view", camera.view());
     tessellationShader.setVec2("viewportSize", aa::vec2((float)camera.windowWidth, (float)camera.windowHeight));
+    surfaceTessellationShader.use();
+    surfaceTessellationShader.setMat4("view", camera.view());
+    surfaceTessellationShader.setVec2("viewportSize", aa::vec2((float)camera.windowWidth, (float)camera.windowHeight));
+    
     shader.use();
-
     shader.setMat4("projection", camera.projection());
+
 	tessellationShader.use();
 	tessellationShader.setMat4("projection", camera.projection());
+	surfaceTessellationShader.use();
+	surfaceTessellationShader.setMat4("projection", camera.projection());
+    
     shader.use();
-
     sceneMatrix = aa::scale(sceneScale);
     inverseSceneMatrix = aa::scale(aa::vec3(1.0f / sceneScale.x, 1.0f / sceneScale.y, 1.0f / sceneScale.z));
     shader.setMat4("scene", sceneMatrix);
+
 	tessellationShader.use();
 	tessellationShader.setMat4("scene", sceneMatrix);
+	surfaceTessellationShader.use();
+	surfaceTessellationShader.setMat4("scene", sceneMatrix);
+
     shader.use();
 
     glDepthMask(GL_FALSE);
@@ -805,6 +816,7 @@ void Scene::AddShape()
             }
         }
         shapes.push_back(ShapeTable::AddShape(newSurface));
+        newSurface->setTessellationShader(surfaceTessellationShader);
 		isADerivedShape = true;
     }
     break;

@@ -160,7 +160,21 @@ void Meshable::Draw()
 	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
 	BezierCurveC0* thisBC = dynamic_cast<BezierCurveC0*>(this);
 	BezierCurveC2* thisBC2 = dynamic_cast<BezierCurveC2*>(this);
-	if (thisBC2)
+	BezierSurface* thisBS = dynamic_cast<BezierSurface*>(this);
+	if (thisBS)
+	{
+		// This is a Bezier Surface
+		thisBS->tessellationShader.use();
+		glBindVertexArray(VAO);
+		thisBS->tessellationShader.setMat4("model", model);
+		glLineWidth((selected ? 2.5f : 1.0f)); //alter line width based on selection
+		thisBS->tessellationShader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
+		thisBS->tessellationShader.setFloat("tessLevel", (float)thisBS->subdivisions);
+		glPatchParameteri(GL_PATCH_VERTICES, 16);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
+	}
+	else if (thisBC2)
 	{
 		// This is a BezierCurveC2
 		thisBC->tessellationShader.use();
@@ -1109,19 +1123,31 @@ void BezierSurface::Mesh()
 			vertices.push_back(pointPos.y);
 			vertices.push_back(pointPos.z);
 			unsigned int currentIndex = i * m + j;
-			unsigned int pr1 = (currentIndex - 1) % (n * m);
-			unsigned int pr2 = (currentIndex - m) % (n * m);
-			if (j != 0)
+			unsigned int pr1 = (currentIndex - 1);
+			unsigned int pr2 = (currentIndex - m);
+			unsigned int pr3 = (currentIndex - m - 1);
+			/*if (j != 0 && i != 0)
 			{
-				indices.push_back(pr1);
 				indices.push_back(currentIndex);
-			}
-			if(i!=0)
-			{
 				indices.push_back(pr2);
-				indices.push_back(currentIndex);
-			}
+				indices.push_back(pr3);
+				indices.push_back(pr1);
+			}*/
 			
+		}
+	}
+	// indices
+	for (size_t i = 0; i < n - 1; i+=3)
+	{
+		for (size_t j = 0; j < m - 1; j+=3)
+		{
+			for (size_t k = 0; k < 4; k++)
+			{
+				for (size_t l = 0; l < 4; l++)
+				{
+					indices.push_back((i + k) * m + (j + l));
+				}
+			}
 		}
 	}
 	//prepare for drawing
@@ -1145,7 +1171,13 @@ void BezierSurface::Mesh()
 
 void BezierSurface::PrintImGuiOptions()
 {
-	;
+	if (ImGui::DragInt("Subdivisions", &subdivisions, 1, 4, 64))
+	{
+		if (subdivisions < 4)
+			subdivisions = 4;
+		else if(subdivisions > 64)
+			subdivisions = 64;
+	}
 }
 
 void BezierSurface::RemoveDeletedPoints()
@@ -1161,6 +1193,11 @@ void BezierSurface::RemoveDeletedPoints()
 	}
 	if(deleteThisSurface)
 		markedForDeletion = true;
+}
+
+void BezierSurface::setTessellationShader(Shader& _shader)
+{
+	tessellationShader = _shader;
 }
 
 void BezierSurface::MeshC0()
