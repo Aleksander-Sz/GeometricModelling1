@@ -755,7 +755,11 @@ int main()
 			}
 			else
 			{
-				ImGui::SliderInt("Circumference", &(scene->newSurfaceN), 1, 20);
+				ImGui::SliderInt("Circumference", &(scene->newSurfaceN), (scene->currentSurfaceContinuitySelectedForAdding == 1 ? 4 : 2), 20);
+				if (scene->newSurfaceN < 4 && scene->currentSurfaceContinuitySelectedForAdding == 1)
+					scene->newSurfaceN = 4;
+				else if (scene->newSurfaceN < 2)
+					scene->newSurfaceN = 2;
 				ImGui::SliderInt("y", &(scene->newSurfaceM), 1, 20);
 				ImGui::Text("Cylinder Size");
 				ImGui::SliderFloat("Radius", &(scene->newSurfaceU), 0.1f, 20.0f);

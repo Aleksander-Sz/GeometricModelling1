@@ -1074,6 +1074,11 @@ BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, 
 	{
 		int pointsAround = a * 3;
 		int pointsY = b * 3 + 1;
+		if (isC2)
+		{
+			pointsAround = a;
+			pointsY = b + 3;
+		}
 		float stepX = dimensionX / pointsAround;
 		float stepZ = dimensionZ / pointsY;
 		position.x -= (dimensionX - stepX) / 2.0f;
@@ -1101,6 +1106,11 @@ BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, 
 	{
 		int pointsX = a * 3 + 1;
 		int pointsZ = b * 3 + 1;
+		if (isC2)
+		{
+			pointsX = a + 3;
+			pointsZ = b + 3;
+		}
 		float stepX = dimensionX / pointsX;
 		float stepZ = dimensionZ / pointsZ;
 		position.x -= (dimensionX - stepX) / 2.0f;
