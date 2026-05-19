@@ -208,6 +208,11 @@ public:
 	void setTessellationShader(Shader& _shader);
 	Shader tessellationShader;
 	int subdivisions = 16;
+	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Translate(aa::vec3 t) override;
+	void ConfirmTransformations() override;
+	void CancelTransformations() override;
 private:
 	void MeshC0();
 	void MeshC2();

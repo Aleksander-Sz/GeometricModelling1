@@ -173,6 +173,7 @@ void Meshable::Draw()
 		glPatchParameteri(GL_PATCH_VERTICES, 16);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 	else if (thisBC2)
 	{
@@ -1112,69 +1113,19 @@ void BezierSurface::Mesh()
 	dirty = false;
 	vertices.clear();
 	indices.clear();
-	size_t n = controlPoints.size();
-	size_t m = controlPoints[0].size();
-	for (size_t i = 0; i < n; i++)
-	{
-		for (size_t j = 0; j < m; j++)
-		{
-			aa::vec3 pointPos = ShapeTable::GetShapeByID(controlPoints[i][j])->getPosition();
-			vertices.push_back(pointPos.x);
-			vertices.push_back(pointPos.y);
-			vertices.push_back(pointPos.z);
-			unsigned int currentIndex = i * m + j;
-			unsigned int pr1 = (currentIndex - 1);
-			unsigned int pr2 = (currentIndex - m);
-			unsigned int pr3 = (currentIndex - m - 1);
-			/*if (j != 0 && i != 0)
-			{
-				indices.push_back(currentIndex);
-				indices.push_back(pr2);
-				indices.push_back(pr3);
-				indices.push_back(pr1);
-			}*/
-			
-		}
-	}
-	// indices
-	for (size_t i = 0; i < n - 1; i+=3)
-	{
-		for (size_t j = 0; j < m - 1; j+=3)
-		{
-			for (size_t k = 0; k < 4; k++)
-			{
-				for (size_t l = 0; l < 4; l++)
-				{
-					indices.push_back((i + k) * m + (j + l));
-				}
-			}
-		}
-	}
-	//prepare for drawing
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
-
-	glBindVertexArray(0);
-	//if(isC2)
-	//	MeshC2();
-	//else
-	//	MeshC0();
+	
+	if(isC2)
+		MeshC2();
+	else
+		MeshC0();
 }
 
 void BezierSurface::PrintImGuiOptions()
 {
-	if (ImGui::DragInt("Subdivisions", &subdivisions, 1, 4, 64))
+	if (ImGui::DragInt("Subdivisions", &subdivisions, 1, 3, 64))
 	{
-		if (subdivisions < 4)
-			subdivisions = 4;
+		if (subdivisions < 3)
+			subdivisions = 3;
 		else if(subdivisions > 64)
 			subdivisions = 64;
 	}
@@ -1202,13 +1153,140 @@ void BezierSurface::setTessellationShader(Shader& _shader)
 
 void BezierSurface::MeshC0()
 {
-	;
+	size_t n = controlPoints.size();
+	size_t m = controlPoints[0].size();
+	for (size_t i = 0; i < n; i++)
+	{
+		for (size_t j = 0; j < m; j++)
+		{
+			aa::vec3 pointPos = ShapeTable::GetShapeByID(controlPoints[i][j])->getPosition();
+			vertices.push_back(pointPos.x);
+			vertices.push_back(pointPos.y);
+			vertices.push_back(pointPos.z);
+		}
+	}
+	// indices
+	for (size_t i = 0; i < n - 1; i += 3)
+	{
+		for (size_t j = 0; j < m - 1; j += 3)
+		{
+			for (size_t k = 0; k < 4; k++)
+			{
+				for (size_t l = 0; l < 4; l++)
+				{
+					indices.push_back((i + k) * m + (j + l));
+				}
+			}
+		}
+	}
+	//prepare for drawing
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
 }
 
 void BezierSurface::MeshC2()
 {
-	;
+	size_t n = controlPoints.size();
+	size_t m = controlPoints[0].size();
+	for (size_t i = 0; i < n; i++)
+	{
+		for (size_t j = 0; j < m; j++)
+		{
+			aa::vec3 pointPos = ShapeTable::GetShapeByID(controlPoints[i][j])->getPosition();
+			vertices.push_back(pointPos.x);
+			vertices.push_back(pointPos.y);
+			vertices.push_back(pointPos.z);
+		}
+	}
+	// indices
+	for (size_t i = 0; i < n - 3; i += 1)
+	{
+		for (size_t j = 0; j < m - 3; j += 1)
+		{
+			for (size_t k = 0; k < 4; k++)
+			{
+				for (size_t l = 0; l < 4; l++)
+				{
+					indices.push_back((i + k) * m + (j + l));
+				}
+			}
+		}
+	}
+	//prepare for drawing
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(0);
 }
+void BezierSurface::Scale(aa::vec3 s, aa::vec3 origin)
+{
+	for (size_t i = 0; i < controlPoints.size(); i++)
+	{
+		for (size_t j = 0; j < controlPoints[i].size(); j++)
+		{
+			ShapeTable::GetPointByID(controlPoints[i][j])->Scale(s, origin);
+		}
+	}
+}
+void BezierSurface::Rotate(float angle, aa::Axis axis, aa::vec3 pivot)
+{
+	for (size_t i = 0; i < controlPoints.size(); i++)
+	{
+		for (size_t j = 0; j < controlPoints[i].size(); j++)
+		{
+			ShapeTable::GetPointByID(controlPoints[i][j])->Rotate(angle, axis, pivot);
+		}
+	}
+}
+void BezierSurface::Translate(aa::vec3 t)
+{
+	for (size_t i = 0; i < controlPoints.size(); i++)
+	{
+		for (size_t j = 0; j < controlPoints[i].size(); j++)
+		{
+			ShapeTable::GetPointByID(controlPoints[i][j])->Translate(t);
+		}
+	}
+}
+void BezierSurface::ConfirmTransformations()
+{
+	for (size_t i = 0; i < controlPoints.size(); i++)
+	{
+		for (size_t j = 0; j < controlPoints[i].size(); j++)
+		{
+			ShapeTable::GetPointByID(controlPoints[i][j])->ConfirmTransformations();
+		}
+	}
+}
+void BezierSurface::CancelTransformations()
+{
+	for (size_t i = 0; i < controlPoints.size(); i++)
+	{
+		for (size_t j = 0; j < controlPoints[i].size(); j++)
+		{
+			ShapeTable::GetPointByID(controlPoints[i][j])->CancelTransformations();
+		}
+	}
+}
+
 
 // Grid class functions
 Grid::Grid()

@@ -559,17 +559,22 @@ void Scene::DrawScene(GLFWwindow* window)
     tessellationShader.use();
 	tessellationShader.setMat4("view", camera.view());
     tessellationShader.setVec2("viewportSize", aa::vec2((float)camera.windowWidth, (float)camera.windowHeight));
-    surfaceTessellationShader.use();
-    surfaceTessellationShader.setMat4("view", camera.view());
-    surfaceTessellationShader.setVec2("viewportSize", aa::vec2((float)camera.windowWidth, (float)camera.windowHeight));
+    surfaceC0TessellationShader.use();
+    surfaceC0TessellationShader.setMat4("view", camera.view());
+    surfaceC0TessellationShader.setVec2("viewportSize", aa::vec2((float)camera.windowWidth, (float)camera.windowHeight));
+    surfaceC2TessellationShader.use();
+    surfaceC2TessellationShader.setMat4("view", camera.view());
+    surfaceC2TessellationShader.setVec2("viewportSize", aa::vec2((float)camera.windowWidth, (float)camera.windowHeight));
     
     shader.use();
     shader.setMat4("projection", camera.projection());
 
 	tessellationShader.use();
 	tessellationShader.setMat4("projection", camera.projection());
-	surfaceTessellationShader.use();
-	surfaceTessellationShader.setMat4("projection", camera.projection());
+	surfaceC0TessellationShader.use();
+	surfaceC0TessellationShader.setMat4("projection", camera.projection());
+	surfaceC2TessellationShader.use();
+	surfaceC2TessellationShader.setMat4("projection", camera.projection());
     
     shader.use();
     sceneMatrix = aa::scale(sceneScale);
@@ -578,8 +583,10 @@ void Scene::DrawScene(GLFWwindow* window)
 
 	tessellationShader.use();
 	tessellationShader.setMat4("scene", sceneMatrix);
-	surfaceTessellationShader.use();
-	surfaceTessellationShader.setMat4("scene", sceneMatrix);
+	surfaceC0TessellationShader.use();
+	surfaceC0TessellationShader.setMat4("scene", sceneMatrix);
+	surfaceC2TessellationShader.use();
+	surfaceC2TessellationShader.setMat4("scene", sceneMatrix);
 
     shader.use();
 
@@ -806,7 +813,8 @@ void Scene::AddShape()
     break;
 	case 8: // Bezier Surface
     {
-		BezierSurface* newSurface = new BezierSurface(aa::vec3(cursor.getPosition()), 3, 3, 5.0f, 5.0f, false);
+		ImGui::OpenPopup("Surface Size");
+        BezierSurface* newSurface = new BezierSurface(aa::vec3(cursor.getPosition()), newSurfaceN, newSurfaceM, newSurfaceU, newSurfaceV, (currentSurfaceContinuitySelectedForAdding == 1));
         for (size_t i = 0; i < newSurface->controlPoints.size(); i++)
         {
             for (size_t j = 0; j < newSurface->controlPoints[i].size(); j++)
@@ -816,7 +824,10 @@ void Scene::AddShape()
             }
         }
         shapes.push_back(ShapeTable::AddShape(newSurface));
-        newSurface->setTessellationShader(surfaceTessellationShader);
+		if (currentSurfaceContinuitySelectedForAdding == 0)
+            newSurface->setTessellationShader(surfaceC0TessellationShader);
+        else
+            newSurface->setTessellationShader(surfaceC2TessellationShader);
 		isADerivedShape = true;
     }
     break;

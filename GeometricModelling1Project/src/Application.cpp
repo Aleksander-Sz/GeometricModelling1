@@ -738,6 +738,19 @@ int main()
 		ImGui::Text("Add objects");
 		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Bezier C0", "Bezier C1", "Bezier C2", "Interpolating Curve", "Bezier Surface", "Future objects..."};
 		ImGui::Combo("Shapes", &(scene->currentItemSelectedForAdding), items, IM_ARRAYSIZE(items));
+		if (scene->currentItemSelectedForAdding == 8)
+		{
+			const char* surfaceContinuity[] = { "C0 Continuity", "C2 Continuity" };
+			ImGui::Combo("Surface Continuity", &(scene->currentSurfaceContinuitySelectedForAdding), surfaceContinuity, IM_ARRAYSIZE(surfaceContinuity));
+			const char* surfaceShape[] = { "Flat", "Cylindrical" };
+			ImGui::Combo("Surface Shape", &(scene->currentSurfaceShapeSelectedForAdding), surfaceShape, IM_ARRAYSIZE(surfaceShape));
+			ImGui::Text("Number of Segments");
+			ImGui::SliderInt("x##x1", &(scene->newSurfaceN), 1, 20);
+			ImGui::SliderInt("x##y1", &(scene->newSurfaceM), 1, 20);
+			ImGui::Text("Surface Size");
+			ImGui::SliderFloat("x##x2", &(scene->newSurfaceU), 0.1f, 20.0f);
+			ImGui::SliderFloat("y##y2", &(scene->newSurfaceV), 0.1f, 20.0f);
+		}
 		if (ImGui::Button("Add Shape"))
 		{
 			scene->AddShape();

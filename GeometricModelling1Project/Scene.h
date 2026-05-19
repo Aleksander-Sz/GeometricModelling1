@@ -75,7 +75,8 @@ public:
 	Axis movementAxis = Axis(X);
 	Shader shader;
 	Shader tessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/BezierTessellationControlShader.glsl", "Shaders/BezierTessellationEvaluationShader.glsl", "Shaders/FragmentShader.glsl");
-	Shader surfaceTessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/SurfaceTessellationControlShader.glsl", "Shaders/SurfaceTessellationEvaluationShader.glsl", "Shaders/SurfaceFragmentShader.glsl");
+	Shader surfaceC0TessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/SurfaceTessellationControlShader.glsl", "Shaders/SurfaceTessellationEvaluationShader.glsl", "Shaders/SurfaceFragmentShader.glsl");
+	Shader surfaceC2TessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/SurfaceTessellationControlShader.glsl", "Shaders/SurfaceC2TessellationEvaluationShader.glsl", "Shaders/SurfaceFragmentShader.glsl");
 	void DrawScene(GLFWwindow* window);
 	Grid grid = Grid::getInstance();
 	bool stereoscopy = false;
@@ -83,6 +84,12 @@ public:
 	aa::vec2 boxSelectOrigin;
 	void RemoveMarkedObjects();
 	int currentItemSelectedForAdding = 0;
+	int currentSurfaceContinuitySelectedForAdding = 0;
+	int currentSurfaceShapeSelectedForAdding = 0;
+	int newSurfaceN = 2;
+	int newSurfaceM = 3;
+	float newSurfaceU = 2.0f;
+	float newSurfaceV = 3.0f;
 	void AddShape();
 	char typeOfShapeCurrentlySelected = 0;
 	float distanceBetweenEyes = 0.1f;
