@@ -1064,30 +1064,61 @@ void InterpolatingCurve::Mesh()
 }
 
 // BezierSurface class functions
-BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2)
+BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2, bool _isCylinder)
 {
 	isC2 = _isC2;
+	isCylinder = _isCylinder;
 	shapeName = "BezierSurface ";
 	shapeName += (isC2 ? "C2" : "C0");
-	int pointsX = a * 3 + 1;
-	int pointsZ = b * 3 + 1;
-	float stepX = dimensionX / pointsX;
-	float stepZ = dimensionZ / pointsZ;
-	position.x -= (dimensionX - stepX) / 2.0f;
-	position.z -= (dimensionZ - stepZ) / 2.0f;
-	for (size_t i = 0; i < pointsX; i++)
+	if (isCylinder)
 	{
-		controlPoints.push_back(std::vector<int>());
-		for (size_t j = 0; j < pointsZ; j++)
+		int pointsAround = a * 3;
+		int pointsY = b * 3 + 1;
+		float stepX = dimensionX / pointsAround;
+		float stepZ = dimensionZ / pointsY;
+		position.x -= (dimensionX - stepX) / 2.0f;
+		position.z -= (dimensionZ - stepZ) / 2.0f;
+		float angleStep = 2.0f * 3.14159265359f / pointsAround;
+		float currentAngle = 0.0f;
+		for (size_t i = 0; i < pointsAround; i++)
 		{
-			Point* newPoint = new Point(position);
-			int id = ShapeTable::AddShape(newPoint);
-			controlPoints.back().push_back(id);
-			ShapeTable::GetPointByID(id)->dependentShapes.push_back(ShapeTable::GetShapeID(this));
-			position.z += stepZ;
+			controlPoints.push_back(std::vector<int>());
+			position.x = cos(currentAngle) * (dimensionX);
+			position.y = 0.0f;
+			position.z = sin(currentAngle) * (dimensionX);
+			currentAngle += angleStep;
+			for (size_t j = 0; j < pointsY; j++)
+			{
+				Point* newPoint = new Point(position);
+				int id = ShapeTable::AddShape(newPoint);
+				controlPoints.back().push_back(id);
+				ShapeTable::GetPointByID(id)->dependentShapes.push_back(ShapeTable::GetShapeID(this));
+				position.y += stepZ;
+			}
 		}
-		position.x += stepX;
-		position.z = position.z - stepZ * pointsZ;
+	}
+	else
+	{
+		int pointsX = a * 3 + 1;
+		int pointsZ = b * 3 + 1;
+		float stepX = dimensionX / pointsX;
+		float stepZ = dimensionZ / pointsZ;
+		position.x -= (dimensionX - stepX) / 2.0f;
+		position.z -= (dimensionZ - stepZ) / 2.0f;
+		for (size_t i = 0; i < pointsX; i++)
+		{
+			controlPoints.push_back(std::vector<int>());
+			for (size_t j = 0; j < pointsZ; j++)
+			{
+				Point* newPoint = new Point(position);
+				int id = ShapeTable::AddShape(newPoint);
+				controlPoints.back().push_back(id);
+				ShapeTable::GetPointByID(id)->dependentShapes.push_back(ShapeTable::GetShapeID(this));
+				position.z += stepZ;
+			}
+			position.x += stepX;
+			position.z = position.z - stepZ * pointsZ;
+		}
 	}
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -1166,15 +1197,38 @@ void BezierSurface::MeshC0()
 		}
 	}
 	// indices
-	for (size_t i = 0; i < n - 1; i += 3)
+	if (isCylinder)
 	{
-		for (size_t j = 0; j < m - 1; j += 3)
+		for (size_t i = 0; i < n; i += 3)
 		{
-			for (size_t k = 0; k < 4; k++)
+			for (size_t j = 0; j < m - 1; j += 3)
 			{
-				for (size_t l = 0; l < 4; l++)
+				for (size_t k = 0; k < 4; k++)
 				{
-					indices.push_back((i + k) * m + (j + l));
+					for (size_t l = 0; l < 4; l++)
+					{
+						size_t wrappedI = (i + k) % n;
+
+						indices.push_back(
+							wrappedI * m + (j + l)
+						);
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		for (size_t i = 0; i < n - 1; i += 3)
+		{
+			for (size_t j = 0; j < m - 1; j += 3)
+			{
+				for (size_t k = 0; k < 4; k++)
+				{
+					for (size_t l = 0; l < 4; l++)
+					{
+						indices.push_back((i + k) * m + (j + l));
+					}
 				}
 			}
 		}
@@ -1209,15 +1263,37 @@ void BezierSurface::MeshC2()
 		}
 	}
 	// indices
-	for (size_t i = 0; i < n - 3; i += 1)
+	if (isCylinder)
 	{
-		for (size_t j = 0; j < m - 3; j += 1)
+		for (size_t i = 0; i < n; i += 1)
 		{
-			for (size_t k = 0; k < 4; k++)
+			for (size_t j = 0; j < m; j += 1)
 			{
-				for (size_t l = 0; l < 4; l++)
+				for (size_t k = 0; k < 4; k++)
 				{
-					indices.push_back((i + k) * m + (j + l));
+					for (size_t l = 0; l < 4; l++)
+					{
+						size_t ii = (i + k) % n;
+						size_t jj = (j + l) % m;
+
+						indices.push_back(ii * m + jj);
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		for (size_t i = 0; i < n - 3; i += 1)
+		{
+			for (size_t j = 0; j < m - 3; j += 1)
+			{
+				for (size_t k = 0; k < 4; k++)
+				{
+					for (size_t l = 0; l < 4; l++)
+					{
+						indices.push_back((i + k) * m + (j + l));
+					}
 				}
 			}
 		}

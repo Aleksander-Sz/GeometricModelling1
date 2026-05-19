@@ -745,11 +745,22 @@ int main()
 			const char* surfaceShape[] = { "Flat", "Cylindrical" };
 			ImGui::Combo("Surface Shape", &(scene->currentSurfaceShapeSelectedForAdding), surfaceShape, IM_ARRAYSIZE(surfaceShape));
 			ImGui::Text("Number of Segments");
-			ImGui::SliderInt("x##x1", &(scene->newSurfaceN), 1, 20);
-			ImGui::SliderInt("x##y1", &(scene->newSurfaceM), 1, 20);
-			ImGui::Text("Surface Size");
-			ImGui::SliderFloat("x##x2", &(scene->newSurfaceU), 0.1f, 20.0f);
-			ImGui::SliderFloat("y##y2", &(scene->newSurfaceV), 0.1f, 20.0f);
+			if (scene->currentSurfaceShapeSelectedForAdding == 0)
+			{
+				ImGui::SliderInt("x##x1", &(scene->newSurfaceN), 1, 20);
+				ImGui::SliderInt("x##y1", &(scene->newSurfaceM), 1, 20);
+				ImGui::Text("Surface Size");
+				ImGui::SliderFloat("x##x2", &(scene->newSurfaceU), 0.1f, 20.0f);
+				ImGui::SliderFloat("y##y2", &(scene->newSurfaceV), 0.1f, 20.0f);
+			}
+			else
+			{
+				ImGui::SliderInt("Circumference", &(scene->newSurfaceN), 1, 20);
+				ImGui::SliderInt("y", &(scene->newSurfaceM), 1, 20);
+				ImGui::Text("Cylinder Size");
+				ImGui::SliderFloat("Radius", &(scene->newSurfaceU), 0.1f, 20.0f);
+				ImGui::SliderFloat("Height", &(scene->newSurfaceV), 0.1f, 20.0f);
+			}
 		}
 		if (ImGui::Button("Add Shape"))
 		{

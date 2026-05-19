@@ -814,7 +814,7 @@ void Scene::AddShape()
 	case 8: // Bezier Surface
     {
 		ImGui::OpenPopup("Surface Size");
-        BezierSurface* newSurface = new BezierSurface(aa::vec3(cursor.getPosition()), newSurfaceN, newSurfaceM, newSurfaceU, newSurfaceV, (currentSurfaceContinuitySelectedForAdding == 1));
+        BezierSurface* newSurface = new BezierSurface(aa::vec3(cursor.getPosition()), newSurfaceN, newSurfaceM, newSurfaceU, newSurfaceV, (currentSurfaceContinuitySelectedForAdding == 1), (currentSurfaceShapeSelectedForAdding == 1));
         for (size_t i = 0; i < newSurface->controlPoints.size(); i++)
         {
             for (size_t j = 0; j < newSurface->controlPoints[i].size(); j++)

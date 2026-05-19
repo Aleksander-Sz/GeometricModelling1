@@ -198,13 +198,12 @@ class InterpolatingCurve : public BezierCurveC2
 class BezierSurface : public Meshable, public IDependentOnOtherShapes
 {
 public:
-	BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2);
+	BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2, bool _isCylinder);
 	~BezierSurface() override;
 	void Mesh() override;
 	std::vector<std::vector<int>> controlPoints;
 	void PrintImGuiOptions() override;
 	void RemoveDeletedPoints() override;
-	bool isC2;
 	void setTessellationShader(Shader& _shader);
 	Shader tessellationShader;
 	int subdivisions = 16;
@@ -214,6 +213,7 @@ public:
 	void ConfirmTransformations() override;
 	void CancelTransformations() override;
 private:
+	bool isC2, isCylinder;
 	void MeshC0();
 	void MeshC2();
 };
