@@ -4,6 +4,7 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Shapes.h"
+#include "Parser.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 
@@ -94,6 +95,8 @@ public:
 	char typeOfShapeCurrentlySelected = 0;
 	float distanceBetweenEyes = 0.1f;
 	float convergenceDistance = 5.0f;
+	void LoadFile(const char* filename);
+	void SaveFile(const char* filename);
 private:
 	aa::mat4 sceneMatrix = aa::mat4(1.0f);
 	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);

@@ -201,6 +201,7 @@ class BezierSurface : public Meshable, public IDependentOnOtherShapes
 {
 public:
 	BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2, bool _isCylinder);
+	BezierSurface(std::vector<std::vector<int>> _controlPoints, bool _isC2, bool _isCylinder, int _subdivisionsU, int _subdivisionsV);
 	~BezierSurface() override;
 	void Mesh() override;
 	std::vector<std::vector<int>> controlPoints;
@@ -208,7 +209,8 @@ public:
 	void RemoveDeletedPoints() override;
 	void setTessellationShader(Shader& _shader);
 	Shader tessellationShader;
-	int subdivisions = 3;
+	int subdivisionsU = 3;
+	int subdivisionsV = 3;
 	bool displayControlNet = false;
 	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;
 	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
@@ -217,8 +219,8 @@ public:
 	void CancelTransformations() override;
 	std::vector<unsigned int> netIndices;
 	unsigned int netVAO, netEBO;
-private:
 	bool isC2, isCylinder;
+private:
 	void MeshC0();
 	void MeshC2();
 };

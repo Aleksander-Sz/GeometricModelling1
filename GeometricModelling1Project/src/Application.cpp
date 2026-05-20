@@ -582,13 +582,13 @@ int main()
 
 	// Rendering commands here
 	
-	Torus* torus = new Torus(1.0f, 0.3f, 50, 50);
-	torus->setShader(scene->shader);
-	scene->shapes.push_back(ShapeTable::GetShapeID(torus));
+	//Torus* torus = new Torus(1.0f, 0.3f, 50, 50);
+	//torus->setShader(scene->shader);
+	//scene->shapes.push_back(ShapeTable::GetShapeID(torus));
 	//Point point(aa::vec3(0.0f, 0.1f, 0.0f));
 	//scene->shapes.push_back(&point);
-	torus->Rotate(aa::radians(90.0f),aa::Axis::X);
-	torus->ConfirmTransformations();
+	//torus->Rotate(aa::radians(90.0f),aa::Axis::X);
+	//torus->ConfirmTransformations();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -769,6 +769,15 @@ int main()
 		if (ImGui::Button("Add Shape"))
 		{
 			scene->AddShape();
+		}
+		if (ImGui::CollapsingHeader("File"))
+		{
+			static char scenePathBuffer[256] = "SceneFiles/1.json";
+			ImGui::InputText("Scene path", scenePathBuffer, IM_ARRAYSIZE(scenePathBuffer));
+			if (ImGui::Button("Load Scene"))
+			{
+				scene->LoadFile(scenePathBuffer);
+			}
 		}
 		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 

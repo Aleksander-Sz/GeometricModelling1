@@ -5,7 +5,8 @@ layout (vertices = 16) out;
 in vec3 vertexPos[];
 out vec3 tcsPos[];
 
-uniform float tessLevel;
+uniform float tessLevelU;
+uniform float tessLevelV;
 
 void main()
 {
@@ -15,12 +16,12 @@ void main()
 
 	if(gl_InvocationID == 0)
     {
-        gl_TessLevelOuter[0] = tessLevel;
-        gl_TessLevelOuter[1] = tessLevel;
-        gl_TessLevelOuter[2] = tessLevel;
-        gl_TessLevelOuter[3] = tessLevel;
+        gl_TessLevelOuter[0] = tessLevelV;
+        gl_TessLevelOuter[1] = tessLevelU;
+        gl_TessLevelOuter[2] = tessLevelV;
+        gl_TessLevelOuter[3] = tessLevelU;
 
-        gl_TessLevelInner[0] = tessLevel;
-        gl_TessLevelInner[1] = tessLevel;
+        gl_TessLevelInner[0] = tessLevelU;
+        gl_TessLevelInner[1] = tessLevelV;
     }
 }

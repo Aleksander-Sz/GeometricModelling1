@@ -842,3 +842,32 @@ void Scene::AddShape()
         ShapeTable::GetShapeByID(shapes[shapes.size() - 1])->TranslateAndConfirm(cursor.getPosition());
     }
 }
+
+void Scene::LoadFile(const char* filename)
+{
+	std::vector<int> loadedShapes = Parser::LoadScene(filename);
+    for (size_t i = 0; i < loadedShapes.size(); i++)
+    {
+        Shape* comingShape = ShapeTable::GetShapeByID(loadedShapes[i]);
+        comingShape->setShader(shader);
+		BezierCurveC0* curveC0Pointer = dynamic_cast<BezierCurveC0*>(comingShape);
+		if (curveC0Pointer != nullptr)
+		{
+			curveC0Pointer->setTessellationShader(tessellationShader);
+		}
+		BezierSurface* surfacePointer = dynamic_cast<BezierSurface*>(comingShape);
+		if (surfacePointer != nullptr)
+		{
+			if (surfacePointer->isC2)
+				surfacePointer->setTessellationShader(surfaceC2TessellationShader);
+			else
+				surfacePointer->setTessellationShader(surfaceC0TessellationShader);
+		}
+    }
+	shapes.insert(shapes.end(), loadedShapes.begin(), loadedShapes.end());
+}
+
+void Scene::SaveFile(const char* filename)
+{
+	; // TODO implement saving functionality
+}

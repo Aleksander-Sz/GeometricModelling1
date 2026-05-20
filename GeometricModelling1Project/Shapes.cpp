@@ -169,7 +169,8 @@ void Meshable::Draw()
 		thisBS->tessellationShader.setMat4("model", model);
 		glLineWidth((selected ? 2.5f : 1.0f)); //alter line width based on selection
 		thisBS->tessellationShader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
-		thisBS->tessellationShader.setFloat("tessLevel", (float)thisBS->subdivisions);
+		thisBS->tessellationShader.setFloat("tessLevelU", (float)thisBS->subdivisionsU);
+		thisBS->tessellationShader.setFloat("tessLevelV", (float)thisBS->subdivisionsV);
 		glPatchParameteri(GL_PATCH_VERTICES, 16);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
@@ -263,7 +264,7 @@ Point::Point(aa::vec3 coords)
 {
 	static unsigned int pointIndex = 0;
 	shapeName = "Point " + std::to_string(pointIndex++);
-	modelBackup = model = aa::translate(model, coords);
+	modelBackup = model = aa::translate(coords);
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	float center[] = { 0.0f,0.0f,0.0f };
@@ -1145,6 +1146,29 @@ BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, 
 	glGenBuffers(1, &netEBO);
 	Mesh();
 }
+BezierSurface::BezierSurface(std::vector<std::vector<int>> _controlPoints, bool _isC2, bool _isCylinder, int _subdivisionsU, int _subdivisionsV)
+{
+	isC2 = _isC2;
+	isCylinder = _isCylinder;
+	shapeName = "BezierSurface ";
+	shapeName += (isC2 ? "C2" : "C0");
+	controlPoints = _controlPoints;
+	subdivisionsU = _subdivisionsU;
+	subdivisionsV = _subdivisionsV;
+	for (size_t i = 0; i < controlPoints.size(); i++)
+	{
+		for (size_t j = 0; j < controlPoints[i].size(); j++)
+		{
+			ShapeTable::GetPointByID(controlPoints[i][j])->dependentShapes.push_back(ShapeTable::GetShapeID(this));
+		}
+	}
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+	glGenVertexArrays(1, &netVAO);
+	glGenBuffers(1, &netEBO);
+	Mesh();
+}
 
 BezierSurface::~BezierSurface()
 {
@@ -1173,12 +1197,19 @@ void BezierSurface::Mesh()
 
 void BezierSurface::PrintImGuiOptions()
 {
-	if (ImGui::DragInt("Subdivisions", &subdivisions, 1, 3, 64))
+	if (ImGui::DragInt("Subdivisions U", &subdivisionsU, 1, 3, 64))
 	{
-		if (subdivisions < 3)
-			subdivisions = 3;
-		else if(subdivisions > 64)
-			subdivisions = 64;
+		if (subdivisionsU < 3)
+			subdivisionsU = 3;
+		else if(subdivisionsU > 64)
+			subdivisionsU = 64;
+	}
+	if (ImGui::DragInt("Subdivisions V", &subdivisionsV, 1, 3, 64))
+	{
+		if (subdivisionsV < 3)
+			subdivisionsV = 3;
+		else if (subdivisionsV > 64)
+			subdivisionsV = 64;
 	}
 	ImGui::Checkbox("Display Control Net", &displayControlNet);
 }
