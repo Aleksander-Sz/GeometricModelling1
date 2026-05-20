@@ -13,7 +13,7 @@ void main()
 
     vec2 dist = abs(grid - round(grid));
 
-    float lineWidth = 0.03;
+    float lineWidth = 0.008;
 
     bool line =
         dist.x < lineWidth ||

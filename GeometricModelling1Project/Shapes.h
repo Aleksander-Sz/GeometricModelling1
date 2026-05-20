@@ -10,6 +10,8 @@
 #include <imgui_impl_opengl3.h>
 #include <iostream>
 
+#define CONTROL_LINE_COLOR aa::vec3(0.6f, 0.6f, 0.9f)
+
 // system constants
 #define NONE_SELECTED 0
 #define SHAPE_SELECTED 10
@@ -207,11 +209,14 @@ public:
 	void setTessellationShader(Shader& _shader);
 	Shader tessellationShader;
 	int subdivisions = 3;
+	bool displayControlNet = false;
 	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;
 	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
 	void Translate(aa::vec3 t) override;
 	void ConfirmTransformations() override;
 	void CancelTransformations() override;
+	std::vector<unsigned int> netIndices;
+	unsigned int netVAO, netEBO;
 private:
 	bool isC2, isCylinder;
 	void MeshC0();

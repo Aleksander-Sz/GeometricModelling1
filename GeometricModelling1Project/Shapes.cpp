@@ -174,6 +174,14 @@ void Meshable::Draw()
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		if (thisBS->displayControlNet)
+		{
+			shader.use();
+			shader.setVec3("color", CONTROL_LINE_COLOR);
+			glBindVertexArray(thisBS->netVAO);
+			glLineWidth(0.5f);
+			glDrawElements(GL_LINES, thisBS->netIndices.size(), GL_UNSIGNED_INT, 0);
+		}
 	}
 	else if (thisBC2)
 	{
@@ -209,7 +217,7 @@ void Meshable::Draw()
 		if (thisBC->displayControlPolyline)
 		{
 			glLineWidth(0.5f);
-			shader.setVec3("color", aa::vec3(0.8f, 0.8f, 0.8f));
+			shader.setVec3("color", CONTROL_LINE_COLOR);
 			glDrawArrays(GL_LINE_STRIP, 0, thisBC2->bernsteinPoints.size());
 		}
 	}
@@ -219,7 +227,7 @@ void Meshable::Draw()
 		if (thisBC->displayControlPolyline)
 		{
 			glLineWidth(0.5f);
-			shader.setVec3("color", aa::vec3(0.8f, 0.8f, 0.8f));
+			shader.setVec3("color", CONTROL_LINE_COLOR);
 			glDrawArrays(GL_LINE_STRIP, 0, vertices.size() / 3);
 		}
 		thisBC->tessellationShader.use();
@@ -1133,6 +1141,8 @@ BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
+	glGenVertexArrays(1, &netVAO);
+	glGenBuffers(1, &netEBO);
 	Mesh();
 }
 
@@ -1170,6 +1180,7 @@ void BezierSurface::PrintImGuiOptions()
 		else if(subdivisions > 64)
 			subdivisions = 64;
 	}
+	ImGui::Checkbox("Display Control Net", &displayControlNet);
 }
 
 void BezierSurface::RemoveDeletedPoints()
@@ -1204,6 +1215,18 @@ void BezierSurface::MeshC0()
 			vertices.push_back(pointPos.x);
 			vertices.push_back(pointPos.y);
 			vertices.push_back(pointPos.z);
+			size_t im1 = (i + n - 1) % n;
+			size_t jm1 = (j + m - 1) % m;
+			if (i != 0 || isCylinder)
+			{
+				netIndices.push_back(i * m + j);
+				netIndices.push_back(im1 * m + j);
+			}
+			if (j != 0 || isCylinder)
+			{
+				netIndices.push_back(i * m + j);
+				netIndices.push_back(i * m + jm1);
+			}
 		}
 	}
 	// indices
@@ -1255,6 +1278,16 @@ void BezierSurface::MeshC0()
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 
+	glBindVertexArray(netVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, netEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, netIndices.size() * sizeof(unsigned int), netIndices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
 	glBindVertexArray(0);
 }
 
@@ -1270,6 +1303,18 @@ void BezierSurface::MeshC2()
 			vertices.push_back(pointPos.x);
 			vertices.push_back(pointPos.y);
 			vertices.push_back(pointPos.z);
+			size_t im1 = (i + n - 1) % n;
+			size_t jm1 = (j + m - 1) % m;
+			if (i != 0 || isCylinder)
+			{
+				netIndices.push_back(i * m + j);
+				netIndices.push_back(im1 * m + j);
+			}
+			if (j != 0 || isCylinder)
+			{
+				netIndices.push_back(i * m + j);
+				netIndices.push_back(i * m + jm1);
+			}
 		}
 	}
 	// indices
@@ -1277,7 +1322,7 @@ void BezierSurface::MeshC2()
 	{
 		for (size_t i = 0; i < n; i += 1)
 		{
-			for (size_t j = 0; j < m; j += 1)
+			for (size_t j = 0; j < m - 3; j += 1)
 			{
 				for (size_t k = 0; k < 4; k++)
 				{
@@ -1316,6 +1361,16 @@ void BezierSurface::MeshC2()
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	glBindVertexArray(netVAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, netEBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, netIndices.size() * sizeof(unsigned int), netIndices.data(), GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
