@@ -327,6 +327,12 @@ void Point::CancelTransformations()
 	Shape::CancelTransformations();
 	InvalidateDependentShapes();
 }
+void Point::Serialize(nlohmann::json& j)
+{
+	j["id"] = ShapeTable::GetShapeID(this);
+	j["name"] = shapeName;
+	j["position"] = { { "x", model[3][0] }, { "y", model[3][1] }, { "z", model[3][2] } };
+}
 void Point::InvalidateDependentShapes()
 {
 	for (int i = 0; i < dependentShapes.size(); i++)
@@ -470,6 +476,19 @@ void Torus::PrintImGuiOptions()
 	dirty |= ImGui::InputInt("s2", (int*)&s2, 3, 500);
 }
 
+void Torus::Serialize(nlohmann::json& j)
+{
+	j["id"] = ShapeTable::GetShapeID(this);
+	j["largeRadius"] = R;
+	j["smallRadius"] = r;
+	j["name"] = shapeName;
+	j["objectType"] = "torus";
+	j["position"] = { { "x", model[3][0] }, { "y", model[3][1] }, { "z", model[3][2] } };
+	j["rotation"] = { { "x", aa::degrees(atan2(model[1][0], model[0][0])) }, { "y", aa::degrees(atan2(-model[2][0], sqrt(model[0][0] * model[0][0] + model[1][0] * model[1][0]))) }, { "z", aa::degrees(atan2(model[2][1], model[2][2])) } };
+	j["scale"] = { { "x", sqrt(model[0][0] * model[0][0] + model[1][0] * model[1][0] + model[2][0] * model[2][0]) }, { "y", sqrt(model[0][1] * model[0][1] + model[1][1] * model[1][1] + model[2][1] * model[2][1]) }, { "z", sqrt(model[0][2] * model[0][2] + model[1][2] * model[1][2] + model[2][2] * model[2][2]) } };
+	j["samples"] = { { "u", s1 }, { "v", s2 } };
+}
+
 Ellipsoid::Ellipsoid(float _a, float _b, float _c, unsigned int _s)
 {
 	shapeName = "Ellipsoid";
@@ -538,6 +557,11 @@ void Ellipsoid::PrintImGuiOptions()
 	dirty |= ImGui::InputFloat("b", &b, 0.1f, 5.0f, "%.1f");
 	dirty |= ImGui::InputFloat("c", &c, 0.1f, 5.0f, "%.1f");
 	dirty |= ImGui::InputInt("s", (int*)&s, 3, 500);
+}
+
+void Ellipsoid::Serialize(nlohmann::json& j)
+{
+	// TODO: Implement this
 }
 
 // Line class functions
@@ -683,6 +707,18 @@ void Line::RemoveDeletedPoints()
 	dirty = true;
 }
 
+void Line::Serialize(nlohmann::json& j)
+{
+	j["id"] = ShapeTable::GetShapeID(this);
+	j["name"] = shapeName;
+	j["objectType"] = "chain";
+	j["controlPoints"] = nlohmann::json::array();
+	for (int i = 0; i < points.size(); i++)
+	{
+		j["controlPoints"].push_back({ {"id", points[i]} });
+	}
+}
+
 // BezierCurveC0 class functions
 void BezierCurveC0::Mesh()
 {
@@ -736,6 +772,12 @@ void BezierCurveC0::PrintImGuiOptions()
 void BezierCurveC0::setTessellationShader(Shader& _shader)
 {
 	tessellationShader = _shader;
+}
+
+void BezierCurveC0::Serialize(nlohmann::json& j)
+{
+	Line::Serialize(j); // Serialize common Line properties
+	j["objectType"] = "bezierC0";
 }
 
 // BezierCurveC1 class functions
@@ -810,6 +852,12 @@ void BezierCurveC1::Mesh()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
 
 	glBindVertexArray(0);
+}
+
+void BezierCurveC1::Serialize(nlohmann::json& j)
+{
+	Line::Serialize(j); // Serialize common Line properties
+	j["objectType"] = "bezierC1";
 }
 
 // BezierCurveC2 class functions
@@ -953,6 +1001,12 @@ aa::vec3 BezierCurveC2::GetVirtualPointsPosition()
 	return bernsteinPoints[selectedVirtualPoint];
 }
 
+void BezierCurveC2::Serialize(nlohmann::json& j)
+{
+	Line::Serialize(j); // Serialize common Line properties
+	j["objectType"] = "bezierC2";
+}
+
 // Interpolating Curve class functions
 void InterpolatingCurve::Mesh()
 {
@@ -1072,6 +1126,12 @@ void InterpolatingCurve::Mesh()
 	glBindVertexArray(0);
 }
 
+void InterpolatingCurve::Serialize(nlohmann::json& j)
+{
+	Line::Serialize(j); // Serialize common Line properties
+	j["objectType"] = "interpolatedC2";
+}
+
 // BezierSurface class functions
 BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2, bool _isCylinder)
 {
@@ -1146,6 +1206,7 @@ BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, 
 	glGenBuffers(1, &netEBO);
 	Mesh();
 }
+
 BezierSurface::BezierSurface(std::vector<std::vector<int>> _controlPoints, bool _isC2, bool _isCylinder, int _subdivisionsU, int _subdivisionsV)
 {
 	isC2 = _isC2;
@@ -1232,6 +1293,43 @@ void BezierSurface::RemoveDeletedPoints()
 void BezierSurface::setTessellationShader(Shader& _shader)
 {
 	tessellationShader = _shader;
+}
+
+void BezierSurface::Serialize(nlohmann::json& j)
+{
+	j["id"] = ShapeTable::GetShapeID(this);
+	j["name"] = shapeName;
+	if(isC2)
+		j["objectType"] = "bezierSurfaceC2";
+	else
+		j["objectType"] = "bezierSurfaceC0";
+	j["controlPoints"] = nlohmann::json::array();
+	size_t repeatRows = (isC2 ? 3 : 1);
+	if (!isCylinder)
+		repeatRows = 0;
+	
+	int sizeU = controlPoints.size();
+	int sizeV = controlPoints[0].size();
+	for (size_t i = 0; i < sizeV; i++)
+	{
+		for (size_t k = 0; k < sizeU + repeatRows; k++)
+		{
+			nlohmann::json pointJson = { {"id", controlPoints[k%sizeU][i%sizeV]} };
+			j["controlPoints"].push_back(pointJson);
+		}
+	}
+	if (isCylinder)
+	{
+		if (isC2)
+			sizeU += 3;
+		else
+			sizeU++;
+	}
+	j["samples"]["u"] = subdivisionsU;
+	j["samples"]["v"] = subdivisionsV;
+	j["size"]["u"] = sizeU;
+	j["size"]["v"] = sizeV;
+	
 }
 
 void BezierSurface::MeshC0()
@@ -1610,6 +1708,10 @@ void Cursor::UpdatePosition(Camera& camera, double xpos, double ypos, LockAxis l
 aa::vec3 Cursor::getPosition()
 {
 	return location;
+}
+void Cursor::Serialize(nlohmann::json& j)
+{
+	j = NULL; // do nothing, Cursor is not serialized
 }
 void Cursor::PrintImGuiOptions()
 {

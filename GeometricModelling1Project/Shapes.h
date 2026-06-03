@@ -9,6 +9,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <iostream>
+#include <json.hpp>
 
 #define CONTROL_LINE_COLOR aa::vec3(0.6f, 0.6f, 0.9f)
 
@@ -46,6 +47,7 @@ public:
 	bool isMarkedForDeletion();
 	void setShader(Shader& _shader);
 	bool dirty = true;
+	virtual void Serialize(nlohmann::json& j) = 0;
 protected:
 	unsigned int VAO = 0, VBO = 0;
 	aa::mat4 model = aa::mat4(1.0f);
@@ -80,6 +82,7 @@ public:
 	void TranslateAndConfirm(aa::vec3 t) override;
 	void CancelTransformations() override;
 	std::vector<int> dependentShapes;
+	void Serialize(nlohmann::json& j) override;
 private:
 	void InvalidateDependentShapes();
 };
@@ -94,6 +97,7 @@ public:
 	void setR(float _R);
 	void setr(float _r);
 	void PrintImGuiOptions() override;
+	void Serialize(nlohmann::json& j) override;
 private:
 	float R, r;
 	int s1, s2;
@@ -106,6 +110,7 @@ public:
 	void Mesh() override;
 	// elipsoid specific functions
 	void PrintImGuiOptions() override;
+	void Serialize(nlohmann::json& j) override;
 private:
 	float a, b, c;
 	unsigned int s;
@@ -132,6 +137,7 @@ public:
 	void AddPoint(int point);
 	aa::vec3 getPosition() override;
 	void RemoveDeletedPoints() override; // removes all the points marked for deletion from the points vector
+	void Serialize(nlohmann::json& j) override;
 protected:
 	std::vector<int> points;
 };
@@ -145,6 +151,7 @@ public:
 	bool displayControlPolyline = false;
 	void setTessellationShader(Shader& _shader);
 	Shader tessellationShader;
+	void Serialize(nlohmann::json& j) override;
 };
 
 class BezierCurveC1 : public BezierCurveC0
@@ -152,6 +159,7 @@ class BezierCurveC1 : public BezierCurveC0
 public:
 	BezierCurveC1(std::vector<int> _controlPoints) : BezierCurveC0(_controlPoints) { shapeName = "Bezier Curve C1"; Mesh(); };
 	void Mesh() override;
+	void Serialize(nlohmann::json& j) override;
 };
 
 class IContainsVirtualPoints
@@ -186,6 +194,7 @@ public:
 	aa::vec3 GetVirtualPointsPosition() override;
 	bool currentlyTranslatingVirtualPoints = false;
 	aa::vec3 virtualPointPositionBackup = NULL;
+	void Serialize(nlohmann::json& j) override;
 };
 
 class InterpolatingCurve : public BezierCurveC2
@@ -193,6 +202,7 @@ class InterpolatingCurve : public BezierCurveC2
 	public:
 	InterpolatingCurve(std::vector<int> _points) : BezierCurveC2(_points) { shapeName = "Interpolating Curve"; Mesh(); };
 	void Mesh() override;
+	void Serialize(nlohmann::json& j) override;
 };
 
 //Surfaces
@@ -209,8 +219,8 @@ public:
 	void RemoveDeletedPoints() override;
 	void setTessellationShader(Shader& _shader);
 	Shader tessellationShader;
-	int subdivisionsU = 3;
-	int subdivisionsV = 3;
+	int subdivisionsU = 4;
+	int subdivisionsV = 4;
 	bool displayControlNet = false;
 	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;
 	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
@@ -220,6 +230,7 @@ public:
 	std::vector<unsigned int> netIndices;
 	unsigned int netVAO, netEBO;
 	bool isC2, isCylinder;
+	void Serialize(nlohmann::json& j) override;
 private:
 	void MeshC0();
 	void MeshC2();
@@ -251,6 +262,7 @@ public:
 	void ConfirmTransformations() override;
 	void CancelTransformations() override;
 	aa::vec3 getPosition();
+	void Serialize(nlohmann::json& j) override;
 private:
 	Cursor(bool _isCenterOfGravity = false);
 	aa::vec3 location = aa::vec3(0.0f,0.0f,0.0f);

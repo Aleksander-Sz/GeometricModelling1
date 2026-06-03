@@ -772,11 +772,17 @@ int main()
 		}
 		if (ImGui::CollapsingHeader("File"))
 		{
-			static char scenePathBuffer[256] = "SceneFiles/1.json";
-			ImGui::InputText("Scene path", scenePathBuffer, IM_ARRAYSIZE(scenePathBuffer));
+			static char sceneLoadPathBuffer[256] = "SceneFiles/1.json";
+			ImGui::InputText("Scene path", sceneLoadPathBuffer, IM_ARRAYSIZE(sceneLoadPathBuffer));
 			if (ImGui::Button("Load Scene"))
 			{
-				scene->LoadFile(scenePathBuffer);
+				scene->LoadFile(sceneLoadPathBuffer);
+			}
+			static char sceneSavePathBuffer[256] = "SceneFiles/2.json";
+			ImGui::InputText("Scene path ##something", sceneSavePathBuffer, IM_ARRAYSIZE(sceneSavePathBuffer));
+			if (ImGui::Button("Save Scene"))
+			{
+				scene->SaveFile(sceneSavePathBuffer);
 			}
 		}
 		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);

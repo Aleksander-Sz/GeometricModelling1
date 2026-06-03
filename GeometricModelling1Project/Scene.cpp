@@ -869,5 +869,5 @@ void Scene::LoadFile(const char* filename)
 
 void Scene::SaveFile(const char* filename)
 {
-	; // TODO implement saving functionality
+    Parser::SaveScene(filename, shapes);
 }

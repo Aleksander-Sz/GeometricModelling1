@@ -8,7 +8,7 @@
 class Parser
 {
 public:
-	static void SaveScene(const char* filename, std::vector<int>);
+	static void SaveScene(const char* filename, std::vector<int> shapes);
 	static std::vector<int> LoadScene(const char* filename);
 };
 

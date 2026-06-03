@@ -1,8 +1,40 @@
 #include "Parser.h"
 
-void Parser::SaveScene(const char* filename, std::vector<int>)
+void Parser::SaveScene(const char* filename, std::vector<int> shapes)
 {
-	;
+	nlohmann::json j;
+
+	for (auto& shapeID : shapes)
+	{
+		Shape* shape = ShapeTable::GetShapeByID(shapeID);
+		if (shape == nullptr)
+			continue; // shouldn't happen
+		nlohmann::json shapeJson;
+		shape->Serialize(shapeJson);
+		if (shapeJson == NULL)
+			continue;
+		if (ShapeTable::GetPointByID(shapeID) != nullptr)
+		{
+			j["points"].push_back(shapeJson);
+		}
+		else
+		{
+			j["geometry"].push_back(shapeJson);
+		}
+	}
+
+	try
+	{
+		std::ofstream file(filename);
+		if (!file.is_open())
+			throw(std::runtime_error("Could not open file"));
+		file << j.dump(4); // 4 is for indentation
+		file.close();
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "Error saving scene: " << e.what() << std::endl;
+	}
 }
 
 std::vector<int> Parser::LoadScene(const char* filename)
@@ -42,6 +74,8 @@ std::vector<int> Parser::LoadScene(const char* filename)
 	//Parsing geometry
 	for (auto& g : j["geometry"])
 	{
+		if (g == NULL)
+			continue;
 		std::string type = g["objectType"];
 
 		if (type == "torus")
