@@ -33,6 +33,16 @@ int ShapeTable::GetShapeID(Shape* shape)
 	return shapePointers.size() - 1;
 }
 
+int ShapeTable::GetShapeID(int someId)
+{
+	Shape* pointer = GetShapeByID(someId);
+	for (size_t i = 0; i < shapePointers.size(); i++)
+	{
+		if (shapePointers[i] == pointer)
+			return i;
+	}
+}
+
 Shape* ShapeTable::GetShapeByID(int id)
 {
 	if (id < 0 || id >= shapePointers.size())

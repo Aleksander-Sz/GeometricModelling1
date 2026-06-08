@@ -95,6 +95,8 @@ public:
 	char typeOfShapeCurrentlySelected = 0;
 	float distanceBetweenEyes = 0.1f;
 	float convergenceDistance = 5.0f;
+	std::vector<SurfaceEdge*> GetCandidateEdges(Point* V, SurfaceEdge* incoming, std::unordered_map<Point*, std::vector<SurfaceEdge*>>& vertexToEdges);
+	Point* OtherVertex(SurfaceEdge* e, Point* V);
 	void LoadFile(const char* filename);
 	void SaveFile(const char* filename);
 private:

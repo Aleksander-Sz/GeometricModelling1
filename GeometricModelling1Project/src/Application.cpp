@@ -736,7 +736,7 @@ int main()
 		}
 		ImGui::Separator();
 		ImGui::Text("Add objects");
-		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Bezier C0", "Bezier C1", "Bezier C2", "Interpolating Curve", "Bezier Surface", "Future objects..."};
+		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Bezier C0", "Bezier C1", "Bezier C2", "Interpolating Curve", "Bezier Surface", "Gregory Patch", "Future objects..."};
 		ImGui::Combo("Shapes", &(scene->currentItemSelectedForAdding), items, IM_ARRAYSIZE(items));
 		if (scene->currentItemSelectedForAdding == 8)
 		{

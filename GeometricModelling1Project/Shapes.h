@@ -207,6 +207,8 @@ class InterpolatingCurve : public BezierCurveC2
 
 //Surfaces
 
+struct SurfaceEdge;
+
 class BezierSurface : public Meshable, public IDependentOnOtherShapes
 {
 public:
@@ -231,9 +233,79 @@ public:
 	unsigned int netVAO, netEBO;
 	bool isC2, isCylinder;
 	void Serialize(nlohmann::json& j) override;
+	std::vector<SurfaceEdge> GetBoundaryEdges();
 private:
 	void MeshC0();
 	void MeshC2();
+};
+
+struct SurfaceEdge // A helper struct for the GregoryPatch
+{
+	BezierSurface* surface;
+
+	Point* boundary[4];
+	Point* interior[4];
+
+	Point* start() const { return boundary[0]; }
+	Point* end() const { return boundary[3]; }
+};
+struct EdgeKey
+{
+	Point* firstPoint;
+	Point* lastPoint;
+	EdgeKey(Point* a, Point* b)
+	{
+		if (a < b)
+		{
+			firstPoint = a;
+			lastPoint = b;
+		}
+		else
+		{
+			firstPoint = b;
+			lastPoint = a;
+		}
+	}
+	bool operator==(const EdgeKey& other) const
+	{
+		return firstPoint == other.firstPoint && lastPoint == other.lastPoint;
+	}
+};
+struct EdgeKeyHash
+{
+	std::size_t operator()(const EdgeKey& k) const
+	{
+		auto h1 = std::hash<Point*>{}(k.firstPoint);
+		auto h2 = std::hash<Point*>{}(k.lastPoint);
+
+		return h1 ^ (h2 << 1);
+	}
+};
+struct GregoryData
+{
+	aa::vec3 V[3];
+
+	aa::vec3 edge[6];
+
+	aa::vec3 G[6];
+};
+
+class GregoryPatch : public Meshable
+{
+public:
+	GregoryPatch(std::vector<int> edge, std::vector<int> secondRow);
+	~GregoryPatch() override;
+	void Mesh() override;
+	void PrintImGuiOptions() override;
+	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Translate(aa::vec3 t) override;
+	void ConfirmTransformations() override;
+	void CancelTransformations() override;
+	void Serialize(nlohmann::json& j) override;
+	void Draw() override;
+	std::vector<int> edgePoints;
+	std::vector<int> secondRowPoints;
 };
 
 // Auxiliary shapes

@@ -715,7 +715,7 @@ void Line::Serialize(nlohmann::json& j)
 	j["controlPoints"] = nlohmann::json::array();
 	for (int i = 0; i < points.size(); i++)
 	{
-		j["controlPoints"].push_back({ {"id", points[i]} });
+		j["controlPoints"].push_back({ {"id", ShapeTable::GetShapeID(points[i])} });
 	}
 }
 
@@ -1242,6 +1242,7 @@ BezierSurface::~BezierSurface()
 				shapePointer->MarkForDeletion();
 		}
 	}
+	// TODO release GPU resources
 }
 
 void BezierSurface::Mesh()
@@ -1314,7 +1315,7 @@ void BezierSurface::Serialize(nlohmann::json& j)
 	{
 		for (size_t k = 0; k < sizeU + repeatRows; k++)
 		{
-			nlohmann::json pointJson = { {"id", controlPoints[k%sizeU][i%sizeV]} };
+			nlohmann::json pointJson = { {"id", ShapeTable::GetShapeID(controlPoints[k%sizeU][i%sizeV])} };
 			j["controlPoints"].push_back(pointJson);
 		}
 	}
@@ -1330,6 +1331,52 @@ void BezierSurface::Serialize(nlohmann::json& j)
 	j["size"]["u"] = sizeU;
 	j["size"]["v"] = sizeV;
 	
+}
+
+std::vector<SurfaceEdge> BezierSurface::GetBoundaryEdges()
+{
+	std::vector<SurfaceEdge> edges;
+	int u = controlPoints.size();
+	int v = controlPoints[0].size();
+	for (size_t i = 0; i < u; i += u - 1)
+	{
+		for (size_t j = 0; j < v - 1; j+=3)
+		{
+			SurfaceEdge newEdge;
+			newEdge.boundary[0] = ShapeTable::GetPointByID(controlPoints[i][j]);
+			newEdge.boundary[1] = ShapeTable::GetPointByID(controlPoints[i][j+1]);
+			newEdge.boundary[2] = ShapeTable::GetPointByID(controlPoints[i][j+2]);
+			newEdge.boundary[3] = ShapeTable::GetPointByID(controlPoints[i][j+3]);
+
+			int interiorOffset = (i == 0) ? 1 : -1;
+			newEdge.interior[0] = ShapeTable::GetPointByID(controlPoints[i+interiorOffset][j]);
+			newEdge.interior[1] = ShapeTable::GetPointByID(controlPoints[i+interiorOffset][j + 1]);
+			newEdge.interior[2] = ShapeTable::GetPointByID(controlPoints[i+interiorOffset][j + 2]);
+			newEdge.interior[3] = ShapeTable::GetPointByID(controlPoints[i+interiorOffset][j + 3]);
+			newEdge.surface = this;
+			edges.push_back(newEdge);
+		}
+	}
+	for (size_t i = 0; i < v; i += v - 1)
+	{
+		for (size_t j = 0; j < u - 1; j += 3)
+		{
+			SurfaceEdge newEdge;
+			newEdge.boundary[0] = ShapeTable::GetPointByID(controlPoints[j][i]);
+			newEdge.boundary[1] = ShapeTable::GetPointByID(controlPoints[j + 1][i]);
+			newEdge.boundary[2] = ShapeTable::GetPointByID(controlPoints[j + 2][i]);
+			newEdge.boundary[3] = ShapeTable::GetPointByID(controlPoints[j + 3][i]);
+
+			int interiorOffset = (i == 0) ? 1 : -1;
+			newEdge.interior[0] = ShapeTable::GetPointByID(controlPoints[j][i + interiorOffset]);
+			newEdge.interior[1] = ShapeTable::GetPointByID(controlPoints[j + 1][i + interiorOffset]);
+			newEdge.interior[2] = ShapeTable::GetPointByID(controlPoints[j + 2][i + interiorOffset]);
+			newEdge.interior[3] = ShapeTable::GetPointByID(controlPoints[j + 3][i + interiorOffset]);
+			newEdge.surface = this;
+			edges.push_back(newEdge);
+		}
+	}
+	return edges;
 }
 
 void BezierSurface::MeshC0()
@@ -1555,6 +1602,141 @@ void BezierSurface::CancelTransformations()
 			ShapeTable::GetPointByID(controlPoints[i][j])->CancelTransformations();
 		}
 	}
+}
+
+// GregoryPatch class functions
+
+GregoryPatch::GregoryPatch(std::vector<int> edge, std::vector<int> secondRow)
+{
+	edgePoints = edge;
+	for (size_t i = 0; i < edgePoints.size(); i++)
+	{
+		ShapeTable::GetPointByID(edgePoints[i])->dependentShapes.push_back(ShapeTable::GetShapeID(this));
+	}
+	for (size_t i = 0; i < secondRowPoints.size(); i++)
+	{
+		ShapeTable::GetPointByID(secondRowPoints[i])->dependentShapes.push_back(ShapeTable::GetShapeID(this));
+	}
+	secondRowPoints = secondRow;
+	shapeName = "Gregory Patch";
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+	Mesh();
+}
+
+GregoryPatch::~GregoryPatch()
+{
+	;
+}
+
+void GregoryPatch::Mesh()
+{
+	vertices.clear();
+	indices.clear();
+	dirty = false;
+	GregoryData data;
+	for (size_t i = 0; i < 3; i++)
+	{
+		data.V[i] =				ShapeTable::GetShapeByID(edgePoints[i * 4])->getPosition();
+		data.edge[i * 2] =		ShapeTable::GetShapeByID(edgePoints[i * 4 + 1])->getPosition();
+		data.edge[i * 2 + 1] =	ShapeTable::GetShapeByID(edgePoints[i * 4 + 2])->getPosition();
+	}
+	aa::vec3 T[6];
+	aa::vec3 D[6];
+	for (size_t i = 0; i < 3; i++)
+	{
+		aa::vec3 P0 = data.V[i];
+		aa::vec3 P1 = data.edge[i * 2];
+		aa::vec3 P2 = data.edge[i * 2 + 1];
+		aa::vec3 P3 = data.V[(i + 1) % 3];
+
+		T[i * 2] = 3.0f * (P1 - P0);
+		T[i * 2 + 1] = 3.0f * (P3 - P2);
+		aa::vec3 R0 = ShapeTable::GetShapeByID(secondRowPoints[i * 2])->getPosition();
+		aa::vec3 R3 = ShapeTable::GetShapeByID(secondRowPoints[i * 2 + 1])->getPosition();
+
+		D[i * 2] = 3.0f * (R0 - P0);
+		D[i * 2 + 1] = 3.0f * (R3 - P3);
+	}
+	for (size_t i = 0; i < 6; i++)
+	{
+		data.G[i] = data.V[i / 2] + (T[i] + D[i + 1]) / 3.0f;
+	}
+	for (size_t i = 0; i < 3; i++)
+	{
+		aa::vec3 pointPos = data.V[i];
+		vertices.push_back(pointPos.x);
+		vertices.push_back(pointPos.y);
+		vertices.push_back(pointPos.z);
+	}
+	for (size_t i = 0; i < 6; i++)
+	{
+		aa::vec3 pointPos = data.edge[i];
+		vertices.push_back(pointPos.x);
+		vertices.push_back(pointPos.y);
+		vertices.push_back(pointPos.z);
+	}
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+}
+
+void GregoryPatch::PrintImGuiOptions()
+{
+	;
+}
+
+void GregoryPatch::Scale(aa::vec3 s, aa::vec3 origin)
+{
+	;// Do nothing, Gregory patches are not directly transformable, they are defined by other points that can be transformed
+}
+
+void GregoryPatch::Rotate(float angle, aa::Axis axis, aa::vec3 pivot)
+{
+	;// Do nothing
+}
+
+void GregoryPatch::Translate(aa::vec3 t)
+{
+	;// Do nothing
+}
+
+void GregoryPatch::ConfirmTransformations()
+{
+	;// Do nothing
+}
+
+void GregoryPatch::CancelTransformations()
+{
+	;// Do nothing
+}
+
+void GregoryPatch::Serialize(nlohmann::json& j)
+{
+	j = NULL; // For now
+}
+
+void GregoryPatch::Draw()
+{
+	if (markedForDeletion)
+		return;
+	if (dirty)
+		Mesh();
+	shader.use();
+	glBindVertexArray(VAO);
+	shader.setMat4("model", aa::mat4(1.0f));
+	glPointSize((selected ? 15.0f : 10.0f)); //alter point size based on selection
+	shader.setVec3("color", aa::vec3(1.0f, 0.0f, 0.0f));
+	glDrawArrays(GL_POINTS, 0, 15);
+	glBindVertexArray(0);
 }
 
 

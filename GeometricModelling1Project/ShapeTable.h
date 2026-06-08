@@ -14,6 +14,7 @@ public:
 	//ShapeTable& getInstance();
 	static int AddShape(Shape* shape);
 	static int GetShapeID(Shape* shape);
+	static int GetShapeID(int someId); // This function gets the first stored ID, in case the shape has multiple IDs
 	static Shape* GetShapeByID(int id);
 	static Point* GetPointByID(int id);
 	static Line* GetLineByID(int id);

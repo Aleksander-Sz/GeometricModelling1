@@ -831,6 +831,159 @@ void Scene::AddShape()
 		isADerivedShape = true;
     }
     break;
+    case 9: // Gregory Patch
+    {
+        // First, I need to identify the hole and get its boundary points
+        std::vector<BezierSurface*> selectedSurfaces;
+        for (int i = 1; i < shapes.size(); i++)
+        {
+            BezierSurface* pointer;
+            if (pointer = dynamic_cast<BezierSurface*>(ShapeTable::GetShapeByID(shapes[i])))
+            {
+                if (pointer->isSelected())
+                    selectedSurfaces.push_back(pointer);
+            }
+        }
+        // Now I will extract all edges from the selected surfaces
+		std::vector<SurfaceEdge> allEdges;
+        for (size_t i = 0; i < selectedSurfaces.size(); i++)
+        {
+			std::vector<SurfaceEdge> newEdges = selectedSurfaces[i]->GetBoundaryEdges();
+            allEdges.insert(allEdges.end(), newEdges.begin(), newEdges.end());
+        }
+        std::unordered_map<EdgeKey, std::vector<SurfaceEdge*>, EdgeKeyHash> edgeMap;
+		for (SurfaceEdge& edge : allEdges)
+		{
+			EdgeKey key(edge.boundary[0], edge.boundary[3]);
+			edgeMap[key].push_back(&edge);
+		}
+
+        // looking for boundary edges now
+        std::vector<SurfaceEdge*> boundaryEdges;
+        for (auto& [key, edges] : edgeMap)
+        {
+            if (edges.size() == 1)
+            {
+                // Boundary edge
+				boundaryEdges.push_back(edges[0]);
+            }
+            else if (edges.size() == 2)
+            {
+                // Interior edge
+            }
+            else
+            {
+                // Topology error
+            }
+        }
+        std::cout << "Boundary Edges:\n";
+        for (size_t i = 0; i < boundaryEdges.size(); i++)
+        {
+            std::cout << "first vertex: " << boundaryEdges[i]->start() << ", last vertex: " << boundaryEdges[i]->end() << "\n";
+        }
+        std::unordered_map<Point*, std::vector<SurfaceEdge*> > vertexToEdges;
+
+        for (SurfaceEdge* edge : boundaryEdges)
+        {
+            vertexToEdges[edge->start()].push_back(edge);
+            vertexToEdges[edge->end()].push_back(edge);
+        }
+
+        std::vector<int> patchBasePointsOuter;
+		std::vector<int> patchBasePointsInner;
+        // Now I will traverse all the boundary edges using only left-most turns or right-most turns and find triangles
+        for (size_t i = 0; i < boundaryEdges.size(); i++)
+        {
+			// Chose an edge to start with
+            Point* startV = boundaryEdges[i]->start();
+            SurfaceEdge* currentEdge = boundaryEdges[i];
+            Point* currentV = boundaryEdges[i]->end();
+            std::vector<Point*> visited;
+			std::vector<SurfaceEdge*> visitedEdges;
+            visited.push_back(startV);
+            visited.push_back(currentV);
+			visitedEdges.push_back(currentEdge);
+            while (true)
+            {
+                // find the next edge by looking at the vertex and choosing the next edge
+                auto candidates = GetCandidateEdges(currentV, currentEdge, vertexToEdges);
+
+                if (candidates.empty())
+                    break;
+
+                aa::vec3 vin = aa::normalize(currentV->getPosition() - OtherVertex(currentEdge, currentV)->getPosition());
+				// lets choose a normal for the angle comparison by averaging the normals of the adjacent edges TODO: Finish
+                //aa::vec3 normal = aa::vec3(0.0f, 0.0f, 0.0f);
+                float minAngle = 500000.0f;
+                size_t minIndex = 0;
+                for (size_t j = 0; j < candidates.size(); j++)
+                {
+                    aa::vec3 vout = aa::normalize(OtherVertex(candidates[j], currentV)->getPosition() - currentV->getPosition());
+                    float angle = std::acos(std::clamp(dot(vin, vout), -1.0f, 1.0f));
+					if (angle < minAngle)
+					{
+						minAngle = angle;
+						minIndex = j;
+					}
+                }
+                //normal = aa::normalize(normal);
+
+                SurfaceEdge* nextEdge = candidates[minIndex];
+
+                if (!nextEdge)
+                    break;
+
+                std::cout
+                    << "Current vertex: "
+                    << ShapeTable::GetShapeID(currentV)
+                    << "\nChosen angle: "
+                    << minAngle
+                    << '\n';
+                
+                currentEdge = nextEdge;
+                currentV = OtherVertex(nextEdge, currentV);
+
+                visited.push_back(currentV);
+				visitedEdges.push_back(currentEdge);
+
+                if (visited.size() == 4 && currentV == startV)
+                {
+                    // triangle found
+                    for (size_t jj = 0;  jj < visitedEdges.size();  jj++)
+                    {
+                        if (visited[jj] == visitedEdges[jj]->boundary[0])
+                        {
+                            for (size_t k = 0; k < 4; k += 1)
+                            {
+                                patchBasePointsOuter.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->boundary[k]));
+                                if (k == 0 || k == 3)
+                                    patchBasePointsInner.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->interior[k]));
+                            }
+                        }
+                        else
+                        {
+							// the other edge is reversed, so we need to reverse the order of the points
+                            for (int k = 3; k >= 0; k -= 1)
+                            {
+                                patchBasePointsOuter.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->boundary[k]));
+                                if (k == 0 || k == 3)
+                                    patchBasePointsInner.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->interior[k]));
+                            }
+                        }
+                        
+                    }
+
+					i = boundaryEdges.size(); // to break the outer loop as well
+                    break;
+                }
+                if (visited.size() >= 4)
+                    break; // no triangle found
+            }
+        }
+		GregoryPatch* newGregoryPatch = new GregoryPatch(patchBasePointsOuter,patchBasePointsOuter);
+        shapes.push_back(ShapeTable::AddShape(newGregoryPatch));
+    }
+    break;
     default:
         std::cerr << "Shape not implemented yet.\n";
         wasAShapeAdded = false;
@@ -841,6 +994,32 @@ void Scene::AddShape()
     {
         ShapeTable::GetShapeByID(shapes[shapes.size() - 1])->TranslateAndConfirm(cursor.getPosition());
     }
+}
+
+Point* Scene::OtherVertex(SurfaceEdge* e, Point* V)
+{
+    if (e->start() == V)
+        return e->end();
+    else
+        return e->start();
+}
+
+std::vector<SurfaceEdge*> Scene::GetCandidateEdges(Point* V, SurfaceEdge* incoming,
+    std::unordered_map<Point*, std::vector<SurfaceEdge*>>& vertexToEdges)
+{
+    std::vector<SurfaceEdge*> result;
+
+    auto it = vertexToEdges.find(V);
+    if (it == vertexToEdges.end())
+        return result;
+
+    for (SurfaceEdge* e : it->second)
+    {
+        if (e != incoming)
+            result.push_back(e);
+    }
+
+    return result;
 }
 
 void Scene::LoadFile(const char* filename)
