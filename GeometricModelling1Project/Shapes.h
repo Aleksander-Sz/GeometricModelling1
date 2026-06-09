@@ -306,6 +306,8 @@ public:
 	void Draw() override;
 	std::vector<int> edgePoints;
 	std::vector<int> secondRowPoints;
+	Shader GregoryShader;
+	void setGregoryShader(Shader& _shader);
 };
 
 // Auxiliary shapes

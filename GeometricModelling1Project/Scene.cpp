@@ -565,6 +565,9 @@ void Scene::DrawScene(GLFWwindow* window)
     surfaceC2TessellationShader.use();
     surfaceC2TessellationShader.setMat4("view", camera.view());
     surfaceC2TessellationShader.setVec2("viewportSize", aa::vec2((float)camera.windowWidth, (float)camera.windowHeight));
+    gregoryShader.use();
+    gregoryShader.setMat4("view", camera.view());
+    gregoryShader.setVec2("viewportSize", aa::vec2((float)camera.windowWidth, (float)camera.windowHeight));
     
     shader.use();
     shader.setMat4("projection", camera.projection());
@@ -575,6 +578,8 @@ void Scene::DrawScene(GLFWwindow* window)
 	surfaceC0TessellationShader.setMat4("projection", camera.projection());
 	surfaceC2TessellationShader.use();
 	surfaceC2TessellationShader.setMat4("projection", camera.projection());
+    gregoryShader.use();
+    gregoryShader.setMat4("projection", camera.projection());
     
     shader.use();
     sceneMatrix = aa::scale(sceneScale);
@@ -587,6 +592,8 @@ void Scene::DrawScene(GLFWwindow* window)
 	surfaceC0TessellationShader.setMat4("scene", sceneMatrix);
 	surfaceC2TessellationShader.use();
 	surfaceC2TessellationShader.setMat4("scene", sceneMatrix);
+	gregoryShader.use();
+	gregoryShader.setMat4("scene", sceneMatrix);
 
     shader.use();
 
@@ -844,6 +851,8 @@ void Scene::AddShape()
                     selectedSurfaces.push_back(pointer);
             }
         }
+        if (selectedSurfaces.size() == 0)
+			break; // no surfaces selected, can't create a patch
         // Now I will extract all edges from the selected surfaces
 		std::vector<SurfaceEdge> allEdges;
         for (size_t i = 0; i < selectedSurfaces.size(); i++)
@@ -982,6 +991,7 @@ void Scene::AddShape()
         }
 		GregoryPatch* newGregoryPatch = new GregoryPatch(patchBasePointsOuter,patchBasePointsOuter);
         shapes.push_back(ShapeTable::AddShape(newGregoryPatch));
+        newGregoryPatch->setGregoryShader(gregoryShader);
     }
     break;
     default:

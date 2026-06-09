@@ -1635,6 +1635,8 @@ void GregoryPatch::Mesh()
 	vertices.clear();
 	indices.clear();
 	dirty = false;
+	if (edgePoints.size() != 12 || secondRowPoints.size() != 12)
+		return; // invalid Gregory patch definition
 	GregoryData data;
 	for (size_t i = 0; i < 3; i++)
 	{
@@ -1659,10 +1661,6 @@ void GregoryPatch::Mesh()
 		D[i * 2] = 3.0f * (R0 - P0);
 		D[i * 2 + 1] = 3.0f * (R3 - P3);
 	}
-	for (size_t i = 0; i < 6; i++)
-	{
-		data.G[i] = data.V[i / 2] + (T[i] + D[i + 1]) / 3.0f;
-	}
 	for (size_t i = 0; i < 3; i++)
 	{
 		aa::vec3 pointPos = data.V[i];
@@ -1673,6 +1671,22 @@ void GregoryPatch::Mesh()
 	for (size_t i = 0; i < 6; i++)
 	{
 		aa::vec3 pointPos = data.edge[i];
+		vertices.push_back(pointPos.x);
+		vertices.push_back(pointPos.y);
+		vertices.push_back(pointPos.z);
+	}
+	for (size_t i = 0; i < 6; i++)
+	{
+		aa::vec3 pointPos = T[i];
+
+		vertices.push_back(pointPos.x);
+		vertices.push_back(pointPos.y);
+		vertices.push_back(pointPos.z);
+	}
+	for (size_t i = 0; i < 6; i++)
+	{
+		aa::vec3 pointPos = D[i];
+
 		vertices.push_back(pointPos.x);
 		vertices.push_back(pointPos.y);
 		vertices.push_back(pointPos.z);
@@ -1730,15 +1744,23 @@ void GregoryPatch::Draw()
 		return;
 	if (dirty)
 		Mesh();
-	shader.use();
+	GregoryShader.use();
 	glBindVertexArray(VAO);
-	shader.setMat4("model", aa::mat4(1.0f));
+	GregoryShader.setMat4("model", aa::mat4(1.0f));
 	glPointSize((selected ? 15.0f : 10.0f)); //alter point size based on selection
-	shader.setVec3("color", aa::vec3(1.0f, 0.0f, 0.0f));
-	glDrawArrays(GL_POINTS, 0, 15);
+	GregoryShader.setVec3("color", aa::vec3(1.0f, 0.0f, 0.0f));
+	GregoryShader.setFloat("tessLevel", 5.0f);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	glPatchParameteri(GL_PATCH_VERTICES, 15);
+	glDrawArrays(GL_PATCHES, 0, 15);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBindVertexArray(0);
 }
 
+void GregoryPatch::setGregoryShader(Shader& _shader)
+{
+	GregoryShader = _shader;
+}
 
 // Grid class functions
 Grid::Grid()

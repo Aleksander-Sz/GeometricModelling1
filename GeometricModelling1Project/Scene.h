@@ -78,6 +78,7 @@ public:
 	Shader tessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/BezierTessellationControlShader.glsl", "Shaders/BezierTessellationEvaluationShader.glsl", "Shaders/FragmentShader.glsl");
 	Shader surfaceC0TessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/SurfaceTessellationControlShader.glsl", "Shaders/SurfaceTessellationEvaluationShader.glsl", "Shaders/SurfaceFragmentShader.glsl");
 	Shader surfaceC2TessellationShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/SurfaceTessellationControlShader.glsl", "Shaders/SurfaceC2TessellationEvaluationShader.glsl", "Shaders/SurfaceFragmentShader.glsl");
+	Shader gregoryShader = Shader("Shaders/BezierVertexShader.glsl", "Shaders/GregoryTessellationControlShader.glsl", "Shaders/GregoryTessellationEvaluationShader.glsl", "Shaders/FragmentShader.glsl");
 	void DrawScene(GLFWwindow* window);
 	Grid grid = Grid::getInstance();
 	bool stereoscopy = false;
