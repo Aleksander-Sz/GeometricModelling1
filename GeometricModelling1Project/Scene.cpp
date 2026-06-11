@@ -965,8 +965,7 @@ void Scene::AddShape()
                             for (size_t k = 0; k < 4; k += 1)
                             {
                                 patchBasePointsOuter.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->boundary[k]));
-                                if (k == 0 || k == 3)
-                                    patchBasePointsInner.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->interior[k]));
+                                patchBasePointsInner.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->interior[k]));
                             }
                         }
                         else
@@ -975,8 +974,7 @@ void Scene::AddShape()
                             for (int k = 3; k >= 0; k -= 1)
                             {
                                 patchBasePointsOuter.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->boundary[k]));
-                                if (k == 0 || k == 3)
-                                    patchBasePointsInner.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->interior[k]));
+                                patchBasePointsInner.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->interior[k]));
                             }
                         }
                         
@@ -989,7 +987,7 @@ void Scene::AddShape()
                     break; // no triangle found
             }
         }
-		GregoryPatch* newGregoryPatch = new GregoryPatch(patchBasePointsOuter,patchBasePointsOuter);
+		GregoryPatch* newGregoryPatch = new GregoryPatch(patchBasePointsOuter,patchBasePointsInner);
         shapes.push_back(ShapeTable::AddShape(newGregoryPatch));
         newGregoryPatch->setGregoryShader(gregoryShader);
     }

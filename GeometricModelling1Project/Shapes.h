@@ -234,6 +234,7 @@ public:
 	bool isC2, isCylinder;
 	void Serialize(nlohmann::json& j) override;
 	std::vector<SurfaceEdge> GetBoundaryEdges();
+	aa::vec3 getPosition() override;
 private:
 	void MeshC0();
 	void MeshC2();
@@ -281,14 +282,6 @@ struct EdgeKeyHash
 		return h1 ^ (h2 << 1);
 	}
 };
-struct GregoryData
-{
-	aa::vec3 V[3];
-
-	aa::vec3 edge[6];
-
-	aa::vec3 G[6];
-};
 
 class GregoryPatch : public Meshable
 {
@@ -308,6 +301,7 @@ public:
 	std::vector<int> secondRowPoints;
 	Shader GregoryShader;
 	void setGregoryShader(Shader& _shader);
+	int tessLevel = 10;
 };
 
 // Auxiliary shapes

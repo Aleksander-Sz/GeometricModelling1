@@ -1379,6 +1379,23 @@ std::vector<SurfaceEdge> BezierSurface::GetBoundaryEdges()
 	return edges;
 }
 
+aa::vec3 BezierSurface::getPosition()
+{
+	aa::vec3 averagePosition(0.0f, 0.0f, 0.0f);
+	int n = controlPoints.size();
+	int m = controlPoints[0].size();
+	for (int i = 0; i < n; i++)
+	{
+		for (size_t j = 0; j < m; j++)
+		{
+			averagePosition += ShapeTable::GetPointByID(controlPoints[i][j])->getPosition();
+		}
+	}
+	averagePosition /= (float)n;
+	averagePosition /= (float)m;
+	return averagePosition;
+}
+
 void BezierSurface::MeshC0()
 {
 	size_t n = controlPoints.size();
@@ -1609,6 +1626,7 @@ void BezierSurface::CancelTransformations()
 GregoryPatch::GregoryPatch(std::vector<int> edge, std::vector<int> secondRow)
 {
 	edgePoints = edge;
+	secondRowPoints = secondRow;
 	for (size_t i = 0; i < edgePoints.size(); i++)
 	{
 		ShapeTable::GetPointByID(edgePoints[i])->dependentShapes.push_back(ShapeTable::GetShapeID(this));
@@ -1617,7 +1635,6 @@ GregoryPatch::GregoryPatch(std::vector<int> edge, std::vector<int> secondRow)
 	{
 		ShapeTable::GetPointByID(secondRowPoints[i])->dependentShapes.push_back(ShapeTable::GetShapeID(this));
 	}
-	secondRowPoints = secondRow;
 	shapeName = "Gregory Patch";
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -1637,59 +1654,157 @@ void GregoryPatch::Mesh()
 	dirty = false;
 	if (edgePoints.size() != 12 || secondRowPoints.size() != 12)
 		return; // invalid Gregory patch definition
-	GregoryData data;
+	// First let's find a midpoint for each edge
+	std::vector<aa::vec3> edgeMidpoints(3);
+	std::vector<aa::vec3> edgeMidpointNormals(3);
+	std::vector<std::vector<aa::vec3>> subdividedEdgePoints(3);
+	std::vector<std::vector<aa::vec3>> secondRowSubdividedEdgePoints(3);
+	std::vector<std::vector<aa::vec3>> controlPointsFromOuterEdges(3);
+	std::vector<aa::vec3> corners(3);
 	for (size_t i = 0; i < 3; i++)
 	{
-		data.V[i] =				ShapeTable::GetShapeByID(edgePoints[i * 4])->getPosition();
-		data.edge[i * 2] =		ShapeTable::GetShapeByID(edgePoints[i * 4 + 1])->getPosition();
-		data.edge[i * 2 + 1] =	ShapeTable::GetShapeByID(edgePoints[i * 4 + 2])->getPosition();
+		std::vector<aa::vec3> oneEdge(5);
+		aa::vec3 p0 = corners[i] = ShapeTable::GetShapeByID(edgePoints[i * 4])->getPosition();
+		aa::vec3 p1 = ShapeTable::GetShapeByID(edgePoints[i * 4 + 1])->getPosition();
+		aa::vec3 p2 = ShapeTable::GetShapeByID(edgePoints[i * 4 + 2])->getPosition();
+		aa::vec3 p3 = ShapeTable::GetShapeByID(edgePoints[i * 4 + 3])->getPosition();
+
+		oneEdge[0] = p0 = (p0 + p1) * 0.5f;
+		p1 = (p1 + p2) * 0.5f;
+		oneEdge[4] = p2 = (p2 + p3) * 0.5f;
+
+		oneEdge[1] = p0 = (p0 + p1) * 0.5f;
+		oneEdge[3] = p1 = (p1 + p2) * 0.5f;
+
+		oneEdge[2] = edgeMidpoints[i] = (p0 + p1) * 0.5f;
+		subdividedEdgePoints[i] = oneEdge;
+
+		//Now the second derivatives to get normal points
+		p0 = ShapeTable::GetShapeByID(edgePoints[i * 4])->getPosition();
+		p1 = ShapeTable::GetShapeByID(edgePoints[i * 4 + 1])->getPosition();
+		p2 = ShapeTable::GetShapeByID(edgePoints[i * 4 + 2])->getPosition();
+		p3 = ShapeTable::GetShapeByID(edgePoints[i * 4 + 3])->getPosition();
+		aa::vec3 d0 = p1 - p0;
+		aa::vec3 d1 = p2 - p1;
+		aa::vec3 d2 = p3 - p2;
+
+		d0 = d1 - d0;
+		d1 = d2 - d1;
+
+		d0 =(d0 + d1) * 0.5f;
+		edgeMidpointNormals[i] = aa::normalize(d0);
+		
 	}
-	aa::vec3 T[6];
-	aa::vec3 D[6];
+	// Now let's calculate the P^2i points
+	std::vector<aa::vec3> P2i(3);
 	for (size_t i = 0; i < 3; i++)
 	{
-		aa::vec3 P0 = data.V[i];
-		aa::vec3 P1 = data.edge[i * 2];
-		aa::vec3 P2 = data.edge[i * 2 + 1];
-		aa::vec3 P3 = data.V[(i + 1) % 3];
+		// first subdivide the second row
+		std::vector<aa::vec3> oneEdge(5);
+		aa::vec3 p0 = ShapeTable::GetShapeByID(secondRowPoints[i * 4])->getPosition();
+		aa::vec3 p1 = ShapeTable::GetShapeByID(secondRowPoints[i * 4 + 1])->getPosition();
+		aa::vec3 p2 = ShapeTable::GetShapeByID(secondRowPoints[i * 4 + 2])->getPosition();
+		aa::vec3 p3 = ShapeTable::GetShapeByID(secondRowPoints[i * 4 + 3])->getPosition();
 
-		T[i * 2] = 3.0f * (P1 - P0);
-		T[i * 2 + 1] = 3.0f * (P3 - P2);
-		aa::vec3 R0 = ShapeTable::GetShapeByID(secondRowPoints[i * 2])->getPosition();
-		aa::vec3 R3 = ShapeTable::GetShapeByID(secondRowPoints[i * 2 + 1])->getPosition();
+		oneEdge[0] = p0 = (p0 + p1) * 0.5f;
+		p1 = (p1 + p2) * 0.5f;
+		oneEdge[4] = p2 = (p2 + p3) * 0.5f;
 
-		D[i * 2] = 3.0f * (R0 - P0);
-		D[i * 2 + 1] = 3.0f * (R3 - P3);
+		oneEdge[1] = p0 = (p0 + p1) * 0.5f;
+		oneEdge[3] = p1 = (p1 + p2) * 0.5f;
+
+		aa::vec3 secondRowMidpoint = oneEdge[2] = (p0 + p1) * 0.5f;
+
+		oneEdge[2] = P2i[i] = edgeMidpoints[i] + (edgeMidpoints[i] - secondRowMidpoint);
+		secondRowSubdividedEdgePoints[i] = oneEdge;
 	}
 	for (size_t i = 0; i < 3; i++)
 	{
-		aa::vec3 pointPos = data.V[i];
-		vertices.push_back(pointPos.x);
-		vertices.push_back(pointPos.y);
-		vertices.push_back(pointPos.z);
+		controlPointsFromOuterEdges[i].push_back((subdividedEdgePoints[i][0] - secondRowSubdividedEdgePoints[i][0]) + subdividedEdgePoints[i][0]);
+		controlPointsFromOuterEdges[i].push_back((subdividedEdgePoints[i][1] - secondRowSubdividedEdgePoints[i][1]) + subdividedEdgePoints[i][1]);
+		controlPointsFromOuterEdges[i].push_back((subdividedEdgePoints[i][3] - secondRowSubdividedEdgePoints[i][3]) + subdividedEdgePoints[i][3]);
+		controlPointsFromOuterEdges[i].push_back((subdividedEdgePoints[i][4] - secondRowSubdividedEdgePoints[i][4]) + subdividedEdgePoints[i][4]);
 	}
-	for (size_t i = 0; i < 6; i++)
+	// Now the auxiliary points Q
+	std::vector<aa::vec3> Q(3);
+	for (size_t i = 0; i < 3; i++)
 	{
-		aa::vec3 pointPos = data.edge[i];
-		vertices.push_back(pointPos.x);
-		vertices.push_back(pointPos.y);
-		vertices.push_back(pointPos.z);
+		Q[i] = (3.0f * P2i[i] - edgeMidpoints[i]) / 2.0f;
 	}
-	for (size_t i = 0; i < 6; i++)
+	// Average central Point P
+	aa::vec3 P = (Q[0] + Q[1] + Q[2]) / 3.0f;
+	// Now the P1i points
+	std::vector<aa::vec3> P1i(3);
+	for (size_t i = 0; i < 3; i++)
 	{
-		aa::vec3 pointPos = T[i];
+		P1i[i] = (2.0f * Q[i] + P) / 3.0f;
+	}
+	 
+	// Now the inner points not associated with outer edges
+	std::vector<aa::vec3[4]> IPNO(3);
+	for (size_t i = 0; i < 3; i++)
+	{
+		IPNO[i][0] = (subdividedEdgePoints[i][1] - subdividedEdgePoints[i][2] + (P1i[(i + 2) % 3] - P)) / 2.0f + P2i[i];
+		IPNO[i][1] = (subdividedEdgePoints[i][1] - subdividedEdgePoints[i][2] + (P1i[(i + 2) % 3] - P)) / 2.0f + P1i[i];
+		IPNO[i][2] = (subdividedEdgePoints[((int)i + 2) % 3][3] - subdividedEdgePoints[((int)i + 2) % 3][2] + (P1i[i] - P)) / 2.0f + P2i[((int)i + 2) % 3];
+		IPNO[i][3] = (subdividedEdgePoints[((int)i + 2) % 3][3] - subdividedEdgePoints[((int)i + 2) % 3][2] + (P1i[i] - P)) / 2.0f + P1i[((int)i + 2) % 3];
+	}
 
-		vertices.push_back(pointPos.x);
-		vertices.push_back(pointPos.y);
-		vertices.push_back(pointPos.z);
-	}
-	for (size_t i = 0; i < 6; i++)
+	// Now let's make these points fullfil the C1 condition
+	std::vector<aa::vec3[4]> IPNOcorrected(3);
+	for (size_t i = 0; i < 3; i++)
 	{
-		aa::vec3 pointPos = D[i];
+		aa::vec3 v1 = IPNO[i][0] - IPNO[((int)i + 1) % 3][2];
+		aa::vec3 v2 = IPNO[i][1] - IPNO[((int)i + 1) % 3][3];
+		aa::vec3 v3 = IPNO[i][2] - IPNO[((int)i + 2) % 3][0];
+		aa::vec3 v4 = IPNO[i][3] - IPNO[((int)i + 2) % 3][1];
+		IPNOcorrected[i][0] = P2i[i] + v1 / 2.0f;
+		IPNOcorrected[i][1] = P1i[i] + v2 / 2.0f;
+		IPNOcorrected[i][2] = P2i[((int)i + 2) % 3] + v3 / 2.0f;
+		IPNOcorrected[i][3] = P1i[((int)i + 2) % 3] + v4 / 2.0f;
+	}
 
-		vertices.push_back(pointPos.x);
-		vertices.push_back(pointPos.y);
-		vertices.push_back(pointPos.z);
+	// Now we have the 3 curves, so we will find the control points for the 3 patches
+	std::vector<aa::vec3> patchControlPoints;
+	for (size_t i = 0; i < 3; i++)
+	{
+		//first row
+		patchControlPoints.push_back(corners[i]);
+		patchControlPoints.push_back(subdividedEdgePoints[i][0]);
+		patchControlPoints.push_back(subdividedEdgePoints[i][1]);
+		patchControlPoints.push_back(subdividedEdgePoints[i][2]);
+		//second row
+		patchControlPoints.push_back(subdividedEdgePoints[((int)i + 2) % 3][4]);
+		patchControlPoints.push_back(controlPointsFromOuterEdges[((int)i + 2) % 3][3]);
+		patchControlPoints.push_back(controlPointsFromOuterEdges[i][0]);
+		patchControlPoints.push_back(controlPointsFromOuterEdges[i][1]);
+		patchControlPoints.push_back(IPNOcorrected[i][0]);
+		patchControlPoints.push_back(P2i[i]);
+		//third row
+		patchControlPoints.push_back(subdividedEdgePoints[((int)i + 2) % 3][3]);
+		patchControlPoints.push_back(controlPointsFromOuterEdges[((int)i + 2) % 3][2]);
+		patchControlPoints.push_back(IPNOcorrected[i][2]);
+		patchControlPoints.push_back(IPNOcorrected[i][3]);
+		patchControlPoints.push_back(IPNOcorrected[i][1]);
+		patchControlPoints.push_back(P1i[i]);
+		//fourth row
+		patchControlPoints.push_back(subdividedEdgePoints[((int)i + 2) % 3][2]);
+		patchControlPoints.push_back(P2i[((int)i + 2) % 3]);
+		patchControlPoints.push_back(P1i[((int)i + 2) % 3]);
+		patchControlPoints.push_back(P);
+	}
+	for (size_t i = 0; i < patchControlPoints.size(); i++)
+	{
+		vertices.push_back(patchControlPoints[i].x);
+		vertices.push_back(patchControlPoints[i].y);
+		vertices.push_back(patchControlPoints[i].z);
+	}
+	indices.resize(22);
+	indices = {1, 6, 2, 7, 4, 5, 10, 11, 9, 8, 15, 14, 17, 12, 18, 13, 3, 9, 9, 15, 15, 19};
+	size_t n = indices.size();
+	for (size_t i = 0; i < n * 2; i++)
+	{
+		indices.push_back(indices[i] + 20);
 	}
 	glBindVertexArray(VAO);
 
@@ -1705,7 +1820,13 @@ void GregoryPatch::Mesh()
 
 void GregoryPatch::PrintImGuiOptions()
 {
-	;
+	if (ImGui::DragInt("Subdivisions", &tessLevel, 1, 3, 64))
+	{
+		if (tessLevel < 3)
+			tessLevel = 3;
+		else if (tessLevel > 64)
+			tessLevel = 64;
+	}
 }
 
 void GregoryPatch::Scale(aa::vec3 s, aa::vec3 origin)
@@ -1744,15 +1865,21 @@ void GregoryPatch::Draw()
 		return;
 	if (dirty)
 		Mesh();
+	//GregoryShader = shader; // Temporary
 	GregoryShader.use();
 	glBindVertexArray(VAO);
 	GregoryShader.setMat4("model", aa::mat4(1.0f));
-	glPointSize((selected ? 15.0f : 10.0f)); //alter point size based on selection
+	glPointSize((selected ? 25.0f : 25.0f)); //alter point size based on selection
 	GregoryShader.setVec3("color", aa::vec3(1.0f, 0.0f, 0.0f));
-	GregoryShader.setFloat("tessLevel", 5.0f);
+	GregoryShader.setFloat("tessLevel", (float)tessLevel);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	glPatchParameteri(GL_PATCH_VERTICES, 15);
-	glDrawArrays(GL_PATCHES, 0, 15);
+	glPatchParameteri(GL_PATCH_VERTICES, 20);
+	glDrawArrays(GL_PATCHES, 0, 60);
+	// Now the continuity vectors
+	shader.use();
+	shader.setMat4("model", aa::mat4(1.0f));
+	shader.setVec3("color", aa::vec3(0.188f, 0.835f, 0.784f));
+	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBindVertexArray(0);
 }

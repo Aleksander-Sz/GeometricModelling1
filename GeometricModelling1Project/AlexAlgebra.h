@@ -373,6 +373,8 @@ namespace aa {
 	vec2 clip(vec2 vector, float lower = 0.0f, float upper = 1.0f);
 	vec3 clip(vec3 vector, float lower = 0.0f, float upper = 1.0f);
 	vec4 clip(vec4 vector, float lower = 0.0f, float upper = 1.0f);
+
+	vec3 bezier(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t);
 };
 
 

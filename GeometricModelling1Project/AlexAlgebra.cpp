@@ -362,4 +362,16 @@ namespace aa {
 	{
 		return vec4(clip(vector.x, lower, upper), clip(vector.y, lower, upper), clip(vector.z, lower, upper), clip(vector.w, lower, upper));
 	}
+	vec3 bezier(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t)
+	{
+		// De Casteljau
+		p0 = (p0 * (1.0f - t) + p1 * t);
+		p1 = (p1 * (1.0f - t) + p2 * t);
+		p2 = (p2 * (1.0f - t) + p3 * t);
+
+		p0 = (p0 * (1.0f - t) + p1 * t);
+		p1 = (p1 * (1.0f - t) + p2 * t);
+
+		return (p0 * (1.0f - t) + p1 * t);
+	}
 }

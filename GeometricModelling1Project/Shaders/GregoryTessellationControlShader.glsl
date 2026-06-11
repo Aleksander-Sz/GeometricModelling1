@@ -1,6 +1,6 @@
 #version 410 core
 
-layout (vertices = 15) out;
+layout (vertices = 20) out;
 
 in vec3 vertexPos[];
 out vec3 tcsPos[];

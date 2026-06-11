@@ -11,6 +11,23 @@ in vec3 tcsPos[];
 
 out vec2 uv;
 
+vec3 Bezier(
+    float t,
+    vec3 p0,
+    vec3 p1,
+    vec3 p2,
+    vec3 p3)
+{
+    vec3 a = mix(p0, p1, t);
+    vec3 b = mix(p1, p2, t);
+    vec3 c = mix(p2, p3, t);
+
+    vec3 d = mix(a, b, t);
+    vec3 e = mix(b, c, t);
+
+    return mix(d, e, t);
+}
+
 void main()
 {
     float u = gl_TessCoord.x;
@@ -19,94 +36,63 @@ void main()
 
     uv = vec2(u, v);
 
-    //
-    // corners
-    //
-    vec3 V0 = tcsPos[0];
-    vec3 V1 = tcsPos[1];
-    vec3 V2 = tcsPos[2];
+    float eps = 0.00001f;
+    vec3 BezierPoints[16];
 
-    //
-    // cubic boundary controls
-    //
-    vec3 E01 = tcsPos[3];
-    vec3 E10 = tcsPos[4];
+    BezierPoints[0] = tcsPos[0];
+    BezierPoints[1] = tcsPos[1];
+    BezierPoints[2] = tcsPos[2];
+    BezierPoints[3] = tcsPos[3];
+    BezierPoints[4] = tcsPos[4];
+    BezierPoints[5] =
+    (u * tcsPos[5] + v * tcsPos[6])
+    / max(u + v, eps);
+    BezierPoints[6] =
+    (u * tcsPos[7] + (1.0 - v) * tcsPos[8])
+    / max(u + (1.0 - v), eps);
+    BezierPoints[7] = tcsPos[9];
+    BezierPoints[8] = tcsPos[10];
+    BezierPoints[9] =
+    ((1.0 - u) * tcsPos[11] + v * tcsPos[12])
+    / max((1.0 - u) + v, eps);
+    BezierPoints[10] =
+    ((1.0 - u) * tcsPos[13] + (1.0 - v) * tcsPos[14])
+    / max((1.0 - u) + (1.0 - v), eps);
+    BezierPoints[11] = tcsPos[15];
+    BezierPoints[12] = tcsPos[16];
+    BezierPoints[13] = tcsPos[17];
+    BezierPoints[14] = tcsPos[18];
+    BezierPoints[15] = tcsPos[19];
 
-    vec3 E12 = tcsPos[5];
-    vec3 E21 = tcsPos[6];
+    vec3 curve0 = Bezier(u,
+        BezierPoints[0],
+        BezierPoints[1],
+        BezierPoints[2],
+        BezierPoints[3]);
 
-    vec3 E20 = tcsPos[7];
-    vec3 E02 = tcsPos[8];
+    vec3 curve1 = Bezier(u,
+        BezierPoints[4],
+        BezierPoints[5],
+        BezierPoints[6],
+        BezierPoints[7]);
 
-    //
-    // tangents
-    //
-    vec3 T01 = tcsPos[9];
-    vec3 T10 = tcsPos[10];
+    vec3 curve2 = Bezier(u,
+        BezierPoints[8],
+        BezierPoints[9],
+        BezierPoints[10],
+        BezierPoints[11]);
 
-    vec3 T12 = tcsPos[11];
-    vec3 T21 = tcsPos[12];
+    vec3 curve3 = Bezier(u,
+        BezierPoints[12],
+        BezierPoints[13],
+        BezierPoints[14],
+        BezierPoints[15]);
 
-    vec3 T20 = tcsPos[13];
-    vec3 T02 = tcsPos[14];
-
-    //
-    // cross-boundary derivatives
-    //
-    vec3 D01 = tcsPos[15];
-    vec3 D10 = tcsPos[16];
-
-    vec3 D12 = tcsPos[17];
-    vec3 D21 = tcsPos[18];
-
-    vec3 D20 = tcsPos[19];
-    vec3 D02 = tcsPos[20];
-
-    //
-    // temporary Gregory interior data
-    //
-    vec3 F01 = 0.5 * (T01 + D10);
-    vec3 F12 = 0.5 * (T12 + D21);
-    vec3 F20 = 0.5 * (T20 + D02);
-
-    vec3 P111 = (F01 + F12 + F20) / 3.0;
-
-    //
-    // cubic triangular Bernstein basis
-    //
-    float B300 = u*u*u;
-    float B030 = v*v*v;
-    float B003 = w*w*w;
-
-    float B210 = 3.0 * u*u * v;
-    float B120 = 3.0 * u * v*v;
-
-    float B021 = 3.0 * v*v * w;
-    float B012 = 3.0 * v * w*w;
-
-    float B102 = 3.0 * u * w*w;
-    float B201 = 3.0 * u*u * w;
-
-    float B111 = 6.0 * u * v * w;
-
-    //
-    // cubic Bézier triangle evaluation
-    //
-    vec3 position =
-          B300 * V0
-        + B030 * V1
-        + B003 * V2
-
-        + B210 * E01
-        + B120 * E10
-
-        + B021 * E12
-        + B012 * E21
-
-        + B201 * E02
-        + B102 * E20
-
-        + B111 * P111;
+    vec3 position = Bezier(v,
+        curve0,
+        curve1,
+        curve2,
+        curve3);
 
     gl_Position =
         projection *
