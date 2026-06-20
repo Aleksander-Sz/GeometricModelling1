@@ -35,9 +35,7 @@ void main()
     float u = uv.x;
     float v = uv.y;
 
-    // =========================================================
     // Convert rows from de Boor -> Bernstein
-    // =========================================================
 
     vec3 r00 = (tcsPos[0]  + 4.0*tcsPos[1]  + tcsPos[2])  / 6.0;
     vec3 r01 = (4.0*tcsPos[1]  + 2.0*tcsPos[2]) / 6.0;
@@ -59,9 +57,7 @@ void main()
     vec3 r32 = (2.0*tcsPos[13] + 4.0*tcsPos[14]) / 6.0;
     vec3 r33 = (tcsPos[13] + 4.0*tcsPos[14] + tcsPos[15]) / 6.0;
 
-    // =========================================================
     // Convert columns from de Boor -> Bernstein
-    // =========================================================
 
     vec3 b00 = (r00 + 4.0*r10 + r20) / 6.0;
     vec3 b10 = (4.0*r10 + 2.0*r20) / 6.0;
@@ -83,9 +79,7 @@ void main()
     vec3 b23 = (2.0*r13 + 4.0*r23) / 6.0;
     vec3 b33 = (r13 + 4.0*r23 + r33) / 6.0;
 
-    // =========================================================
     // Evaluate Bézier surface
-    // =========================================================
 
     vec3 q0 = Bezier(u, b00, b01, b02, b03);
     vec3 q1 = Bezier(u, b10, b11, b12, b13);
@@ -97,11 +91,7 @@ void main()
     gl_Position =
         projection *
         view *
-        scene *
-        
-        
-        
-        
-        *
+        scene * 
+        model * 
         vec4(position, 1.0);
 }

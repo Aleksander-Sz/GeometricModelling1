@@ -871,6 +871,8 @@ void Scene::AddShape()
         std::vector<SurfaceEdge*> boundaryEdges;
         for (auto& [key, edges] : edgeMap)
         {
+            if (edges[0]->end() == edges[0]->start())
+                continue;
             if (edges.size() == 1)
             {
                 // Boundary edge
@@ -898,95 +900,153 @@ void Scene::AddShape()
             vertexToEdges[edge->end()].push_back(edge);
         }
 
-        std::vector<int> patchBasePointsOuter;
-		std::vector<int> patchBasePointsInner;
-        // Now I will traverse all the boundary edges using only left-most turns or right-most turns and find triangles
-        for (size_t i = 0; i < boundaryEdges.size(); i++)
+        // Build adjacency
+        std::unordered_map<Point*, std::vector<Point*>> adjacency;
+        std::unordered_map<EdgeKey, SurfaceEdge*, EdgeKeyHash> edgeLookup;
+        for (SurfaceEdge* edge : boundaryEdges)
         {
-			// Chose an edge to start with
-            Point* startV = boundaryEdges[i]->start();
-            SurfaceEdge* currentEdge = boundaryEdges[i];
-            Point* currentV = boundaryEdges[i]->end();
-            std::vector<Point*> visited;
-			std::vector<SurfaceEdge*> visitedEdges;
-            visited.push_back(startV);
-            visited.push_back(currentV);
-			visitedEdges.push_back(currentEdge);
-            while (true)
+            Point* a = edge->start();
+            Point* b = edge->end();
+
+            adjacency[a].push_back(b);
+            adjacency[b].push_back(a);
+
+            edgeLookup[EdgeKey(a, b)] = edge;
+        }
+
+
+        std::set<std::array<int, 3>> triangles;
+
+        for (auto& [A, neighbors] : adjacency)
+        {
+            for (size_t i = 0; i < neighbors.size(); ++i)
             {
-                // find the next edge by looking at the vertex and choosing the next edge
-                auto candidates = GetCandidateEdges(currentV, currentEdge, vertexToEdges);
+                Point* B = neighbors[i];
 
-                if (candidates.empty())
-                    break;
-
-                aa::vec3 vin = aa::normalize(currentV->getPosition() - OtherVertex(currentEdge, currentV)->getPosition());
-				// lets choose a normal for the angle comparison by averaging the normals of the adjacent edges TODO: Finish
-                //aa::vec3 normal = aa::vec3(0.0f, 0.0f, 0.0f);
-                float minAngle = 500000.0f;
-                size_t minIndex = 0;
-                for (size_t j = 0; j < candidates.size(); j++)
+                for (size_t j = i + 1; j < neighbors.size(); ++j)
                 {
-                    aa::vec3 vout = aa::normalize(OtherVertex(candidates[j], currentV)->getPosition() - currentV->getPosition());
-                    float angle = std::acos(std::clamp(dot(vin, vout), -1.0f, 1.0f));
-					if (angle < minAngle)
-					{
-						minAngle = angle;
-						minIndex = j;
-					}
-                }
-                //normal = aa::normalize(normal);
+                    Point* C = neighbors[j];
 
-                SurfaceEdge* nextEdge = candidates[minIndex];
+                    bool BCconnected =
+                        std::find(
+                            adjacency[B].begin(),
+                            adjacency[B].end(),
+                            C)
+                        != adjacency[B].end();
 
-                if (!nextEdge)
-                    break;
+                    if (!BCconnected)
+                        continue;
 
-                std::cout
-                    << "Current vertex: "
-                    << ShapeTable::GetShapeID(currentV)
-                    << "\nChosen angle: "
-                    << minAngle
-                    << '\n';
-                
-                currentEdge = nextEdge;
-                currentV = OtherVertex(nextEdge, currentV);
-
-                visited.push_back(currentV);
-				visitedEdges.push_back(currentEdge);
-
-                if (visited.size() == 4 && currentV == startV)
-                {
-                    // triangle found
-                    for (size_t jj = 0;  jj < visitedEdges.size();  jj++)
+                    std::array<int, 3> tri =
                     {
-                        if (visited[jj] == visitedEdges[jj]->boundary[0])
-                        {
-                            for (size_t k = 0; k < 4; k += 1)
-                            {
-                                patchBasePointsOuter.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->boundary[k]));
-                                patchBasePointsInner.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->interior[k]));
-                            }
-                        }
-                        else
-                        {
-							// the other edge is reversed, so we need to reverse the order of the points
-                            for (int k = 3; k >= 0; k -= 1)
-                            {
-                                patchBasePointsOuter.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->boundary[k]));
-                                patchBasePointsInner.push_back(ShapeTable::GetShapeID(visitedEdges[jj]->interior[k]));
-                            }
-                        }
-                        
-                    }
+                        ShapeTable::GetShapeID(A),
+                        ShapeTable::GetShapeID(B),
+                        ShapeTable::GetShapeID(C)
+                    };
 
-					i = boundaryEdges.size(); // to break the outer loop as well
-                    break;
+                    std::sort(tri.begin(), tri.end());
+
+                    triangles.insert(tri);
                 }
-                if (visited.size() >= 4)
-                    break; // no triangle found
             }
         }
+
+        if (triangles.empty())
+            break;
+
+        auto tri = *triangles.begin();
+
+        Point* A = ShapeTable::GetPointByID(tri[0]);
+        Point* B = ShapeTable::GetPointByID(tri[1]);
+        Point* C = ShapeTable::GetPointByID(tri[2]);
+        
+        bool AB = edgeLookup.count(EdgeKey(A, B)) > 0;
+        bool AC = edgeLookup.count(EdgeKey(A, C)) > 0;
+        bool BC = edgeLookup.count(EdgeKey(B, C)) > 0;
+
+        std::vector<Point*> cycleVertices;
+
+        if (AB && BC)
+        {
+            cycleVertices = { A, B, C };
+        }
+        else if (AC && BC)
+        {
+            cycleVertices = { A, C, B };
+        }
+        else
+        {
+            // topology error
+            break;
+        }
+
+        std::vector<SurfaceEdge*> cycleEdges;
+
+        for (size_t i = 0; i < 3; i++)
+        {
+            Point* v0 = cycleVertices[i];
+            Point* v1 = cycleVertices[(i + 1) % 3];
+
+            auto it = edgeLookup.find(EdgeKey(v0, v1));
+
+            if (it == edgeLookup.end())
+            {
+                // topology error
+                cycleEdges.clear();
+                break;
+            }
+
+            cycleEdges.push_back(it->second);
+        }
+
+        if (cycleEdges.size() != 3)
+            break;
+        std::vector<int> patchBasePointsOuter;
+        std::vector<int> patchBasePointsInner;
+
+        for (size_t i = 0; i < 3; i++)
+        {
+            SurfaceEdge* edge = cycleEdges[i];
+
+            Point* startVertex = cycleVertices[i];
+
+            bool forward =
+                (edge->boundary[0] == startVertex);
+
+            if (forward)
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    patchBasePointsOuter.push_back(
+                        ShapeTable::GetShapeID(edge->boundary[k]));
+
+                    patchBasePointsInner.push_back(
+                        ShapeTable::GetShapeID(edge->interior[k]));
+                }
+            }
+            else
+            {
+                for (int k = 3; k >= 0; k--)
+                {
+                    patchBasePointsOuter.push_back(
+                        ShapeTable::GetShapeID(edge->boundary[k]));
+
+                    patchBasePointsInner.push_back(
+                        ShapeTable::GetShapeID(edge->interior[k]));
+                }
+            }
+        }
+
+        for (size_t i = 0; i < cycleEdges.size(); ++i)
+        {
+            std::cout
+                << "edge "
+                << i
+                << " : "
+                << cycleEdges[i]
+                << '\n';
+        }
+
 		GregoryPatch* newGregoryPatch = new GregoryPatch(patchBasePointsOuter,patchBasePointsInner);
         shapes.push_back(ShapeTable::AddShape(newGregoryPatch));
         newGregoryPatch->setGregoryShader(gregoryShader);

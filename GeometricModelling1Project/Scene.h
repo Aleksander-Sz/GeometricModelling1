@@ -7,6 +7,7 @@
 #include "Parser.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
+#include <set>
 
 class Scene
 {

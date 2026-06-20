@@ -1827,6 +1827,7 @@ void GregoryPatch::PrintImGuiOptions()
 		else if (tessLevel > 64)
 			tessLevel = 64;
 	}
+	ImGui::Checkbox("Display continuity vectors", &dispVectors);
 }
 
 void GregoryPatch::Scale(aa::vec3 s, aa::vec3 origin)
@@ -1865,7 +1866,6 @@ void GregoryPatch::Draw()
 		return;
 	if (dirty)
 		Mesh();
-	//GregoryShader = shader; // Temporary
 	GregoryShader.use();
 	glBindVertexArray(VAO);
 	GregoryShader.setMat4("model", aa::mat4(1.0f));
@@ -1876,10 +1876,13 @@ void GregoryPatch::Draw()
 	glPatchParameteri(GL_PATCH_VERTICES, 20);
 	glDrawArrays(GL_PATCHES, 0, 60);
 	// Now the continuity vectors
-	shader.use();
-	shader.setMat4("model", aa::mat4(1.0f));
-	shader.setVec3("color", aa::vec3(0.188f, 0.835f, 0.784f));
-	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+	if (dispVectors)
+	{
+		shader.use();
+		shader.setMat4("model", aa::mat4(1.0f));
+		shader.setVec3("color", aa::vec3(0.188f, 0.835f, 0.784f));
+		glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+	}
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBindVertexArray(0);
 }

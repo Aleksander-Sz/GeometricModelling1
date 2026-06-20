@@ -302,6 +302,7 @@ public:
 	Shader GregoryShader;
 	void setGregoryShader(Shader& _shader);
 	int tessLevel = 10;
+	bool dispVectors = false;
 };
 
 // Auxiliary shapes
