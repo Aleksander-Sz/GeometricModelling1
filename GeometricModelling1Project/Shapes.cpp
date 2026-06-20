@@ -1326,8 +1326,8 @@ void BezierSurface::Serialize(nlohmann::json& j)
 		else
 			sizeU++;
 	}
-	j["samples"]["u"] = subdivisionsU;
-	j["samples"]["v"] = subdivisionsV;
+	j["samples"]["u"] = subdivisionsV;
+	j["samples"]["v"] = subdivisionsU; // temporary, TODO: find the real cause
 	j["size"]["u"] = sizeU;
 	j["size"]["v"] = sizeV;
 	
