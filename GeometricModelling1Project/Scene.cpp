@@ -954,102 +954,99 @@ void Scene::AddShape()
         if (triangles.empty())
             break;
 
-        auto tri = *triangles.begin();
-
-        Point* A = ShapeTable::GetPointByID(tri[0]);
-        Point* B = ShapeTable::GetPointByID(tri[1]);
-        Point* C = ShapeTable::GetPointByID(tri[2]);
-        
-        bool AB = edgeLookup.count(EdgeKey(A, B)) > 0;
-        bool AC = edgeLookup.count(EdgeKey(A, C)) > 0;
-        bool BC = edgeLookup.count(EdgeKey(B, C)) > 0;
-
-        std::vector<Point*> cycleVertices;
-
-        if (AB && BC)
+        for (auto iterator = triangles.begin(); iterator != triangles.end(); iterator++)
         {
-            cycleVertices = { A, B, C };
-        }
-        else if (AC && BC)
-        {
-            cycleVertices = { A, C, B };
-        }
-        else
-        {
-            // topology error
-            break;
-        }
 
-        std::vector<SurfaceEdge*> cycleEdges;
+            auto tri = *iterator;
 
-        for (size_t i = 0; i < 3; i++)
-        {
-            Point* v0 = cycleVertices[i];
-            Point* v1 = cycleVertices[(i + 1) % 3];
+            Point* A = ShapeTable::GetPointByID(tri[0]);
+            Point* B = ShapeTable::GetPointByID(tri[1]);
+            Point* C = ShapeTable::GetPointByID(tri[2]);
 
-            auto it = edgeLookup.find(EdgeKey(v0, v1));
+            bool AB = edgeLookup.count(EdgeKey(A, B)) > 0;
+            bool AC = edgeLookup.count(EdgeKey(A, C)) > 0;
+            bool BC = edgeLookup.count(EdgeKey(B, C)) > 0;
 
-            if (it == edgeLookup.end())
+            std::vector<Point*> cycleVertices;
+
+            if (AB && BC)
             {
-                // topology error
-                cycleEdges.clear();
-                break;
+                cycleVertices = { A, B, C };
             }
-
-            cycleEdges.push_back(it->second);
-        }
-
-        if (cycleEdges.size() != 3)
-            break;
-        std::vector<int> patchBasePointsOuter;
-        std::vector<int> patchBasePointsInner;
-
-        for (size_t i = 0; i < 3; i++)
-        {
-            SurfaceEdge* edge = cycleEdges[i];
-
-            Point* startVertex = cycleVertices[i];
-
-            bool forward =
-                (edge->boundary[0] == startVertex);
-
-            if (forward)
+            else if (AC && BC)
             {
-                for (int k = 0; k < 4; k++)
-                {
-                    patchBasePointsOuter.push_back(
-                        ShapeTable::GetShapeID(edge->boundary[k]));
-
-                    patchBasePointsInner.push_back(
-                        ShapeTable::GetShapeID(edge->interior[k]));
-                }
+                cycleVertices = { A, C, B };
             }
             else
             {
-                for (int k = 3; k >= 0; k--)
-                {
-                    patchBasePointsOuter.push_back(
-                        ShapeTable::GetShapeID(edge->boundary[k]));
+                // topology error
+                break;
+            }
 
-                    patchBasePointsInner.push_back(
-                        ShapeTable::GetShapeID(edge->interior[k]));
+            std::vector<SurfaceEdge*> cycleEdges;
+
+            for (size_t i = 0; i < 3; i++)
+            {
+                Point* v0 = cycleVertices[i];
+                Point* v1 = cycleVertices[(i + 1) % 3];
+
+                auto it = edgeLookup.find(EdgeKey(v0, v1));
+
+                if (it == edgeLookup.end())
+                {
+                    // topology error
+                    cycleEdges.clear();
+                    break;
+                }
+
+                cycleEdges.push_back(it->second);
+            }
+
+            if (cycleEdges.size() != 3)
+                break;
+            std::vector<int> patchBasePointsOuter;
+            std::vector<int> patchBasePointsInner;
+
+            for (size_t i = 0; i < 3; i++)
+            {
+                SurfaceEdge* edge = cycleEdges[i];
+
+                Point* startVertex = cycleVertices[i];
+
+                bool forward =
+                    (edge->boundary[0] == startVertex);
+
+                if (forward)
+                {
+                    for (int k = 0; k < 4; k++)
+                    {
+                        patchBasePointsOuter.push_back(
+                            ShapeTable::GetShapeID(edge->boundary[k]));
+
+                        patchBasePointsInner.push_back(
+                            ShapeTable::GetShapeID(edge->interior[k]));
+                    }
+                }
+                else
+                {
+                    for (int k = 3; k >= 0; k--)
+                    {
+                        patchBasePointsOuter.push_back(
+                            ShapeTable::GetShapeID(edge->boundary[k]));
+
+                        patchBasePointsInner.push_back(
+                            ShapeTable::GetShapeID(edge->interior[k]));
+                    }
                 }
             }
-        }
 
-        for (size_t i = 0; i < cycleEdges.size(); ++i)
-        {
-            std::cout
-                << "edge "
-                << i
-                << " : "
-                << cycleEdges[i]
-                << '\n';
+            // adding the shape
+            GregoryPatch* newGregoryPatch = new GregoryPatch(patchBasePointsOuter, patchBasePointsInner);
+            shapes.push_back(ShapeTable::AddShape(newGregoryPatch));
+            newGregoryPatch->setGregoryShader(gregoryShader);
+            newGregoryPatch->setShader(shader);
         }
-
-		GregoryPatch* newGregoryPatch = new GregoryPatch(patchBasePointsOuter,patchBasePointsInner);
-        shapes.push_back(ShapeTable::AddShape(newGregoryPatch));
-        newGregoryPatch->setGregoryShader(gregoryShader);
+        isADerivedShape = true;
     }
     break;
     default:

@@ -1343,16 +1343,16 @@ std::vector<SurfaceEdge> BezierSurface::GetBoundaryEdges()
 		for (size_t j = 0; j < v - 1; j+=3)
 		{
 			SurfaceEdge newEdge;
-			newEdge.boundary[0] = ShapeTable::GetPointByID(controlPoints[i][j]);
-			newEdge.boundary[1] = ShapeTable::GetPointByID(controlPoints[i][j+1]);
-			newEdge.boundary[2] = ShapeTable::GetPointByID(controlPoints[i][j+2]);
-			newEdge.boundary[3] = ShapeTable::GetPointByID(controlPoints[i][j+3]);
+			newEdge.boundary[0] = ShapeTable::GetPointByID(controlPoints[i][j%v]);
+			newEdge.boundary[1] = ShapeTable::GetPointByID(controlPoints[i][(j+1)%v]);
+			newEdge.boundary[2] = ShapeTable::GetPointByID(controlPoints[i][(j+2)%v]);
+			newEdge.boundary[3] = ShapeTable::GetPointByID(controlPoints[i][(j+3)%v]);
 
 			int interiorOffset = (i == 0) ? 1 : -1;
-			newEdge.interior[0] = ShapeTable::GetPointByID(controlPoints[i+interiorOffset][j]);
-			newEdge.interior[1] = ShapeTable::GetPointByID(controlPoints[i+interiorOffset][j + 1]);
-			newEdge.interior[2] = ShapeTable::GetPointByID(controlPoints[i+interiorOffset][j + 2]);
-			newEdge.interior[3] = ShapeTable::GetPointByID(controlPoints[i+interiorOffset][j + 3]);
+			newEdge.interior[0] = ShapeTable::GetPointByID(controlPoints[(i+interiorOffset)%u][j]);
+			newEdge.interior[1] = ShapeTable::GetPointByID(controlPoints[(i+interiorOffset)%u][(j + 1)%v]);
+			newEdge.interior[2] = ShapeTable::GetPointByID(controlPoints[(i+interiorOffset)%u][(j + 2)%v]);
+			newEdge.interior[3] = ShapeTable::GetPointByID(controlPoints[(i+interiorOffset)%u][(j + 3)%v]);
 			newEdge.surface = this;
 			edges.push_back(newEdge);
 		}
@@ -1362,16 +1362,16 @@ std::vector<SurfaceEdge> BezierSurface::GetBoundaryEdges()
 		for (size_t j = 0; j < u - 1; j += 3)
 		{
 			SurfaceEdge newEdge;
-			newEdge.boundary[0] = ShapeTable::GetPointByID(controlPoints[j][i]);
-			newEdge.boundary[1] = ShapeTable::GetPointByID(controlPoints[j + 1][i]);
-			newEdge.boundary[2] = ShapeTable::GetPointByID(controlPoints[j + 2][i]);
-			newEdge.boundary[3] = ShapeTable::GetPointByID(controlPoints[j + 3][i]);
+			newEdge.boundary[0] = ShapeTable::GetPointByID(controlPoints[j%u][i]);
+			newEdge.boundary[1] = ShapeTable::GetPointByID(controlPoints[(j + 1)%u][i]);
+			newEdge.boundary[2] = ShapeTable::GetPointByID(controlPoints[(j + 2)%u][i]);
+			newEdge.boundary[3] = ShapeTable::GetPointByID(controlPoints[(j + 3)%u][i]);
 
 			int interiorOffset = (i == 0) ? 1 : -1;
-			newEdge.interior[0] = ShapeTable::GetPointByID(controlPoints[j][i + interiorOffset]);
-			newEdge.interior[1] = ShapeTable::GetPointByID(controlPoints[j + 1][i + interiorOffset]);
-			newEdge.interior[2] = ShapeTable::GetPointByID(controlPoints[j + 2][i + interiorOffset]);
-			newEdge.interior[3] = ShapeTable::GetPointByID(controlPoints[j + 3][i + interiorOffset]);
+			newEdge.interior[0] = ShapeTable::GetPointByID(controlPoints[j%u][(i + interiorOffset)%v]);
+			newEdge.interior[1] = ShapeTable::GetPointByID(controlPoints[(j + 1)%u][(i + interiorOffset)%v]);
+			newEdge.interior[2] = ShapeTable::GetPointByID(controlPoints[(j + 2)%u][(i + interiorOffset)%v]);
+			newEdge.interior[3] = ShapeTable::GetPointByID(controlPoints[(j + 3)%u][(i + interiorOffset)%v]);
 			newEdge.surface = this;
 			edges.push_back(newEdge);
 		}
@@ -1869,8 +1869,8 @@ void GregoryPatch::Draw()
 	GregoryShader.use();
 	glBindVertexArray(VAO);
 	GregoryShader.setMat4("model", aa::mat4(1.0f));
-	glPointSize((selected ? 25.0f : 25.0f)); //alter point size based on selection
-	GregoryShader.setVec3("color", aa::vec3(1.0f, 0.0f, 0.0f));
+	glLineWidth((selected ? 5.0f : 1.0f)); //alter point size based on selection
+	GregoryShader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
 	GregoryShader.setFloat("tessLevel", (float)tessLevel);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glPatchParameteri(GL_PATCH_VERTICES, 20);
@@ -1890,6 +1890,18 @@ void GregoryPatch::Draw()
 void GregoryPatch::setGregoryShader(Shader& _shader)
 {
 	GregoryShader = _shader;
+}
+
+aa::vec3 GregoryPatch::getPosition()
+{
+	aa::vec3 averagePosition(0.0f, 0.0f, 0.0f);
+	int n = edgePoints.size();
+	for (int i = 0; i < n; i++)
+	{
+		averagePosition += ShapeTable::GetPointByID(edgePoints[i])->getPosition();
+	}
+	averagePosition /= (float)n;
+	return averagePosition;
 }
 
 // Grid class functions
