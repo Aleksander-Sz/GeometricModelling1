@@ -373,6 +373,7 @@ private:
 	bool SolveGaussNewtonStep(const aa::vec3& Su, const aa::vec3& Sv, const aa::vec3& Tu, const aa::vec3& Tv,
 		const aa::vec3& F, float& du1, float& dv1, float& du2, float& dv2);
 	std::vector<aa::vec3> GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse);
+	float distance_uv(float u1, float v1, float u2, float v2);
 };
 
 // Auxiliary shapes

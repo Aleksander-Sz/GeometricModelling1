@@ -2153,6 +2153,11 @@ void Intersection::Draw()
 
 float Intersection::MeasureDistance2(TwoSurfacesState state)
 {
+	if (firstSurface == secondSurface)
+	{
+		if (distance_uv(state.u1, state.v1, state.u2, state.v2) < 0.01f)
+			return std::numeric_limits<float>::max();
+	}
 	aa::vec3 point1 = state.first->Evaluate(state.u1, state.v1);
 	aa::vec3 point2 = state.second->Evaluate(state.u2, state.v2);
 	return aa::distance_2(point1, point2);
@@ -2421,6 +2426,11 @@ std::vector<aa::vec3> Intersection::GetThePointsInOneDirection(TwoSurfacesState 
 		//vertices.push_back(point2.z);
 	}
 	return followingPoints;
+}
+
+float Intersection::distance_uv(float u1, float v1, float u2, float v2)
+{
+	return (u1 - u2) * (u1 - u2) + (v1 - v2) * (v1 - v2);
 }
 
 // Grid class functions
