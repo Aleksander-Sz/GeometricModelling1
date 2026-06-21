@@ -87,6 +87,20 @@ private:
 	void InvalidateDependentShapes();
 };
 
+class ISurface
+{
+public:
+	virtual aa::vec3 Evaluate(float u, float v) = 0;
+
+	virtual aa::vec3 Du(float u, float v) = 0;
+	virtual aa::vec3 Dv(float u, float v) = 0;
+
+	//bool WrapU;
+	//bool WrapV;
+
+	//ParamDomain Domain { get; }
+};
+
 class Torus : public Meshable
 {
 public:
@@ -209,7 +223,7 @@ class InterpolatingCurve : public BezierCurveC2
 
 struct SurfaceEdge;
 
-class BezierSurface : public Meshable, public IDependentOnOtherShapes
+class BezierSurface : public Meshable, public IDependentOnOtherShapes, public ISurface
 {
 public:
 	BezierSurface(aa::vec3 position, int a, int b, float dimensionX, float dimensionZ, bool _isC2, bool _isCylinder);
@@ -235,6 +249,9 @@ public:
 	void Serialize(nlohmann::json& j) override;
 	std::vector<SurfaceEdge> GetBoundaryEdges();
 	aa::vec3 getPosition() override;
+	aa::vec3 Evaluate(float u, float v) override;
+	aa::vec3 Du(float u, float v) override;
+	aa::vec3 Dv(float u, float v) override;
 private:
 	void MeshC0();
 	void MeshC2();

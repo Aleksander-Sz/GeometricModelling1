@@ -1396,6 +1396,115 @@ aa::vec3 BezierSurface::getPosition()
 	return averagePosition;
 }
 
+aa::vec3 BezierSurface::Evaluate(float u, float v)
+{
+	// first we need to decide which control points we will use, depending on the parameters and number of subsurfaces
+	aa::vec3 p[4], point;
+	if (isC2)
+	{
+		size_t patchCountU = controlPoints.size() - 3;
+		size_t patchCountV = controlPoints[0].size() - 3;
+	}
+	else
+	{
+		size_t patchCountU = controlPoints.size() / 3;
+		size_t patchCountV = controlPoints[0].size() / 3;
+		size_t pointOffsetU = (size_t)(floor(patchCountU * u)) * 3;
+		size_t pointOffsetV = (size_t)(floor(patchCountV * v)) * 3;
+		if (pointOffsetU > (patchCountU - 1) * 3)
+			pointOffsetU = (patchCountU - 1) * 3;
+		if (pointOffsetV > (patchCountV - 1) * 3)
+			pointOffsetV = (patchCountV - 1) * 3;
+		float globalU = patchCountU * u;
+		size_t patchU = std::min((size_t)floor(globalU), patchCountU - 1);
+		float localU = globalU - patchU;
+		float globalV = patchCountV * v;
+		size_t patchV = std::min((size_t)floor(globalV), patchCountV - 1);
+		float localV = globalV - patchV;
+		for (size_t i = 0; i < 4; i++)
+		{
+			// 4 bezier curves
+			p[i] = aa::bezier(controlPoints[pointOffsetU + i][pointOffsetV], controlPoints[pointOffsetU + i][pointOffsetV + 1], controlPoints[pointOffsetU + i][pointOffsetV + 2], controlPoints[pointOffsetU + i][pointOffsetV + 3], localV);
+		}
+		point = aa::bezier(p[0], p[1], p[2], p[3], localU);
+	}
+	return point;
+}
+
+aa::vec3 BezierSurface::Du(float u, float v)
+{
+	aa::vec3 p[4];
+
+	size_t patchCountU = controlPoints.size() / 3;
+	size_t patchCountV = controlPoints[0].size() / 3;
+
+	float globalU = patchCountU * u;
+	float globalV = patchCountV * v;
+
+	size_t patchU =
+		std::min((size_t)floor(globalU), patchCountU - 1);
+
+	size_t patchV =
+		std::min((size_t)floor(globalV), patchCountV - 1);
+
+	float localU = globalU - patchU;
+	float localV = globalV - patchV;
+
+	size_t offsetU = patchU * 3;
+	size_t offsetV = patchV * 3;
+
+	for (size_t i = 0; i < 4; i++)
+	{
+		p[i] = aa::bezier(
+			controlPoints[offsetU + i][offsetV],
+			controlPoints[offsetU + i][offsetV + 1],
+			controlPoints[offsetU + i][offsetV + 2],
+			controlPoints[offsetU + i][offsetV + 3],
+			localV);
+	}
+
+	return patchCountU * aa::bezier_derivative(
+		p[0], p[1], p[2], p[3],
+		localU);
+}
+
+aa::vec3 BezierSurface::Dv(float u, float v)
+{
+	aa::vec3 dp[4];
+
+	size_t patchCountU = controlPoints.size() / 3;
+	size_t patchCountV = controlPoints[0].size() / 3;
+
+	float globalU = patchCountU * u;
+	float globalV = patchCountV * v;
+
+	size_t patchU =
+		std::min((size_t)floor(globalU), patchCountU - 1);
+
+	size_t patchV =
+		std::min((size_t)floor(globalV), patchCountV - 1);
+
+	float localU = globalU - patchU;
+	float localV = globalV - patchV;
+
+	size_t offsetU = patchU * 3;
+	size_t offsetV = patchV * 3;
+
+	for (size_t i = 0; i < 4; i++)
+	{
+		dp[i] = aa::bezier_derivative(
+			controlPoints[offsetU + i][offsetV],
+			controlPoints[offsetU + i][offsetV + 1],
+			controlPoints[offsetU + i][offsetV + 2],
+			controlPoints[offsetU + i][offsetV + 3],
+			localV);
+	}
+
+	return patchCountV * aa::bezier(
+		dp[0], dp[1], dp[2], dp[3],
+		localU);
+}
+
 void BezierSurface::MeshC0()
 {
 	size_t n = controlPoints.size();

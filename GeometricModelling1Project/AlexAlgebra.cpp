@@ -374,4 +374,16 @@ namespace aa {
 
 		return (p0 * (1.0f - t) + p1 * t);
 	}
+	vec3 bezier_derivative(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t)
+	{
+		p0 = p1 - p0;
+		p1 = p2 - p1;
+		p2 = p3 - p2;
+
+		// De Casteljau
+		p0 = (p0 * (1.0f - t) + p1 * t);
+		p1 = (p1 * (1.0f - t) + p2 * t);
+
+		return (p0 * (1.0f - t) + p1 * t);
+	}
 }
