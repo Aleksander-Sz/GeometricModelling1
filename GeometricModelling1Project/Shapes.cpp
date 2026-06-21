@@ -2075,25 +2075,23 @@ void Intersection::Mesh()
 	vertices.push_back(point2.z);
 
 	// Now let's walk along the line:
-	for (size_t i = 0; i < 10; i++)
+	std::vector<aa::vec3> pointsRight = GetThePointsInOneDirection(bestGuess, point1, false);
+	std::vector<aa::vec3> pointsLeft = GetThePointsInOneDirection(bestGuess, point1, true);
+
+	for (int i = pointsLeft.size() - 1; i >= 0 ; i--)
 	{
-		ParamDirection param = ComputeTangent(bestGuess);
-		u += param.du1;
-		v += param.dv1;
-		s += param.du2;
-		t += param.dv2;
-		bestGuess.u1 = u;
-		bestGuess.v1 = v;
-		bestGuess.u2 = s;
-		bestGuess.v2 = t;
-		point1 = firstSurface->Evaluate(bestGuess.u1, bestGuess.v1);
-		vertices.push_back(point1.x);
-		vertices.push_back(point1.y);
-		vertices.push_back(point1.z);
-		point2 = secondSurface->Evaluate(bestGuess.u2, bestGuess.v2);
-		vertices.push_back(point2.x);
-		vertices.push_back(point2.y);
-		vertices.push_back(point2.z);
+		vertices.push_back(pointsLeft[i].x);
+		vertices.push_back(pointsLeft[i].y);
+		vertices.push_back(pointsLeft[i].z);
+	}
+	vertices.push_back(point1.x);
+	vertices.push_back(point1.y);
+	vertices.push_back(point1.z);
+	for (size_t i = 0; i < pointsRight.size() ; i++)
+	{
+		vertices.push_back(pointsRight[i].x);
+		vertices.push_back(pointsRight[i].y);
+		vertices.push_back(pointsRight[i].z);
 	}
 
 	glBindVertexArray(VAO);
@@ -2194,7 +2192,7 @@ TwoSurfacesState Intersection::RunMonteCarlo(TwoSurfacesState state, float width
 	return bestGuess;
 }
 
-ParamDirection Intersection::ComputeTangent(const TwoSurfacesState& state)
+ParamDirection Intersection::ComputeTangent(const TwoSurfacesState& state, bool reverse)
 {
 	aa::vec3 Su = state.first->Du(state.u1, state.v1);
 	aa::vec3 Sv = state.first->Dv(state.u1, state.v1);
@@ -2206,8 +2204,9 @@ ParamDirection Intersection::ComputeTangent(const TwoSurfacesState& state)
 	aa::vec3 N2 = aa::cross(Ts, Tt);
 
 	aa::vec3 curveTangent = cross(N1, N2);
-	if (aa::dot(curveTangent, previousCurveTangent) < 0)
+	if (reverse || aa::dot(curveTangent, previousCurveTangent) < 0)
 		curveTangent = -curveTangent;
+	previousCurveTangent = curveTangent;
 
 	auto firstDir =
 		SolveSurfaceTangent(Su, Sv, curveTangent);
@@ -2248,6 +2247,180 @@ ParamDirection2D Intersection::SolveSurfaceTangent(const aa::vec3& Su, const aa:
 	result.dv = (a11 * b2 - a12 * b1) / det;
 
 	return result;
+}
+
+TwoSurfacesState Intersection::NewtonCorrect(TwoSurfacesState state, const ParamDirection& dir)
+{
+	float u1 = state.u1;
+	float v1 = state.v1;
+	float u2 = state.u2;
+	float v2 = state.v2;
+	for (int iter = 0; iter < 6; iter++)
+	{
+		aa::vec3 P1 = firstSurface->Evaluate(u1, v1);
+		aa::vec3 P2 = secondSurface->Evaluate(u2, v2);
+
+		aa::vec3 F = P1 - P2;
+
+		aa::vec3 Su = firstSurface->Du(u1, v1);
+		aa::vec3 Sv = firstSurface->Dv(u1, v1);
+
+		aa::vec3 Tu = secondSurface->Du(u2, v2);
+		aa::vec3 Tv = secondSurface->Dv(u2, v2);
+
+		float du1, dv1, du2, dv2;
+
+		if (!SolveGaussNewtonStep(Su, Sv, Tu, Tv, F,
+			du1, dv1, du2, dv2))
+			break;
+		// line search / damping to improve convergence and avoid large steps
+		float prevResidual = aa::length(F);
+		float alpha = 1.0f;
+		float newResidual = prevResidual;
+		float bestU1 = u1, bestV1 = v1, bestU2 = u2, bestV2 = v2;
+		for (int ls = 0; ls < 6; ++ls)
+		{
+			float candU1 = aa::clip(u1 + alpha * du1, 0.0f, 1.0f);
+			float candV1 = aa::clip(v1 + alpha * dv1, 0.0f, 1.0f);
+			float candU2 = aa::clip(u2 + alpha * du2, 0.0f, 1.0f);
+			float candV2 = aa::clip(v2 + alpha * dv2, 0.0f, 1.0f);
+
+			aa::vec3 P1c = firstSurface->Evaluate(candU1, candV1);
+			aa::vec3 P2c = secondSurface->Evaluate(candU2, candV2);
+			float res = aa::length(P1c - P2c);
+			if (res < newResidual)
+			{
+				newResidual = res;
+				bestU1 = candU1; bestV1 = candV1; bestU2 = candU2; bestV2 = candV2;
+				// accept and try larger alpha (not increasing here), break to apply
+				break;
+			}
+			alpha *= 0.5f;
+		}
+
+		// apply best candidate
+		u1 = bestU1;
+		v1 = bestV1;
+		u2 = bestU2;
+		v2 = bestV2;
+
+		if (newResidual < 1e-5f)
+			break;
+	}
+
+	TwoSurfacesState out = state;
+	out.u1 = u1;
+	out.v1 = v1;
+	out.u2 = u2;
+	out.v2 = v2;
+	return out;
+}
+
+bool Intersection::SolveGaussNewtonStep(
+	const aa::vec3& Su, const aa::vec3& Sv,
+	const aa::vec3& Tu, const aa::vec3& Tv,
+	const aa::vec3& F,
+	float& du1, float& dv1,
+	float& du2, float& dv2)
+{
+	// J columns
+	aa::vec3 J1 = Su;
+	aa::vec3 J2 = Sv;
+	aa::vec3 J3 = -1.0f * Tu;
+	aa::vec3 J4 = -1.0f * Tv;
+
+	// JT*F
+	float b1 = aa::dot(J1, F);
+	float b2 = aa::dot(J2, F);
+	float b3 = aa::dot(J3, F);
+	float b4 = aa::dot(J4, F);
+
+	// J^T J matrix
+	float A[4][4];
+
+	aa::vec3 cols[4] = { J1, J2, J3, J4 };
+
+	for (int i = 0; i < 4; i++)
+		for (int j = 0; j < 4; j++)
+			A[i][j] = aa::dot(cols[i], cols[j]);
+
+	float B[4] = { -b1, -b2, -b3, -b4 };
+
+	// Gaussian elimination (4x4)
+	float M[4][5];
+
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+			M[i][j] = A[i][j];
+		M[i][4] = B[i];
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		float pivot = M[i][i];
+		if (fabs(pivot) < 1e-8f) return false;
+
+		for (int j = i; j < 5; j++)
+			M[i][j] /= pivot;
+
+		for (int k = 0; k < 4; k++)
+		{
+			if (k == i) continue;
+			float f = M[k][i];
+			for (int j = i; j < 5; j++)
+				M[k][j] -= f * M[i][j];
+		}
+	}
+
+	du1 = M[0][4];
+	dv1 = M[1][4];
+	du2 = M[2][4];
+	dv2 = M[3][4];
+
+	return true;
+}
+
+std::vector<aa::vec3> Intersection::GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse)
+{
+	std::vector<aa::vec3> followingPoints;
+	float h = 0.1f;
+	for (size_t i = 0; i < 100; i++)
+	{
+		ParamDirection param = ComputeTangent(bestGuess, reverse);
+		reverse = false;
+
+		TwoSurfacesState predicted = bestGuess;
+		predicted.u1 += param.du1 * h;
+		predicted.v1 += param.dv1 * h;
+		predicted.u2 += param.du2 * h;
+		predicted.v2 += param.dv2 * h;
+
+		// Newton correction
+		bestGuess = NewtonCorrect(predicted, param);
+
+		aa::vec3 point1 = firstSurface->Evaluate(bestGuess.u1, bestGuess.v1);
+		followingPoints.push_back(point1);
+
+		// Check if we left one of the surfaces
+
+		if (bestGuess.u1 > 1.0f || bestGuess.u1 < 0.0f ||
+			bestGuess.v1 > 1.0f || bestGuess.v1 < 0.0f ||
+			bestGuess.u2 > 1.0f || bestGuess.u2 < 0.0f ||
+			bestGuess.v2 > 1.0f || bestGuess.v2 < 0.0f)
+		{
+			break;
+		}
+
+		// Correct h factor for next iteration:
+		//h *= 0.1f / aa::distance(previousPoint, point1);
+
+		//point2 = secondSurface->Evaluate(bestGuess.u2, bestGuess.v2);
+		//vertices.push_back(point2.x);
+		//vertices.push_back(point2.y);
+		//vertices.push_back(point2.z);
+	}
+	return followingPoints;
 }
 
 // Grid class functions
