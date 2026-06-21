@@ -69,6 +69,22 @@ namespace aa {
 		return sqrt(dot(path, path));
 	}
 
+	float distance_2(vec2 a, vec2 b)
+	{
+		vec2 path = b - a;
+		return dot(path, path);
+	}
+	float distance_2(vec3 a, vec3 b)
+	{
+		vec3 path = b - a;
+		return dot(path, path);
+	}
+	float distance_2(vec4 a, vec4 b)
+	{
+		vec4 path = b - a;
+		return dot(path, path);
+	}
+
 	vec2 normalize(vec2 a)
 	{
 		float magnitude = length(a);

@@ -338,6 +338,10 @@ namespace aa {
 	float distance(vec2 a, vec2 b);
 	float distance(vec3 a, vec3 b);
 	float distance(vec4 a, vec4 b);
+	
+	float distance_2(vec2 a, vec2 b);
+	float distance_2(vec3 a, vec3 b);
+	float distance_2(vec4 a, vec4 b);
 
 	vec2 normalize(vec2 a);
 	vec3 normalize(vec3 a);

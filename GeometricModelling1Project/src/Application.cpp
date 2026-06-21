@@ -560,6 +560,9 @@ int main()
 	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 	glViewport(0, 0, fbWidth, fbHeight);
 
+	// Initialize random
+	srand(time(NULL));
+
 	//ImGui
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -736,7 +739,7 @@ int main()
 		}
 		ImGui::Separator();
 		ImGui::Text("Add objects");
-		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Bezier C0", "Bezier C1", "Bezier C2", "Interpolating Curve", "Bezier Surface", "Gregory Patch", "Future objects..."};
+		const char* items[] = { "Torus", "Ellipsoid", "Point", "Polyline", "Bezier C0", "Bezier C1", "Bezier C2", "Interpolating Curve", "Bezier Surface", "Gregory Patch", "Intersection Curve", "Future objects..."};
 		ImGui::Combo("Shapes", &(scene->currentItemSelectedForAdding), items, IM_ARRAYSIZE(items));
 		if (scene->currentItemSelectedForAdding == 8)
 		{

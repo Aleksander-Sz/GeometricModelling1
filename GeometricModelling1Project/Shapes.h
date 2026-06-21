@@ -323,6 +323,54 @@ public:
 	aa::vec3 getPosition() override;
 };
 
+// Intersection
+
+struct TwoSurfacesState
+{
+	ISurface* first;
+	ISurface* second;
+	float u1;
+	float v1;
+	float u2;
+	float v2;
+};
+struct ParamDirection
+{
+	float du1;
+	float dv1;
+	float du2;
+	float dv2;
+};
+struct ParamDirection2D
+{
+	float du;
+	float dv;
+};
+
+class Intersection : public Meshable
+{
+public:
+	Intersection(ISurface* first, ISurface* second);
+	~Intersection();
+	void Mesh() override;
+	void PrintImGuiOptions() override;
+	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override;
+	void Translate(aa::vec3 t) override;
+	void ConfirmTransformations() override;
+	void CancelTransformations() override;
+	void Serialize(nlohmann::json& j) override;
+	void Draw() override;
+private:
+	ISurface* firstSurface;
+	ISurface* secondSurface;
+	float MeasureDistance2(TwoSurfacesState state);
+	TwoSurfacesState RunMonteCarlo(TwoSurfacesState state, float width);
+	ParamDirection ComputeTangent(const TwoSurfacesState& state);
+	ParamDirection2D SolveSurfaceTangent(const aa::vec3& Su, const aa::vec3& Sv, const aa::vec3& curveTangent);
+	aa::vec3 previousCurveTangent = aa::vec3(0.0f, 0.0f, 0.0f);
+};
+
 // Auxiliary shapes
 
 class Grid

@@ -1423,8 +1423,12 @@ aa::vec3 BezierSurface::Evaluate(float u, float v)
 		float localV = globalV - patchV;
 		for (size_t i = 0; i < 4; i++)
 		{
-			// 4 bezier curves
-			p[i] = aa::bezier(controlPoints[pointOffsetU + i][pointOffsetV], controlPoints[pointOffsetU + i][pointOffsetV + 1], controlPoints[pointOffsetU + i][pointOffsetV + 2], controlPoints[pointOffsetU + i][pointOffsetV + 3], localV);
+			// 4 bezier curves: fetch actual control point positions
+			aa::vec3 c0 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV])->getPosition();
+			aa::vec3 c1 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV + 1])->getPosition();
+			aa::vec3 c2 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV + 2])->getPosition();
+			aa::vec3 c3 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV + 3])->getPosition();
+			p[i] = aa::bezier(c0, c1, c2, c3, localV);
 		}
 		point = aa::bezier(p[0], p[1], p[2], p[3], localU);
 	}
@@ -1455,12 +1459,11 @@ aa::vec3 BezierSurface::Du(float u, float v)
 
 	for (size_t i = 0; i < 4; i++)
 	{
-		p[i] = aa::bezier(
-			controlPoints[offsetU + i][offsetV],
-			controlPoints[offsetU + i][offsetV + 1],
-			controlPoints[offsetU + i][offsetV + 2],
-			controlPoints[offsetU + i][offsetV + 3],
-			localV);
+		aa::vec3 c0 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV])->getPosition();
+		aa::vec3 c1 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 1])->getPosition();
+		aa::vec3 c2 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 2])->getPosition();
+		aa::vec3 c3 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 3])->getPosition();
+		p[i] = aa::bezier(c0, c1, c2, c3, localV);
 	}
 
 	return patchCountU * aa::bezier_derivative(
@@ -1492,12 +1495,11 @@ aa::vec3 BezierSurface::Dv(float u, float v)
 
 	for (size_t i = 0; i < 4; i++)
 	{
-		dp[i] = aa::bezier_derivative(
-			controlPoints[offsetU + i][offsetV],
-			controlPoints[offsetU + i][offsetV + 1],
-			controlPoints[offsetU + i][offsetV + 2],
-			controlPoints[offsetU + i][offsetV + 3],
-			localV);
+		aa::vec3 c0 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV])->getPosition();
+		aa::vec3 c1 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 1])->getPosition();
+		aa::vec3 c2 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 2])->getPosition();
+		aa::vec3 c3 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 3])->getPosition();
+		dp[i] = aa::bezier_derivative(c0, c1, c2, c3, localV);
 	}
 
 	return patchCountV * aa::bezier(
@@ -2011,6 +2013,241 @@ aa::vec3 GregoryPatch::getPosition()
 	}
 	averagePosition /= (float)n;
 	return averagePosition;
+}
+
+// Intersection class functions
+
+Intersection::Intersection(ISurface* first, ISurface* second)
+{
+	firstSurface = first;
+	secondSurface = second;
+	shapeName = "Intersection Curve";
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+	Mesh();
+}
+
+Intersection::~Intersection()
+{
+	;
+}
+
+void Intersection::Mesh()
+{
+	dirty = false;
+	// First let's use Monte Carlo to find our initial guess
+	float distance = 1.0f;
+	TwoSurfacesState bestGuess;
+	bestGuess.first = firstSurface;
+	bestGuess.second = secondSurface;
+	bestGuess.u1 = 0.5f;
+	bestGuess.v1 = 0.5f;
+	bestGuess.u2 = 0.5f;
+	bestGuess.v2 = 0.5f;
+	float width = 0.5f;
+	size_t counter = 0;
+	while (distance > 0.0000005f)
+	{
+		bestGuess = RunMonteCarlo(bestGuess, width);
+		distance = MeasureDistance2(bestGuess);
+		width /= 2.0f;
+		counter++;
+		if (counter > 20) // some limit for Monte Carlo iterations
+		{
+			break;
+		}
+	}
+	// We have the initial guess
+	aa::vec3 point1 = bestGuess.first->Evaluate(bestGuess.u1, bestGuess.v1);
+	aa::vec3 point2 = bestGuess.second->Evaluate(bestGuess.u2, bestGuess.v2);
+	float u = bestGuess.u1;
+	float v = bestGuess.v1; // I need to add Newton here!!! TODO
+	float s = bestGuess.u2;
+	float t = bestGuess.v2;
+	std::cout << "Point1: " << point1.x << ", " << point1.y << ", " << point1.z << ", u: " << bestGuess.u1 << ", v: " << bestGuess.v1 << "\n";
+	std::cout << "Point1: " << point2.x << ", " << point2.y << ", " << point2.z << ", u: " << bestGuess.u2 << ", v: " << bestGuess.v2 << "\n";
+	vertices.push_back(point1.x);
+	vertices.push_back(point1.y);
+	vertices.push_back(point1.z);
+	vertices.push_back(point2.x);
+	vertices.push_back(point2.y);
+	vertices.push_back(point2.z);
+
+	// Now let's walk along the line:
+	for (size_t i = 0; i < 10; i++)
+	{
+		ParamDirection param = ComputeTangent(bestGuess);
+		u += param.du1;
+		v += param.dv1;
+		s += param.du2;
+		t += param.dv2;
+		bestGuess.u1 = u;
+		bestGuess.v1 = v;
+		bestGuess.u2 = s;
+		bestGuess.v2 = t;
+		point1 = firstSurface->Evaluate(bestGuess.u1, bestGuess.v1);
+		vertices.push_back(point1.x);
+		vertices.push_back(point1.y);
+		vertices.push_back(point1.z);
+		point2 = secondSurface->Evaluate(bestGuess.u2, bestGuess.v2);
+		vertices.push_back(point2.x);
+		vertices.push_back(point2.y);
+		vertices.push_back(point2.z);
+	}
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+}
+
+void Intersection::PrintImGuiOptions()
+{
+	;
+}
+
+void Intersection::Scale(aa::vec3 s, aa::vec3 origin)
+{
+	;
+}
+
+void Intersection::Rotate(float angle, aa::Axis axis, aa::vec3 pivot)
+{
+	;
+}
+
+void Intersection::Translate(aa::vec3 t)
+{
+	;
+}
+
+void Intersection::ConfirmTransformations()
+{
+	;
+}
+
+void Intersection::CancelTransformations()
+{
+	;
+}
+
+void Intersection::Serialize(nlohmann::json& j)
+{
+	j = NULL;
+}
+
+void Intersection::Draw()
+{
+	if (dirty)
+		Mesh();
+	shader.use();
+	glBindVertexArray(VAO);
+	shader.setMat4("model", aa::mat4(1.0f));
+	glPointSize(10.0f);
+	shader.setVec3("color", aa::vec3(0.0f, 1.0f, 0.0f));
+	glDrawArrays(GL_POINTS, 0, vertices.size() / 3);
+	glBindVertexArray(0);
+}
+
+float Intersection::MeasureDistance2(TwoSurfacesState state)
+{
+	aa::vec3 point1 = state.first->Evaluate(state.u1, state.v1);
+	aa::vec3 point2 = state.second->Evaluate(state.u2, state.v2);
+	return aa::distance_2(point1, point2);
+}
+
+TwoSurfacesState Intersection::RunMonteCarlo(TwoSurfacesState state, float width)
+{
+	// The range we will be looking in:
+	float u1min = std::max(state.u1 - width, 0.0f);
+	float v1min = std::max(state.v1 - width, 0.0f);
+	float u2min = std::max(state.u2 - width, 0.0f);
+	float v2min = std::max(state.v2 - width, 0.0f);
+	float u1max = std::min(state.u1 + width, 1.0f);
+	float v1max = std::min(state.v1 + width, 1.0f);
+	float u2max = std::min(state.u2 + width, 1.0f);
+	float v2max = std::min(state.v2 + width, 1.0f);
+	float u1range = u1max - u1min;
+	float v1range = v1max - v1min;
+	float u2range = u2max - u2min;
+	float v2range = v2max - v2min;
+	TwoSurfacesState bestGuess = state;
+	TwoSurfacesState newGuess = bestGuess;
+	float minDistance = std::numeric_limits<float>::max();
+	for (size_t i = 0; i < 500; i++)
+	{
+		newGuess.u1 = static_cast <float>(rand()) / static_cast <float>(RAND_MAX) * u1range + u1min;
+		newGuess.v1 = static_cast <float>(rand()) / static_cast <float>(RAND_MAX) * v1range + v1min;
+		newGuess.u2 = static_cast <float>(rand()) / static_cast <float>(RAND_MAX) * u2range + u2min;
+		newGuess.v2 = static_cast <float>(rand()) / static_cast <float>(RAND_MAX) * v2range + v2min;
+		float newDistance = MeasureDistance2(newGuess);
+		if (newDistance < minDistance)
+		{
+			minDistance = newDistance;
+			bestGuess = newGuess;
+		}
+	}
+	return bestGuess;
+}
+
+ParamDirection Intersection::ComputeTangent(const TwoSurfacesState& state)
+{
+	aa::vec3 Su = state.first->Du(state.u1, state.v1);
+	aa::vec3 Sv = state.first->Dv(state.u1, state.v1);
+
+	aa::vec3 Ts = state.second->Du(state.u2, state.v2);
+	aa::vec3 Tt = state.second->Dv(state.u2, state.v2);
+
+	aa::vec3 N1 = aa::cross(Su, Sv);
+	aa::vec3 N2 = aa::cross(Ts, Tt);
+
+	aa::vec3 curveTangent = cross(N1, N2);
+	if (aa::dot(curveTangent, previousCurveTangent) < 0)
+		curveTangent = -curveTangent;
+
+	auto firstDir =
+		SolveSurfaceTangent(Su, Sv, curveTangent);
+
+	auto secondDir =
+		SolveSurfaceTangent(Ts, Tt, curveTangent);
+	
+	ParamDirection dir;
+	dir.du1 = firstDir.du;
+	dir.dv1 = firstDir.dv;
+	dir.du2 = secondDir.du;
+	dir.dv2 = secondDir.dv;
+	return dir;
+}
+
+ParamDirection2D Intersection::SolveSurfaceTangent(const aa::vec3& Su, const aa::vec3& Sv, const aa::vec3& curveTangent)
+{
+	float a11 = aa::dot(Su, Su);
+	float a12 = aa::dot(Su, Sv);
+	float a22 = aa::dot(Sv, Sv);
+
+	float b1 = aa::dot(Su, curveTangent);
+	float b2 = aa::dot(Sv, curveTangent);
+
+	float det = a11 * a22 - a12 * a12;
+
+	ParamDirection2D result{};
+
+	if (std::abs(det) < 1e-8f)
+	{
+		// Surface derivatives are nearly linearly dependent.
+		result.du = 0.0f;
+		result.dv = 0.0f;
+		return result;
+	}
+
+	result.du = (b1 * a22 - b2 * a12) / det;
+	result.dv = (a11 * b2 - a12 * b1) / det;
+
+	return result;
 }
 
 // Grid class functions

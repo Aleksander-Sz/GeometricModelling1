@@ -1049,6 +1049,37 @@ void Scene::AddShape()
         isADerivedShape = true;
     }
     break;
+    case 10: // Intersection Curve
+    {
+        // First, I need to identify the selected surfaces
+        std::vector<ISurface*> selectedSurfaces;
+        for (int i = 1; i < shapes.size(); i++)
+        {
+            Shape* pointer1 = ShapeTable::GetShapeByID(shapes[i]);
+            if (pointer1->isSelected())
+            {
+                ISurface* pointer2 = dynamic_cast<ISurface*>(pointer1);
+                if (pointer2 != nullptr)
+                    selectedSurfaces.push_back(pointer2);
+            }
+        }
+        if (selectedSurfaces.size() <= 0)
+            break; // no surfaces selected, can't create an intersection
+        Intersection* newIntersection;
+        if (selectedSurfaces.size() == 1)
+        {
+            // Self intersection
+            newIntersection = new Intersection(selectedSurfaces[0], selectedSurfaces[0]);
+        }
+        else
+        {
+            // Intersection between two shapes
+            newIntersection = new Intersection(selectedSurfaces[0], selectedSurfaces[1]);
+        }
+        shapes.push_back(ShapeTable::AddShape(newIntersection));
+        isADerivedShape = true;
+    }
+    break;
     default:
         std::cerr << "Shape not implemented yet.\n";
         wasAShapeAdded = false;
