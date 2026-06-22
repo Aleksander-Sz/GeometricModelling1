@@ -1077,6 +1077,7 @@ void Scene::AddShape()
             newIntersection = new Intersection(selectedSurfaces[0], selectedSurfaces[1]);
         }
         shapes.push_back(ShapeTable::AddShape(newIntersection));
+        newIntersection->setTessellationShader(tessellationShader);
         isADerivedShape = true;
     }
     break;

@@ -192,6 +192,8 @@ void Meshable::Draw()
 		thisBC->tessellationShader.setMat4("model", model);
 		glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
 		thisBC->tessellationShader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
+		if (shapeName == "__INTERSECTION__")
+			thisBC->tessellationShader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 0.5f, 0.5f)));
 		glPatchParameteri(GL_PATCH_VERTICES, 4);
 		thisBC->tessellationShader.setVec2("tRange", aa::vec2(0.0f, 0.5f));
 		glDrawElements(GL_PATCHES, indices.size(), GL_UNSIGNED_INT, 0);
@@ -1008,6 +1010,18 @@ void BezierCurveC2::Serialize(nlohmann::json& j)
 }
 
 // Interpolating Curve class functions
+
+InterpolatingCurve::~InterpolatingCurve()
+{
+	if (shapeName == "__INTERSECTION__")
+	{
+		for (size_t i = 0; i < points.size(); i++)
+		{
+			ShapeTable::RemoveShape(points[i]);
+		}
+	}
+}
+
 void InterpolatingCurve::Mesh()
 {
 	dirty = false;
@@ -2030,7 +2044,7 @@ Intersection::Intersection(ISurface* first, ISurface* second)
 
 Intersection::~Intersection()
 {
-	;
+	delete curve;
 }
 
 void Intersection::Mesh()
@@ -2077,22 +2091,39 @@ void Intersection::Mesh()
 	// Now let's walk along the line:
 	std::vector<aa::vec3> pointsRight = GetThePointsInOneDirection(bestGuess, point1, false);
 	std::vector<aa::vec3> pointsLeft = GetThePointsInOneDirection(bestGuess, point1, true);
+	
+	std::vector<int> allPoints;
 
+	Point* pointerPoint;
 	for (int i = pointsLeft.size() - 1; i >= 0 ; i--)
 	{
+		pointerPoint = new Point(aa::vec3(0.0f));
+		pointerPoint->TranslateAndConfirm(pointsLeft[i]);
+		allPoints.push_back(ShapeTable::AddShape(pointerPoint));
 		vertices.push_back(pointsLeft[i].x);
 		vertices.push_back(pointsLeft[i].y);
 		vertices.push_back(pointsLeft[i].z);
 	}
+	pointerPoint = new Point(aa::vec3(0.0f));
+	pointerPoint->TranslateAndConfirm(point1);
+	allPoints.push_back(ShapeTable::AddShape(pointerPoint));
 	vertices.push_back(point1.x);
 	vertices.push_back(point1.y);
 	vertices.push_back(point1.z);
 	for (size_t i = 0; i < pointsRight.size() ; i++)
 	{
+		pointerPoint = new Point(aa::vec3(0.0f));
+		pointerPoint->TranslateAndConfirm(pointsRight[i]);
+		allPoints.push_back(ShapeTable::AddShape(pointerPoint));
 		vertices.push_back(pointsRight[i].x);
 		vertices.push_back(pointsRight[i].y);
 		vertices.push_back(pointsRight[i].z);
 	}
+
+	if (curve != nullptr)
+		delete curve;
+	curve = new InterpolatingCurve(allPoints);
+	curve->setName("__INTERSECTION__");
 
 	glBindVertexArray(VAO);
 
@@ -2105,7 +2136,7 @@ void Intersection::Mesh()
 
 void Intersection::PrintImGuiOptions()
 {
-	;
+	ImGui::Checkbox("Display intersection points", &displayPoints);
 }
 
 void Intersection::Scale(aa::vec3 s, aa::vec3 origin)
@@ -2142,13 +2173,27 @@ void Intersection::Draw()
 {
 	if (dirty)
 		Mesh();
-	shader.use();
-	glBindVertexArray(VAO);
-	shader.setMat4("model", aa::mat4(1.0f));
-	glPointSize(10.0f);
-	shader.setVec3("color", aa::vec3(0.0f, 1.0f, 0.0f));
-	glDrawArrays(GL_POINTS, 0, vertices.size() / 3);
-	glBindVertexArray(0);
+	if (displayPoints)
+	{
+		shader.use();
+		glBindVertexArray(VAO);
+		shader.setMat4("model", aa::mat4(1.0f));
+		glPointSize(10.0f);
+		shader.setVec3("color", aa::vec3(0.0f, 1.0f, 0.0f));
+		glDrawArrays(GL_POINTS, 0, vertices.size() / 3);
+		glBindVertexArray(0);
+	}
+	curve->setTessellationShader(tessellationShader);
+	curve->setShader(shader);
+	curve->Select(true);
+	if (selected)
+		curve->Select();
+	curve->Draw();
+}
+
+void Intersection::setTessellationShader(Shader& _shader)
+{
+	tessellationShader = _shader;
 }
 
 float Intersection::MeasureDistance2(TwoSurfacesState state)
@@ -2161,6 +2206,16 @@ float Intersection::MeasureDistance2(TwoSurfacesState state)
 	aa::vec3 point1 = state.first->Evaluate(state.u1, state.v1);
 	aa::vec3 point2 = state.second->Evaluate(state.u2, state.v2);
 	return aa::distance_2(point1, point2);
+}
+
+void swap(float& u1, float& v1, float& u2, float& v2)
+{
+	float temp = u1;
+	u1 = u2;
+	u2 = temp;
+	temp = v1;
+	v1 = v2;
+	v2 = temp;
 }
 
 TwoSurfacesState Intersection::RunMonteCarlo(TwoSurfacesState state, float width)
@@ -2180,6 +2235,8 @@ TwoSurfacesState Intersection::RunMonteCarlo(TwoSurfacesState state, float width
 	float v2range = v2max - v2min;
 	TwoSurfacesState bestGuess = state;
 	TwoSurfacesState newGuess = bestGuess;
+	Cursor cursor = Cursor::getInstance();
+	float lambda = 0.4f;
 	float minDistance = std::numeric_limits<float>::max();
 	for (size_t i = 0; i < 500; i++)
 	{
@@ -2187,7 +2244,14 @@ TwoSurfacesState Intersection::RunMonteCarlo(TwoSurfacesState state, float width
 		newGuess.v1 = static_cast <float>(rand()) / static_cast <float>(RAND_MAX) * v1range + v1min;
 		newGuess.u2 = static_cast <float>(rand()) / static_cast <float>(RAND_MAX) * u2range + u2min;
 		newGuess.v2 = static_cast <float>(rand()) / static_cast <float>(RAND_MAX) * v2range + v2min;
+		if (firstSurface == secondSurface)
+		{
+			if (newGuess.u1 > newGuess.u2 || (newGuess.u1 == newGuess.u2 && newGuess.v1 > newGuess.v2))
+				swap(newGuess.u1, newGuess.v1, newGuess.u2, newGuess.v2);
+		}
 		float newDistance = MeasureDistance2(newGuess);
+		// Include the cursor heuristic
+		//newDistance += lambda * aa::distance_2((firstSurface->Evaluate(newGuess.u1, newGuess.v1) + firstSurface->Evaluate(newGuess.u1, newGuess.v1)) / 2.0f, cursor.getPosition());
 		if (newDistance < minDistance)
 		{
 			minDistance = newDistance;

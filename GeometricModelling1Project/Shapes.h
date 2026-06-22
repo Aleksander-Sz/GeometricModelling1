@@ -215,6 +215,7 @@ class InterpolatingCurve : public BezierCurveC2
 {
 	public:
 	InterpolatingCurve(std::vector<int> _points) : BezierCurveC2(_points) { shapeName = "Interpolating Curve"; Mesh(); };
+	~InterpolatingCurve();
 	void Mesh() override;
 	void Serialize(nlohmann::json& j) override;
 };
@@ -361,6 +362,8 @@ public:
 	void CancelTransformations() override;
 	void Serialize(nlohmann::json& j) override;
 	void Draw() override;
+	void setTessellationShader(Shader& _shader);
+	bool displayPoints = false;
 private:
 	ISurface* firstSurface;
 	ISurface* secondSurface;
@@ -374,6 +377,8 @@ private:
 		const aa::vec3& F, float& du1, float& dv1, float& du2, float& dv2);
 	std::vector<aa::vec3> GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse);
 	float distance_uv(float u1, float v1, float u2, float v2);
+	InterpolatingCurve* curve = nullptr;
+	Shader tessellationShader;
 };
 
 // Auxiliary shapes
