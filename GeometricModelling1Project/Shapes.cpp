@@ -491,6 +491,39 @@ void Torus::Serialize(nlohmann::json& j)
 	j["samples"] = { { "u", s1 }, { "v", s2 } };
 }
 
+aa::vec3 Torus::Evaluate(float u, float v)
+{
+	float phi = u * 2.0f * 3.14159265359f;
+	float theta = v * 2.0f * 3.14159265359f;
+	float x = (R + r * cos(theta)) * cos(phi);
+	float y = (R + r * cos(theta)) * sin(phi);
+	float z = r * sin(theta);
+	aa::vec4 localPos = aa::vec4(x, y, z, 1.0f);
+	return (model * localPos).xyz;
+}
+
+aa::vec3 Torus::Du(float u, float v)
+{
+	float phi = u * 2.0f * 3.14159265359f;
+	float theta = v * 2.0f * 3.14159265359f;
+	float x = -(R + r * cos(theta)) * sin(phi);
+	float y = (R + r * cos(theta)) * cos(phi);
+	float z = 0.0f;
+	aa::vec4 localDu = aa::vec4(x, y, z, 0.0f) * (2.0f * 3.14159265359f);
+	return (model * localDu).xyz;
+}
+
+aa::vec3 Torus::Dv(float u, float v)
+{
+	float phi = u * 2.0f * 3.14159265359f;
+	float theta = v * 2.0f * 3.14159265359f;
+	float x = -r * sin(theta) * cos(phi);
+	float y = -r * sin(theta) * sin(phi);
+	float z = r * cos(theta);
+	aa::vec4 localDv = aa::vec4(x, y, z, 0.0f) * (2.0f * 3.14159265359f);
+	return (model * localDv).xyz;
+}
+
 Ellipsoid::Ellipsoid(float _a, float _b, float _c, unsigned int _s)
 {
 	shapeName = "Ellipsoid";
@@ -1184,6 +1217,11 @@ BezierSurface::BezierSurface(aa::vec3 position, int a, int b, float dimensionX, 
 				position.y += stepZ;
 			}
 		}
+		for (size_t i = 0; i < (isC2 ? 3 : 1); i++)
+		{
+			controlPoints.push_back(controlPoints[i]);
+		}
+		isCylinder = false;
 	}
 	else
 	{
@@ -1414,38 +1452,55 @@ aa::vec3 BezierSurface::Evaluate(float u, float v)
 {
 	// first we need to decide which control points we will use, depending on the parameters and number of subsurfaces
 	aa::vec3 p[4], point;
+	size_t patchCountU;
+	size_t patchCountV;
+	size_t pointOffsetU;
+	size_t pointOffsetV;
 	if (isC2)
 	{
-		size_t patchCountU = controlPoints.size() - 3;
-		size_t patchCountV = controlPoints[0].size() - 3;
+		patchCountU = controlPoints.size() - 3;
+		patchCountV = controlPoints[0].size() - 3;
+		pointOffsetU = (size_t)(floor(patchCountU * u));
+		pointOffsetV = (size_t)(floor(patchCountV * v));
+		if (pointOffsetU > (patchCountU - 1))
+			pointOffsetU = (patchCountU - 1);
+		if (pointOffsetV > (patchCountV - 1))
+			pointOffsetV = (patchCountV - 1);
 	}
 	else
 	{
-		size_t patchCountU = controlPoints.size() / 3;
-		size_t patchCountV = controlPoints[0].size() / 3;
-		size_t pointOffsetU = (size_t)(floor(patchCountU * u)) * 3;
-		size_t pointOffsetV = (size_t)(floor(patchCountV * v)) * 3;
+		patchCountU = controlPoints.size() / 3;
+		patchCountV = controlPoints[0].size() / 3;
+		pointOffsetU = (size_t)(floor(patchCountU * u)) * 3;
+		pointOffsetV = (size_t)(floor(patchCountV * v)) * 3;
 		if (pointOffsetU > (patchCountU - 1) * 3)
 			pointOffsetU = (patchCountU - 1) * 3;
 		if (pointOffsetV > (patchCountV - 1) * 3)
 			pointOffsetV = (patchCountV - 1) * 3;
-		float globalU = patchCountU * u;
-		size_t patchU = std::min((size_t)floor(globalU), patchCountU - 1);
-		float localU = globalU - patchU;
-		float globalV = patchCountV * v;
-		size_t patchV = std::min((size_t)floor(globalV), patchCountV - 1);
-		float localV = globalV - patchV;
-		for (size_t i = 0; i < 4; i++)
-		{
-			// 4 bezier curves: fetch actual control point positions
-			aa::vec3 c0 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV])->getPosition();
-			aa::vec3 c1 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV + 1])->getPosition();
-			aa::vec3 c2 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV + 2])->getPosition();
-			aa::vec3 c3 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV + 3])->getPosition();
-			p[i] = aa::bezier(c0, c1, c2, c3, localV);
-		}
-		point = aa::bezier(p[0], p[1], p[2], p[3], localU);
 	}
+	float globalU = patchCountU * u;
+	size_t patchU = std::min((size_t)floor(globalU), patchCountU - 1);
+	float localU = globalU - patchU;
+	float globalV = patchCountV * v;
+	size_t patchV = std::min((size_t)floor(globalV), patchCountV - 1);
+	float localV = globalV - patchV;
+	for (size_t i = 0; i < 4; i++)
+	{
+		// 4 bezier curves: fetch actual control point positions
+		aa::vec3 c0 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV])->getPosition();
+		aa::vec3 c1 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV + 1])->getPosition();
+		aa::vec3 c2 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV + 2])->getPosition();
+		aa::vec3 c3 = ShapeTable::GetShapeByID(controlPoints[pointOffsetU + i][pointOffsetV + 3])->getPosition();
+		if (isC2)
+			p[i] = aa::bspline(c0, c1, c2, c3, localV);
+		else
+			p[i] = aa::bezier(c0, c1, c2, c3, localV);
+	}
+	if (isC2)
+		point = aa::bspline(p[0], p[1], p[2], p[3], localU);
+	else
+		point = aa::bezier(p[0], p[1], p[2], p[3], localU);
+
 	return point;
 }
 
@@ -1453,8 +1508,19 @@ aa::vec3 BezierSurface::Du(float u, float v)
 {
 	aa::vec3 p[4];
 
-	size_t patchCountU = controlPoints.size() / 3;
-	size_t patchCountV = controlPoints[0].size() / 3;
+	size_t patchCountU;
+	size_t patchCountV;
+	
+	if (isC2)
+	{
+		patchCountU = controlPoints.size() - 3;
+		patchCountV = controlPoints[0].size() - 3;
+	}
+	else
+	{
+		patchCountU = controlPoints.size() / 3;
+		patchCountV = controlPoints[0].size() / 3;
+	}
 
 	float globalU = patchCountU * u;
 	float globalV = patchCountV * v;
@@ -1468,8 +1534,14 @@ aa::vec3 BezierSurface::Du(float u, float v)
 	float localU = globalU - patchU;
 	float localV = globalV - patchV;
 
-	size_t offsetU = patchU * 3;
-	size_t offsetV = patchV * 3;
+	size_t offsetU = patchU;
+	size_t offsetV = patchV;
+
+	if (!isC2)
+	{
+		offsetU *= 3;
+		offsetV *= 3;
+	}
 
 	for (size_t i = 0; i < 4; i++)
 	{
@@ -1477,20 +1549,34 @@ aa::vec3 BezierSurface::Du(float u, float v)
 		aa::vec3 c1 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 1])->getPosition();
 		aa::vec3 c2 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 2])->getPosition();
 		aa::vec3 c3 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 3])->getPosition();
-		p[i] = aa::bezier(c0, c1, c2, c3, localV);
+		if(isC2)
+			p[i] = aa::bspline(c0, c1, c2, c3, localV);
+		else
+			p[i] = aa::bezier(c0, c1, c2, c3, localV);
 	}
-
-	return patchCountU * aa::bezier_derivative(
-		p[0], p[1], p[2], p[3],
-		localU);
+	if (isC2)
+		return patchCountU * aa::bspline_derivative(p[0], p[1], p[2], p[3], localU);
+	else
+		return patchCountU * aa::bezier_derivative(p[0], p[1], p[2], p[3], localU);
 }
 
 aa::vec3 BezierSurface::Dv(float u, float v)
 {
 	aa::vec3 dp[4];
 
-	size_t patchCountU = controlPoints.size() / 3;
-	size_t patchCountV = controlPoints[0].size() / 3;
+	size_t patchCountU;
+	size_t patchCountV;
+
+	if (isC2)
+	{
+		patchCountU = controlPoints.size() - 3;
+		patchCountV = controlPoints[0].size() - 3;
+	}
+	else
+	{
+		patchCountU = controlPoints.size() / 3;
+		patchCountV = controlPoints[0].size() / 3;
+	}
 
 	float globalU = patchCountU * u;
 	float globalV = patchCountV * v;
@@ -1504,8 +1590,14 @@ aa::vec3 BezierSurface::Dv(float u, float v)
 	float localU = globalU - patchU;
 	float localV = globalV - patchV;
 
-	size_t offsetU = patchU * 3;
-	size_t offsetV = patchV * 3;
+	size_t offsetU = patchU;
+	size_t offsetV = patchV;
+
+	if (!isC2)
+	{
+		offsetU *= 3;
+		offsetV *= 3;
+	}
 
 	for (size_t i = 0; i < 4; i++)
 	{
@@ -1513,12 +1605,16 @@ aa::vec3 BezierSurface::Dv(float u, float v)
 		aa::vec3 c1 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 1])->getPosition();
 		aa::vec3 c2 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 2])->getPosition();
 		aa::vec3 c3 = ShapeTable::GetShapeByID(controlPoints[offsetU + i][offsetV + 3])->getPosition();
-		dp[i] = aa::bezier_derivative(c0, c1, c2, c3, localV);
+		if (isC2)
+			dp[i] = aa::bspline_derivative(c0, c1, c2, c3, localV);
+		else
+			dp[i] = aa::bezier_derivative(c0, c1, c2, c3, localV);
 	}
 
-	return patchCountV * aa::bezier(
-		dp[0], dp[1], dp[2], dp[3],
-		localU);
+	if (isC2)
+		return patchCountV * aa::bspline(dp[0], dp[1], dp[2], dp[3], localU);
+	else
+		return patchCountV * aa::bezier(dp[0], dp[1], dp[2], dp[3], localU);
 }
 
 void BezierSurface::MeshC0()
@@ -2122,7 +2218,7 @@ void Intersection::Mesh()
 
 	if (curve != nullptr)
 		delete curve;
-	curve = new InterpolatingCurve(allPoints);
+	curve = new Line(allPoints);
 	curve->setName("__INTERSECTION__");
 
 	glBindVertexArray(VAO);
@@ -2183,7 +2279,7 @@ void Intersection::Draw()
 		glDrawArrays(GL_POINTS, 0, vertices.size() / 3);
 		glBindVertexArray(0);
 	}
-	curve->setTessellationShader(tessellationShader);
+	//curve->setTessellationShader(tessellationShader);
 	curve->setShader(shader);
 	curve->Select(true);
 	if (selected)
@@ -2797,4 +2893,79 @@ void BoxSelect::Draw(aa::vec2 tl, aa::vec2 br)
 	glPointSize(100);
 	glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+}
+
+DerivativePreview::DerivativePreview(ISurface* _surface)
+{
+	surface = _surface;
+	shapeName = "Derivative Preview";
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+	Mesh();
+}
+
+void DerivativePreview::Mesh()
+{
+	vertices.clear();
+	indices.clear();
+	aa::vec3 vertex = surface->Evaluate(u, v);
+	aa::vec3 du = surface->Du(u, v);
+	aa::vec3 dv = surface->Dv(u, v);
+	vertices.push_back(vertex.x);
+	vertices.push_back(vertex.y);
+	vertices.push_back(vertex.z);
+	aa::vec3 vertex2 = vertex + du;
+	aa::vec3 vertex3 = vertex + dv;
+	aa::vec3 normal = aa::normalize(aa::cross(du, dv));
+	aa::vec3 vertex4 = vertex + normal;
+	vertices.push_back(vertex2.x);
+	vertices.push_back(vertex2.y);
+	vertices.push_back(vertex2.z);
+	vertices.push_back(vertex3.x);
+	vertices.push_back(vertex3.y);
+	vertices.push_back(vertex3.z);
+	vertices.push_back(vertex4.x);
+	vertices.push_back(vertex4.y);
+	vertices.push_back(vertex4.z);
+	indices.push_back(0);
+	indices.push_back(1);
+	indices.push_back(0);
+	indices.push_back(2);
+	indices.push_back(0);
+	indices.push_back(3);
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+
+	u += 0.001f;
+	v += 0.00005f;
+	if (u >= 1.0f)
+	{
+		u = 0.0f;
+	}
+	if (v >= 1.0f)
+	{
+		v = 0.0f;
+	}
+}
+
+void DerivativePreview::Draw()
+{
+	if (dirty)
+		Mesh();
+	shader.use();
+	glBindVertexArray(VAO);
+	shader.setMat4("model", model);
+	glLineWidth((selected ? 5.0f : 1.0f)); //alter line width based on selection
+	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
+	glDrawElements(GL_LINE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
 }

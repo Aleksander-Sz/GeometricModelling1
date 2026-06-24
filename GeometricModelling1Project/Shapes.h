@@ -101,7 +101,7 @@ public:
 	//ParamDomain Domain { get; }
 };
 
-class Torus : public Meshable
+class Torus : public Meshable, public ISurface
 {
 public:
 	Torus(float R, float r, unsigned int s1, unsigned int s2);
@@ -112,6 +112,10 @@ public:
 	void setr(float _r);
 	void PrintImGuiOptions() override;
 	void Serialize(nlohmann::json& j) override;
+	// ISurface interface
+	aa::vec3 Evaluate(float u, float v) override;
+	aa::vec3 Du(float u, float v) override;
+	aa::vec3 Dv(float u, float v) override;
 private:
 	float R, r;
 	int s1, s2;
@@ -377,8 +381,26 @@ private:
 		const aa::vec3& F, float& du1, float& dv1, float& du2, float& dv2);
 	std::vector<aa::vec3> GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse);
 	float distance_uv(float u1, float v1, float u2, float v2);
-	InterpolatingCurve* curve = nullptr;
+	Line* curve = nullptr;
 	Shader tessellationShader;
+};
+
+class DerivativePreview : public Meshable // For debug purposes only
+{
+public:
+	DerivativePreview(ISurface* _surface);
+	void Mesh() override;
+	void PrintImGuiOptions() override {};
+	void Scale(aa::vec3 s, aa::vec3 origin = aa::vec3(0.0f, 0.0f, 0.0f)) override {};
+	void Rotate(float angle, aa::Axis axis, aa::vec3 pivot = aa::vec3(0.0f, 0.0f, 0.0f)) override {};
+	void Translate(aa::vec3 t) override {};
+	void ConfirmTransformations() override {};
+	void CancelTransformations() override {};
+	void Serialize(nlohmann::json& j) override { j = NULL; };
+	void Draw() override;
+private:
+	float u = 0.0f, v = 0.0f;
+	ISurface* surface;
 };
 
 // Auxiliary shapes

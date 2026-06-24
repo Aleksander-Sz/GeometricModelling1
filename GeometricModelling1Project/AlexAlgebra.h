@@ -380,6 +380,9 @@ namespace aa {
 
 	vec3 bezier(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t);
 	vec3 bezier_derivative(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t);
+
+	vec3 bspline(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t);
+	vec3 bspline_derivative(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t);
 };
 
 

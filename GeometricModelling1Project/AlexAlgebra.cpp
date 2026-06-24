@@ -400,6 +400,47 @@ namespace aa {
 		p0 = (p0 * (1.0f - t) + p1 * t);
 		p1 = (p1 * (1.0f - t) + p2 * t);
 
-		return (p0 * (1.0f - t) + p1 * t);
+		return 3.0f * (p0 * (1.0f - t) + p1 * t);
+	}
+	aa::vec3 aa::bspline(
+		const aa::vec3 p0,
+		const aa::vec3 p1,
+		const aa::vec3 p2,
+		const aa::vec3 p3,
+		float t)
+	{
+		float t2 = t * t;
+		float t3 = t2 * t;
+
+		float b0 = (-t3 + 3.0f * t2 - 3.0f * t + 1.0f) / 6.0f;
+		float b1 = (3.0f * t3 - 6.0f * t2 + 4.0f) / 6.0f;
+		float b2 = (-3.0f * t3 + 3.0f * t2 + 3.0f * t + 1.0f) / 6.0f;
+		float b3 = (t3) / 6.0f;
+
+		return
+			b0 * p0 +
+			b1 * p1 +
+			b2 * p2 +
+			b3 * p3;
+	}
+	aa::vec3 aa::bspline_derivative(
+		const aa::vec3 p0,
+		const aa::vec3 p1,
+		const aa::vec3 p2,
+		const aa::vec3 p3,
+		float t)
+	{
+		float t2 = t * t;
+
+		float db0 = (-3.0f * t2 + 6.0f * t - 3.0f) / 6.0f;
+		float db1 = (9.0f * t2 - 12.0f * t) / 6.0f;
+		float db2 = (-9.0f * t2 + 6.0f * t + 3.0f) / 6.0f;
+		float db3 = (3.0f * t2) / 6.0f;
+
+		return
+			db0 * p0 +
+			db1 * p1 +
+			db2 * p2 +
+			db3 * p3;
 	}
 }

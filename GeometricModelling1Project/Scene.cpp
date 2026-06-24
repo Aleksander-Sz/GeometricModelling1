@@ -1091,6 +1091,14 @@ void Scene::AddShape()
     {
         ShapeTable::GetShapeByID(shapes[shapes.size() - 1])->TranslateAndConfirm(cursor.getPosition());
     }
+    // Debug code
+    ISurface* surfacePointer;
+    if (surfacePointer = dynamic_cast<ISurface*>(ShapeTable::GetShapeByID(shapes[shapes.size() - 1])))
+    {
+        DerivativePreview* dp = new DerivativePreview(surfacePointer);
+        shapes.push_back(ShapeTable::AddShape(dp));
+        dp->setShader(shader);
+    }
 }
 
 Point* Scene::OtherVertex(SurfaceEdge* e, Point* V)
