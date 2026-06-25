@@ -173,11 +173,10 @@ void Meshable::Draw()
 		// Clipping logic
 		if (thisBS->usingClipping)
 		{
-			thisBS->tessellationShader.setInt("clip", 1);
+			thisBS->tessellationShader.setInt("clip", (thisBS->reverseClip ? 2 : 1));
 			glActiveTexture(GL_TEXTURE0); // Use unit 0
 			glBindTexture(GL_TEXTURE_2D,  thisBS->clippingTextureID);
-			thisBS->tessellationShader.setInt("clippingTex", 0);
-			thisBS->tessellationShader.setVec3("color", aa::vec3(1.0f, 0.0f, 1.0f));
+			thisBS->tessellationShader.setInt("clipTex", 0);
 		}
 
 		thisBS->tessellationShader.setFloat("tessLevelU", (float)thisBS->subdivisionsU);
@@ -420,16 +419,21 @@ void Torus::Mesh()
 	for (int i = 0; i < s1; i++)
 	{
 		float phi = (float)i / s1 * 2.0f * 3.14159265359f;
+		float u = (float)i / s1;
 		for (int j = 0; j < s2; j++)
 		{
 			// vertices
 			float theta = (float)j / s2 * 2.0f * 3.14159265359f;
+			float v = (float)j / s2;
 			float x = (R + r * cos(theta)) * cos(phi);
 			float y = (R + r * cos(theta)) * sin(phi);
 			float z = r * sin(theta);
 			vertices.push_back(x);
 			vertices.push_back(y);
 			vertices.push_back(z);
+			// uv coords
+			vertices.push_back(u);
+			vertices.push_back(v);
 			// indices
 			unsigned int nextI = (i + 1) % s1;
 			unsigned int nextJ = (j + 1) % s2;
@@ -451,8 +455,16 @@ void Torus::Mesh()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
+	// Define the stride: Total size of ONE vertex (3 floats for Pos + 2 floats for UV)
+	GLsizei stride = sizeof(float) * 5;
+
+	// Attribute 0: Position (3D Coordinates)
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+
+	// Attribute 1: UV Coordinates (2D Texture Coordinates)
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float) * 3)); // Starts after 3 floats
 
 	glBindVertexArray(0);
 }
@@ -487,6 +499,8 @@ void Torus::PrintImGuiOptions()
 	dirty |= ImGui::InputFloat("r", &r, 0.1f, 5.0f, "%.1f");
 	dirty |= ImGui::InputInt("s1", (int*)&s1, 3, 500);
 	dirty |= ImGui::InputInt("s2", (int*)&s2, 3, 500);
+	if (ImGui::Button("Reverse Clip"))
+		reverseClip = !reverseClip;
 }
 
 void Torus::Serialize(nlohmann::json& j)
@@ -537,11 +551,14 @@ aa::vec3 Torus::Dv(float u, float v)
 
 void Torus::setClippingTexture(unsigned int textureID)
 {
-	; // TODO
+	clippingTextureID = textureID;
+	usingClipping = true;
 }
 
 void Torus::Draw()
 {
+	if (dirty)
+		Mesh();
 	if (markedForDeletion)
 		return;
 	shader.use();
@@ -552,10 +569,10 @@ void Torus::Draw()
 	// Clipping logic
 	if (usingClipping)
 	{
-		shader.setInt("clip", 1);
+		shader.setInt("clip", (reverseClip ? 2 : 1));
 		glActiveTexture(GL_TEXTURE0); // Use unit 0
 		glBindTexture(GL_TEXTURE_2D, clippingTextureID);
-		shader.setInt("clippingTex", 0);
+		shader.setInt("clipTex", 0);
 	}
 	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -1363,6 +1380,8 @@ void BezierSurface::PrintImGuiOptions()
 			subdivisionsV = 64;
 	}
 	ImGui::Checkbox("Display Control Net", &displayControlNet);
+	if (ImGui::Button("Reverse Clip"))
+		reverseClip = !reverseClip;
 }
 
 void BezierSurface::RemoveDeletedPoints()
@@ -1660,6 +1679,33 @@ void BezierSurface::setClippingTexture(unsigned int textureID)
 	usingClipping = true;
 }
 
+int BezierSurface::uCount()
+{
+	int u;
+	if (isC2)
+	{
+		u = controlPoints.size() - 3;
+	}
+	else
+	{
+		u = controlPoints.size() / 3;
+	}
+	return u;
+}
+int BezierSurface::vCount()
+{
+	int u;
+	if (isC2)
+	{
+		u = controlPoints[0].size() - 3;
+	}
+	else
+	{
+		u = controlPoints[0].size() / 3;
+	}
+	return u;
+}
+
 void BezierSurface::MeshC0()
 {
 	size_t n = controlPoints.size();
@@ -1672,6 +1718,9 @@ void BezierSurface::MeshC0()
 			vertices.push_back(pointPos.x);
 			vertices.push_back(pointPos.y);
 			vertices.push_back(pointPos.z);
+			// UV of this control point in the global control net
+			vertices.push_back((float)j / (float)(m - 1));
+			vertices.push_back((float)i / (float)(n - 1));
 			size_t im1 = (i + n - 1) % n;
 			size_t jm1 = (j + m - 1) % m;
 			if (i != 0 || isCylinder)
@@ -1732,8 +1781,16 @@ void BezierSurface::MeshC0()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
+	// Define the stride: Total size of ONE vertex (3 floats for Pos + 2 floats for UV)
+	GLsizei stride = sizeof(float) * 5;
+
+	// Attribute 0: Position (3D Coordinates)
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+
+	// Attribute 1: UV Coordinates (2D Texture Coordinates)
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float) * 3)); // Starts after 3 floats
 
 	glBindVertexArray(netVAO);
 
@@ -2455,7 +2512,7 @@ void Intersection::PrintImGuiOptions()
 	}
 	if (ImGui::Button("Display second clipping texture"))
 	{
-		c1 = 1000;
+		c2 = 1000;
 	}
 	if (ImGui::Button("Activate clipping"))
 	{

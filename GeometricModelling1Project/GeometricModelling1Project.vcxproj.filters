@@ -59,6 +59,7 @@
     <None Include="Shaders\SurfaceC2TessellationEvaluationShader.glsl" />
     <None Include="Shaders\GregoryTessellationControlShader.glsl" />
     <None Include="Shaders\GregoryTessellationEvaluationShader.glsl" />
+    <None Include="Shaders\SurfaceVertexShader.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">

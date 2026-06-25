@@ -89,6 +89,7 @@ std::vector<int> Parser::LoadScene(const char* filename)
 			newTorus->Rotate(aa::radians(90.0f), aa::Axis::X);
 			newTorus->ConfirmTransformations();
 			newTorus->TranslateAndConfirm(pos);
+			//newTorus->setModel()
 			shapes.push_back(ShapeTable::AddShape(newTorus));
 		}
 		else if ((type == "chain") || (type == "bezierC0") || (type == "bezierC2") || (type == "interpolatedC2"))

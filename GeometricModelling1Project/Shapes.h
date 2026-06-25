@@ -100,6 +100,8 @@ public:
 	unsigned int clippingTextureID = 0;
 	bool usingClipping = false;
 
+	bool reverseClip = false;
+
 	//bool WrapU;
 	//bool WrapV;
 
@@ -265,6 +267,8 @@ public:
 	aa::vec3 Du(float u, float v) override;
 	aa::vec3 Dv(float u, float v) override;
 	void setClippingTexture(unsigned int textureID) override;
+	int uCount();
+	int vCount();
 private:
 	void MeshC0();
 	void MeshC2();

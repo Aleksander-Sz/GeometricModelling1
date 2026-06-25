@@ -581,22 +581,32 @@ void Scene::DrawScene(GLFWwindow* window)
     gregoryShader.use();
     gregoryShader.setMat4("projection", camera.projection());
     
-    shader.use();
-    sceneMatrix = aa::scale(sceneScale);
-    inverseSceneMatrix = aa::scale(aa::vec3(1.0f / sceneScale.x, 1.0f / sceneScale.y, 1.0f / sceneScale.z));
-    shader.setMat4("scene", sceneMatrix);
+	shader.use();
+	sceneMatrix = aa::scale(sceneScale);
+	inverseSceneMatrix = aa::scale(aa::vec3(1.0f / sceneScale.x, 1.0f / sceneScale.y, 1.0f / sceneScale.z));
+	shader.setMat4("scene", sceneMatrix);
 
 	tessellationShader.use();
 	tessellationShader.setMat4("scene", sceneMatrix);
+	// ensure sampler uniforms have known bindings so RenderDoc shows them
+	tessellationShader.setInt("clip", 0);
+	tessellationShader.setInt("clipTex", 0);
 	surfaceC0TessellationShader.use();
 	surfaceC0TessellationShader.setMat4("scene", sceneMatrix);
+	// ensure sampler uniforms have known bindings so RenderDoc shows them
+	surfaceC0TessellationShader.setInt("clip", 0);
+	surfaceC0TessellationShader.setInt("clipTex", 0);
 	surfaceC2TessellationShader.use();
 	surfaceC2TessellationShader.setMat4("scene", sceneMatrix);
+	// ensure sampler uniforms have known bindings so RenderDoc shows them
+	surfaceC2TessellationShader.setInt("clip", 0);
+	surfaceC2TessellationShader.setInt("clipTex", 0);
 	gregoryShader.use();
 	gregoryShader.setMat4("scene", sceneMatrix);
-    gregoryShader.setInt("clip", 0);
+	gregoryShader.setInt("clip", 0);
+	gregoryShader.setInt("clipTex", 0);
 
-    shader.use();
+	shader.use();
 
     glDepthMask(GL_FALSE);
     grid.Draw(camera, 'R');

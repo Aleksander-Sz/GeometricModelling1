@@ -8,8 +8,10 @@ uniform mat4 view;
 uniform mat4 projection;
 
 in vec3 tcsPos[];
+in vec2 uvBase[];
 
-out vec2 uv;
+out vec2 uvGlobal;
+out vec2 uvLocal;
 
 vec3 Bezier(
     float t,
@@ -30,10 +32,15 @@ vec3 Bezier(
 
 void main()
 {
-    uv = gl_TessCoord.xy;
-
-    float u = uv.x;
-    float v = uv.y;
+    float u = gl_TessCoord.x;
+    float v = gl_TessCoord.y;
+    
+    uvGlobal =
+    uvBase[0] * (1-u)*(1-v) +
+    uvBase[3] * u*(1-v) +
+    uvBase[12] * (1-u)*v +
+    uvBase[15] * u*v;
+    uvLocal = gl_TessCoord.xy;
 
     // Convert rows from de Boor -> Bernstein
 

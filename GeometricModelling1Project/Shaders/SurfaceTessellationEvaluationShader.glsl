@@ -8,8 +8,10 @@ uniform mat4 view;
 uniform mat4 projection;
 
 in vec3 tcsPos[];
+in vec2 uvBase[];
 
-out vec2 uv;
+out vec2 uvGlobal;
+out vec2 uvLocal;
 
 vec3 Bezier(float t, vec3 p0, vec3 p1, vec3 p2, vec3 p3)
 {
@@ -25,10 +27,15 @@ vec3 Bezier(float t, vec3 p0, vec3 p1, vec3 p2, vec3 p3)
 
 void main()
 {
-    uv = gl_TessCoord.xy;
-
 	float u = gl_TessCoord.x;
     float v = gl_TessCoord.y;
+
+    uvGlobal =
+    uvBase[0] * (1-u)*(1-v) +
+    uvBase[3] * u*(1-v) +
+    uvBase[12] * (1-u)*v +
+    uvBase[15] * u*v;
+    uvLocal = gl_TessCoord.xy;
 
     vec3 curve0 = Bezier(u,
         tcsPos[0],
