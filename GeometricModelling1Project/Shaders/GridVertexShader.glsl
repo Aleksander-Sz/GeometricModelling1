@@ -9,6 +9,8 @@ uniform mat4 projection;
 out vec2 gridCoords;
 out vec4 worldPos;
 
+out vec2 uv;
+
 void main()
 {
 	vec4 worldSpacePosition =  model * vec4(aPos, 1.0f);

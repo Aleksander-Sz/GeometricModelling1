@@ -594,13 +594,24 @@ void Scene::DrawScene(GLFWwindow* window)
 	surfaceC2TessellationShader.setMat4("scene", sceneMatrix);
 	gregoryShader.use();
 	gregoryShader.setMat4("scene", sceneMatrix);
+    gregoryShader.setInt("clip", 0);
 
     shader.use();
 
     glDepthMask(GL_FALSE);
     grid.Draw(camera, 'R');
     for (int i = 1; i < shapes.size(); i++)
+    {
+        shader.use();
+        shader.setInt("clip", 0);
+        tessellationShader.use();
+        tessellationShader.setInt("clip", 0);
         ShapeTable::GetShapeByID(shapes[i])->Draw();
+    }
+    shader.use();
+    shader.setInt("clip", 0);
+    tessellationShader.use();
+    tessellationShader.setInt("clip", 0);
     cursor.Draw();
     if ((grabEnabled || rotatingEnabled) && (lockedAxis!=NONE))
     {

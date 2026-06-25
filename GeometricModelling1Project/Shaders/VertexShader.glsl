@@ -8,6 +8,7 @@ uniform mat4 projection;
 uniform mat4 scene;
 
 out vec4 screenPos;
+out vec2 uv;
 
 void main()
 {

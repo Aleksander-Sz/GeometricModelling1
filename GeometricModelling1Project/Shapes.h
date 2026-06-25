@@ -10,6 +10,7 @@
 #include <imgui_impl_opengl3.h>
 #include <iostream>
 #include <json.hpp>
+#include <queue>
 
 #define CONTROL_LINE_COLOR aa::vec3(0.6f, 0.6f, 0.9f)
 
@@ -95,6 +96,10 @@ public:
 	virtual aa::vec3 Du(float u, float v) = 0;
 	virtual aa::vec3 Dv(float u, float v) = 0;
 
+	virtual void setClippingTexture(unsigned int textureID) = 0;
+	unsigned int clippingTextureID = 0;
+	bool usingClipping = false;
+
 	//bool WrapU;
 	//bool WrapV;
 
@@ -116,6 +121,8 @@ public:
 	aa::vec3 Evaluate(float u, float v) override;
 	aa::vec3 Du(float u, float v) override;
 	aa::vec3 Dv(float u, float v) override;
+	void setClippingTexture(unsigned int textureID) override;
+	void Draw() override;
 private:
 	float R, r;
 	int s1, s2;
@@ -257,6 +264,7 @@ public:
 	aa::vec3 Evaluate(float u, float v) override;
 	aa::vec3 Du(float u, float v) override;
 	aa::vec3 Dv(float u, float v) override;
+	void setClippingTexture(unsigned int textureID) override;
 private:
 	void MeshC0();
 	void MeshC2();
@@ -351,6 +359,14 @@ struct ParamDirection2D
 	float du;
 	float dv;
 };
+struct IntersectionPoint
+{
+	aa::vec3 point;
+	float u1;
+	float v1;
+	float u2;
+	float v2;
+};
 
 class Intersection : public Meshable
 {
@@ -379,10 +395,13 @@ private:
 	TwoSurfacesState NewtonCorrect(TwoSurfacesState state, const ParamDirection& dir);
 	bool SolveGaussNewtonStep(const aa::vec3& Su, const aa::vec3& Sv, const aa::vec3& Tu, const aa::vec3& Tv,
 		const aa::vec3& F, float& du1, float& dv1, float& du2, float& dv2);
-	std::vector<aa::vec3> GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse);
+	std::vector<IntersectionPoint> GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse);
 	float distance_uv(float u1, float v1, float u2, float v2);
 	Line* curve = nullptr;
 	Shader tessellationShader;
+	unsigned int texture1ID, texture2ID;
+	const int SIZE = 1024;
+	void DrawLine(std::vector<uint8_t>& mask, float x0f, float y0f, float x1f, float y1f);
 };
 
 class DerivativePreview : public Meshable // For debug purposes only

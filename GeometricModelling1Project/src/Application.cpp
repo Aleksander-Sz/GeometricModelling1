@@ -613,21 +613,7 @@ int main()
 		ImGui::Text("Use WASD to move, mouse to look around, scroll to zoom.");
 		ImGui::Separator();
 		ImGui::Checkbox("Transform Around the 3D Cursor", &(scene->transformAroundCursor));
-		/*if (ImGui::DragFloat3("Scene Scaling", aa::value_ptr(scene->sceneScale), 0.01f, 0.01f, 10.0f))
-		{
-			if (scene->sceneScale.x < 0.01f)
-				scene->sceneScale.x = 0.01f;
-			if (scene->sceneScale.x > 10.0f)
-				scene->sceneScale.x = 10.0f;
-			if (scene->sceneScale.y < 0.01f)
-				scene->sceneScale.y = 0.01f;
-			if (scene->sceneScale.y > 10.0f)
-				scene->sceneScale.y = 10.0f;
-			if (scene->sceneScale.z < 0.01f)
-				scene->sceneScale.z = 0.01f;  // To be removed TODO: remove together with sceneScale!!!!!!!!!!!!
-			if (scene->sceneScale.z > 10.0f)
-				scene->sceneScale.z = 10.0f;
-		}*/
+
 		ImGui::Checkbox("Enable stereoscopy", &(scene->stereoscopy)); // Temporarily disabled
 		if (scene->stereoscopy)
 		{

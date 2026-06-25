@@ -169,6 +169,17 @@ void Meshable::Draw()
 		thisBS->tessellationShader.setMat4("model", model);
 		glLineWidth((selected ? 2.5f : 1.0f)); //alter line width based on selection
 		thisBS->tessellationShader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
+
+		// Clipping logic
+		if (thisBS->usingClipping)
+		{
+			thisBS->tessellationShader.setInt("clip", 1);
+			glActiveTexture(GL_TEXTURE0); // Use unit 0
+			glBindTexture(GL_TEXTURE_2D,  thisBS->clippingTextureID);
+			thisBS->tessellationShader.setInt("clippingTex", 0);
+			thisBS->tessellationShader.setVec3("color", aa::vec3(1.0f, 0.0f, 1.0f));
+		}
+
 		thisBS->tessellationShader.setFloat("tessLevelU", (float)thisBS->subdivisionsU);
 		thisBS->tessellationShader.setFloat("tessLevelV", (float)thisBS->subdivisionsV);
 		glPatchParameteri(GL_PATCH_VERTICES, 16);
@@ -522,6 +533,32 @@ aa::vec3 Torus::Dv(float u, float v)
 	float z = r * cos(theta);
 	aa::vec4 localDv = aa::vec4(x, y, z, 0.0f) * (2.0f * 3.14159265359f);
 	return (model * localDv).xyz;
+}
+
+void Torus::setClippingTexture(unsigned int textureID)
+{
+	; // TODO
+}
+
+void Torus::Draw()
+{
+	if (markedForDeletion)
+		return;
+	shader.use();
+	glBindVertexArray(VAO);
+	shader.setMat4("model", model);
+	glLineWidth((selected ? 5.0f : 1.0f));
+	shader.setVec3("color", (selected ? aa::vec3(1.0f, 1.0f, 0.6f) : aa::vec3(1.0f, 1.0f, 1.0f)));
+	// Clipping logic
+	if (usingClipping)
+	{
+		shader.setInt("clip", 1);
+		glActiveTexture(GL_TEXTURE0); // Use unit 0
+		glBindTexture(GL_TEXTURE_2D, clippingTextureID);
+		shader.setInt("clippingTex", 0);
+	}
+	glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
 }
 
 Ellipsoid::Ellipsoid(float _a, float _b, float _c, unsigned int _s)
@@ -1617,6 +1654,12 @@ aa::vec3 BezierSurface::Dv(float u, float v)
 		return patchCountV * aa::bezier(dp[0], dp[1], dp[2], dp[3], localU);
 }
 
+void BezierSurface::setClippingTexture(unsigned int textureID)
+{
+	clippingTextureID = textureID;
+	usingClipping = true;
+}
+
 void BezierSurface::MeshC0()
 {
 	size_t n = controlPoints.size();
@@ -2143,6 +2186,103 @@ Intersection::~Intersection()
 	delete curve;
 }
 
+void Intersection::DrawLine(std::vector<uint8_t>& mask, float x0f, float y0f, float x1f, float y1f)
+{
+	int x0 = (int)std::round(x0f);
+	int y0 = (int)std::round(y0f);
+
+	int x1 = (int)std::round(x1f);
+	int y1 = (int)std::round(y1f);
+
+	std::cout << "x0: " << x0 << " y0: " << y0 << "\nx1: " << x1 << " y1: " << y1 << "\n";
+
+	int dx = std::abs(x1 - x0);
+	int dy = std::abs(y1 - y0);
+
+	int sx = (x0 < x1) ? 1 : -1;
+	int sy = (y0 < y1) ? 1 : -1;
+
+	int err = dx - dy;
+
+	while (true)
+	{
+		if (x0 >= 0 && x0 < SIZE &&
+			y0 >= 0 && y0 < SIZE)
+		{
+			mask[y0 * SIZE + x0] = 255;
+		}
+
+		if (x0 == x1 && y0 == y1)
+			break;
+
+		int e2 = 2 * err;
+
+		if (e2 > -dy)
+		{
+			err -= dy;
+			x0 += sx;
+		}
+
+		if (e2 < dx)
+		{
+			err += dx;
+			y0 += sy;
+		}
+	}
+}
+
+void FloodFill(std::vector<uint8_t>& mask)
+{
+	const int SIZE = (int)std::sqrt(mask.size());
+
+	int startX = -1;
+	int startY = -1;
+
+	for (int y = 0; y < SIZE && startX == -1; y++)
+	{
+		for (int x = 0; x < SIZE; x++)
+		{
+			if (mask[y * SIZE + x] == 0)
+			{
+				startX = x;
+				startY = y;
+				break;
+			}
+		}
+	}
+
+	if (startX == -1)
+		return;
+
+	std::queue<std::pair<int, int>> q;
+
+	q.push({ startX, startY });
+
+	while (!q.empty())
+	{
+		auto [x, y] = q.front();
+		q.pop();
+
+		if (x < 0 || x >= SIZE ||
+			y < 0 || y >= SIZE)
+		{
+			continue;
+		}
+
+		uint8_t& pixel = mask[y * SIZE + x];
+
+		if (pixel != 0)
+			continue;
+
+		pixel = 255;
+
+		q.push({ x + 1, y });
+		q.push({ x - 1, y });
+		q.push({ x, y + 1 });
+		q.push({ x, y - 1 });
+	}
+}
+
 void Intersection::Mesh()
 {
 	dirty = false;
@@ -2185,20 +2325,33 @@ void Intersection::Mesh()
 	vertices.push_back(point2.z);
 
 	// Now let's walk along the line:
-	std::vector<aa::vec3> pointsRight = GetThePointsInOneDirection(bestGuess, point1, false);
-	std::vector<aa::vec3> pointsLeft = GetThePointsInOneDirection(bestGuess, point1, true);
+	std::vector<IntersectionPoint> pointsRight = GetThePointsInOneDirection(bestGuess, point1, false);
+	std::vector<IntersectionPoint> pointsLeft = GetThePointsInOneDirection(bestGuess, point1, true);
 	
 	std::vector<int> allPoints;
+	// Bitmaps for parameter-space clipping
+
+	std::vector<uint8_t> mask1(SIZE * SIZE, 0);
+	std::vector<uint8_t> mask2(SIZE * SIZE, 0);
 
 	Point* pointerPoint;
+	float prevX1 = bestGuess.u1 * SIZE, prevY1 = bestGuess.v1 * SIZE;
+	float prevX2 = bestGuess.u2 * SIZE, prevY2 = bestGuess.v2 * SIZE;
 	for (int i = pointsLeft.size() - 1; i >= 0 ; i--)
 	{
 		pointerPoint = new Point(aa::vec3(0.0f));
-		pointerPoint->TranslateAndConfirm(pointsLeft[i]);
+		pointerPoint->TranslateAndConfirm(pointsLeft[i].point);
 		allPoints.push_back(ShapeTable::AddShape(pointerPoint));
-		vertices.push_back(pointsLeft[i].x);
-		vertices.push_back(pointsLeft[i].y);
-		vertices.push_back(pointsLeft[i].z);
+		vertices.push_back(pointsLeft[i].point.x);
+		vertices.push_back(pointsLeft[i].point.y);
+		vertices.push_back(pointsLeft[i].point.z);
+		// Parameter-space mask
+		DrawLine(mask1, prevX1, prevY1, pointsLeft[i].u1 * SIZE, pointsLeft[i].v1 * SIZE);
+		prevX1 = pointsLeft[i].u1 * SIZE;
+		prevY1 = pointsLeft[i].v1 * SIZE;
+		DrawLine(mask2, prevX2, prevY2, pointsLeft[i].u2 * SIZE, pointsLeft[i].v2 * SIZE);
+		prevX2 = pointsLeft[i].u2 * SIZE;
+		prevY2 = pointsLeft[i].v2 * SIZE;
 	}
 	pointerPoint = new Point(aa::vec3(0.0f));
 	pointerPoint->TranslateAndConfirm(point1);
@@ -2206,15 +2359,76 @@ void Intersection::Mesh()
 	vertices.push_back(point1.x);
 	vertices.push_back(point1.y);
 	vertices.push_back(point1.z);
+	prevX1 = bestGuess.u1 * SIZE;
+	prevY1 = bestGuess.v1 * SIZE;
+	prevX2 = bestGuess.u2 * SIZE;
+	prevY2 = bestGuess.v2 * SIZE;
 	for (size_t i = 0; i < pointsRight.size() ; i++)
 	{
 		pointerPoint = new Point(aa::vec3(0.0f));
-		pointerPoint->TranslateAndConfirm(pointsRight[i]);
+		pointerPoint->TranslateAndConfirm(pointsRight[i].point);
 		allPoints.push_back(ShapeTable::AddShape(pointerPoint));
-		vertices.push_back(pointsRight[i].x);
-		vertices.push_back(pointsRight[i].y);
-		vertices.push_back(pointsRight[i].z);
+		vertices.push_back(pointsRight[i].point.x);
+		vertices.push_back(pointsRight[i].point.y);
+		vertices.push_back(pointsRight[i].point.z);
+		// Parameter-space mask
+		DrawLine(mask1, prevX1, prevY1, pointsRight[i].u1 * SIZE, pointsRight[i].v1 * SIZE);
+		prevX1 = pointsRight[i].u1 * SIZE;
+		prevY1 = pointsRight[i].v1 * SIZE;
+		DrawLine(mask2, prevX2, prevY2, pointsRight[i].u2 * SIZE, pointsRight[i].v2 * SIZE);
+		prevX2 = pointsLeft[i].u2 * SIZE;
+		prevY2 = pointsLeft[i].v2 * SIZE;
 	}
+	FloodFill(mask1);
+	FloodFill(mask2);
+
+	glGenTextures(1, &texture1ID);
+	glBindTexture(GL_TEXTURE_2D, texture1ID);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glGenTextures(1, &texture2ID);
+	glBindTexture(GL_TEXTURE_2D, texture2ID);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glBindTexture(GL_TEXTURE_2D, texture1ID);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_R8,
+		SIZE,
+		SIZE,
+		0,
+		GL_RED,
+		GL_UNSIGNED_BYTE,
+		mask1.data());
+
+	glBindTexture(GL_TEXTURE_2D, texture2ID);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_R8,
+		SIZE,
+		SIZE,
+		0,
+		GL_RED,
+		GL_UNSIGNED_BYTE,
+		mask2.data());
 
 	if (curve != nullptr)
 		delete curve;
@@ -2233,6 +2447,37 @@ void Intersection::Mesh()
 void Intersection::PrintImGuiOptions()
 {
 	ImGui::Checkbox("Display intersection points", &displayPoints);
+	static int c1 = 0;
+	static int c2 = 0;
+	if (ImGui::Button("Display first clipping texture"))
+	{
+		c1 = 1000;
+	}
+	if (ImGui::Button("Display second clipping texture"))
+	{
+		c1 = 1000;
+	}
+	if (ImGui::Button("Activate clipping"))
+	{
+		firstSurface->setClippingTexture(texture1ID);
+		secondSurface->setClippingTexture(texture2ID);
+	}
+	if (c1 > 0)
+		c1--;
+	if (c2 > 0)
+		c2--;
+	if (c1 > 0)
+	{
+		ImGui::Image(
+			(ImTextureID)(intptr_t)texture1ID,
+			ImVec2(SIZE, SIZE));
+	}
+	if (c2 > 0)
+	{
+		ImGui::Image(
+			(ImTextureID)(intptr_t)texture2ID,
+			ImVec2(SIZE, SIZE));
+	}
 }
 
 void Intersection::Scale(aa::vec3 s, aa::vec3 origin)
@@ -2546,11 +2791,14 @@ bool Intersection::SolveGaussNewtonStep(
 	return true;
 }
 
-std::vector<aa::vec3> Intersection::GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse)
+#define MIN_POINT_DISTANCE 0.045f
+#define MAX_POINT_DISTANCE 0.06f
+#define AVG_POINT_DISTANCE 0.075f
+std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse)
 {
-	std::vector<aa::vec3> followingPoints;
+	std::vector<IntersectionPoint> followingPoints;
 	float h = 0.01f;
-	aa::vec3 candidate;
+	IntersectionPoint candidate;
 	float distance = 0.0f;
 	TwoSurfacesState previousPointState = bestGuess;
 	for (size_t i = 0; i < 100; i++)
@@ -2570,49 +2818,62 @@ std::vector<aa::vec3> Intersection::GetThePointsInOneDirection(TwoSurfacesState 
 			newState.u2 += param.du2 * h;
 			newState.v2 += param.dv2 * h;
 
-			// Check if we left the surface
-
-			lastPoint = true;
-			float alpha;
-			if (newState.u1 > 1.0f)
-				alpha = (1.0f - previousPointState.u1) / (newState.u1 - previousPointState.u1);
-			else if (newState.u1 < 0.0f)
-				alpha = (previousPointState.u1) / (newState.u1 - previousPointState.u1);
-			else if (newState.v1 > 1.0f)
-				alpha = (1.0f - previousPointState.v1) / (newState.v1 - previousPointState.v1);
-			else if (newState.v1 < 0.0f)
-				alpha = (previousPointState.v1) / (newState.v1 - previousPointState.v1);
-			else if (newState.u2 > 1.0f)
-				alpha = (1.0f - previousPointState.u2) / (newState.u2 - previousPointState.u2);
-			else if (newState.u2 < 0.0f)
-				alpha = (previousPointState.u2) / (newState.u2 - previousPointState.u2);
-			else if (newState.v2 > 1.0f)
-				alpha = (1.0f - previousPointState.v2) / (newState.v2 - previousPointState.v2);
-			else if (newState.v2 < 0.0f)
-				alpha = (previousPointState.v2) / (newState.v2 - previousPointState.v2);
-			else
-				lastPoint = false;
-
-			if (lastPoint)
-			{
-				newState.u1 += alpha * (predicted.u1 - previousPointState.u1);
-				newState.v1 += alpha * (predicted.v1 - previousPointState.v1);
-				newState.u2 += alpha * (predicted.u2 - previousPointState.u2);
-				newState.v2 += alpha * (predicted.v2 - previousPointState.v2);
-			}
-
 			// Newton correction
 			bestGuess = NewtonCorrect(newState, param);
 
-			candidate = firstSurface->Evaluate(bestGuess.u1, bestGuess.v1);
-
-			if (lastPoint)
-				break;
+			candidate.point = firstSurface->Evaluate(bestGuess.u1, bestGuess.v1);
+			candidate.u1 = bestGuess.u1;
+			candidate.v1 = bestGuess.v1;
+			candidate.u2 = bestGuess.u2;
+			candidate.v2 = bestGuess.v2;
 
 			// Correct the step size
-			distance = aa::distance(candidate, previousPoint);
+			distance = aa::distance(candidate.point, previousPoint);
 			h *= (0.06f / distance);
 			limit--;
+
+			// Check if we left the surface
+			if (false)//distance < MIN_POINT_DISTANCE || distance > MAX_POINT_DISTANCE)
+			{
+				float alpha = 1.0f;
+				if (newState.u1 > 1.0f)
+					alpha = (1.0f - previousPointState.u1) / (newState.u1 - previousPointState.u1);
+				else if (newState.u1 < 0.0f)
+					alpha = (previousPointState.u1) / (newState.u1 - previousPointState.u1);
+				else if (newState.v1 > 1.0f)
+					alpha = (1.0f - previousPointState.v1) / (newState.v1 - previousPointState.v1);
+				else if (newState.v1 < 0.0f)
+					alpha = (previousPointState.v1) / (newState.v1 - previousPointState.v1);
+				else if (newState.u2 > 1.0f)
+					alpha = (1.0f - previousPointState.u2) / (newState.u2 - previousPointState.u2);
+				else if (newState.u2 < 0.0f)
+					alpha = (previousPointState.u2) / (newState.u2 - previousPointState.u2);
+				else if (newState.v2 > 1.0f)
+					alpha = (1.0f - previousPointState.v2) / (newState.v2 - previousPointState.v2);
+				else if (newState.v2 < 0.0f)
+					alpha = (previousPointState.v2) / (newState.v2 - previousPointState.v2);
+
+				if (alpha != 1.0f)
+					lastPoint = true;
+
+				if (lastPoint)
+				{
+					break;
+					newState.u1 += alpha * (predicted.u1 - previousPointState.u1);
+					newState.v1 += alpha * (predicted.v1 - previousPointState.v1);
+					newState.u2 += alpha * (predicted.u2 - previousPointState.u2);
+					newState.v2 += alpha * (predicted.v2 - previousPointState.v2);
+				}
+
+				// Newton correction
+				bestGuess = NewtonCorrect(newState, param);
+				candidate.point = firstSurface->Evaluate(bestGuess.u1, bestGuess.v1);
+				candidate.u1 = newState.u1;
+				candidate.v1 = newState.v1;
+				candidate.u2 = newState.u2;
+				candidate.v2 = newState.v2;
+				break;
+			}
 		} while ((distance < 0.045f || distance > 0.075f) && limit > 0);
 		
 		predicted = newState;
@@ -2623,7 +2884,7 @@ std::vector<aa::vec3> Intersection::GetThePointsInOneDirection(TwoSurfacesState 
 			break;
 
 		followingPoints.push_back(candidate);
-		previousPoint = candidate;
+		previousPoint = candidate.point;
 	}
 	return followingPoints;
 }

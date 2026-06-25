@@ -10,6 +10,8 @@ uniform vec2 tRange;
 
 in vec3 tcsPos[];
 
+out vec2 uv;
+
 vec3 Bezier(float t, vec3 p0, vec3 p1, vec3 p2, vec3 p3)
 {
 	vec3 v01 = mix(p0, p1, t);
