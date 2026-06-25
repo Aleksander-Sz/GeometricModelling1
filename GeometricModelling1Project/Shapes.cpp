@@ -2332,7 +2332,7 @@ TwoSurfacesState Intersection::RunMonteCarlo(TwoSurfacesState state, float width
 	TwoSurfacesState bestGuess = state;
 	TwoSurfacesState newGuess = bestGuess;
 	Cursor cursor = Cursor::getInstance();
-	float lambda = 0.4f;
+	//float lambda = 0.4f;
 	float minDistance = std::numeric_limits<float>::max();
 	for (size_t i = 0; i < 500; i++)
 	{
@@ -2549,41 +2549,81 @@ bool Intersection::SolveGaussNewtonStep(
 std::vector<aa::vec3> Intersection::GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse)
 {
 	std::vector<aa::vec3> followingPoints;
-	float h = 0.1f;
+	float h = 0.01f;
+	aa::vec3 candidate;
+	float distance = 0.0f;
+	TwoSurfacesState previousPointState = bestGuess;
 	for (size_t i = 0; i < 100; i++)
 	{
 		ParamDirection param = ComputeTangent(bestGuess, reverse);
 		reverse = false;
 
 		TwoSurfacesState predicted = bestGuess;
-		predicted.u1 += param.du1 * h;
-		predicted.v1 += param.dv1 * h;
-		predicted.u2 += param.du2 * h;
-		predicted.v2 += param.dv2 * h;
+		int limit = 1000;
+		TwoSurfacesState newState;
+		bool lastPoint = false;
+		do
+		{
+			newState = predicted;
+			newState.u1 += param.du1 * h;
+			newState.v1 += param.dv1 * h;
+			newState.u2 += param.du2 * h;
+			newState.v2 += param.dv2 * h;
 
-		// Newton correction
-		bestGuess = NewtonCorrect(predicted, param);
+			// Check if we left the surface
 
-		aa::vec3 point1 = firstSurface->Evaluate(bestGuess.u1, bestGuess.v1);
-		followingPoints.push_back(point1);
+			lastPoint = true;
+			float alpha;
+			if (newState.u1 > 1.0f)
+				alpha = (1.0f - previousPointState.u1) / (newState.u1 - previousPointState.u1);
+			else if (newState.u1 < 0.0f)
+				alpha = (previousPointState.u1) / (newState.u1 - previousPointState.u1);
+			else if (newState.v1 > 1.0f)
+				alpha = (1.0f - previousPointState.v1) / (newState.v1 - previousPointState.v1);
+			else if (newState.v1 < 0.0f)
+				alpha = (previousPointState.v1) / (newState.v1 - previousPointState.v1);
+			else if (newState.u2 > 1.0f)
+				alpha = (1.0f - previousPointState.u2) / (newState.u2 - previousPointState.u2);
+			else if (newState.u2 < 0.0f)
+				alpha = (previousPointState.u2) / (newState.u2 - previousPointState.u2);
+			else if (newState.v2 > 1.0f)
+				alpha = (1.0f - previousPointState.v2) / (newState.v2 - previousPointState.v2);
+			else if (newState.v2 < 0.0f)
+				alpha = (previousPointState.v2) / (newState.v2 - previousPointState.v2);
+			else
+				lastPoint = false;
 
+			if (lastPoint)
+			{
+				newState.u1 += alpha * (predicted.u1 - previousPointState.u1);
+				newState.v1 += alpha * (predicted.v1 - previousPointState.v1);
+				newState.u2 += alpha * (predicted.u2 - previousPointState.u2);
+				newState.v2 += alpha * (predicted.v2 - previousPointState.v2);
+			}
+
+			// Newton correction
+			bestGuess = NewtonCorrect(newState, param);
+
+			candidate = firstSurface->Evaluate(bestGuess.u1, bestGuess.v1);
+
+			if (lastPoint)
+				break;
+
+			// Correct the step size
+			distance = aa::distance(candidate, previousPoint);
+			h *= (0.06f / distance);
+			limit--;
+		} while ((distance < 0.045f || distance > 0.075f) && limit > 0);
+		
+		predicted = newState;
+		
 		// Check if we left one of the surfaces
 
-		if (bestGuess.u1 > 1.0f || bestGuess.u1 < 0.0f ||
-			bestGuess.v1 > 1.0f || bestGuess.v1 < 0.0f ||
-			bestGuess.u2 > 1.0f || bestGuess.u2 < 0.0f ||
-			bestGuess.v2 > 1.0f || bestGuess.v2 < 0.0f)
-		{
+		if (lastPoint)
 			break;
-		}
 
-		// Correct h factor for next iteration:
-		//h *= 0.1f / aa::distance(previousPoint, point1);
-
-		//point2 = secondSurface->Evaluate(bestGuess.u2, bestGuess.v2);
-		//vertices.push_back(point2.x);
-		//vertices.push_back(point2.y);
-		//vertices.push_back(point2.z);
+		followingPoints.push_back(candidate);
+		previousPoint = candidate;
 	}
 	return followingPoints;
 }

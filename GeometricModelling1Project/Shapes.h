@@ -367,7 +367,7 @@ public:
 	void Serialize(nlohmann::json& j) override;
 	void Draw() override;
 	void setTessellationShader(Shader& _shader);
-	bool displayPoints = false;
+	bool displayPoints = true;
 private:
 	ISurface* firstSurface;
 	ISurface* secondSurface;
