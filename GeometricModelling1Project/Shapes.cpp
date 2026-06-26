@@ -1817,6 +1817,9 @@ void BezierSurface::MeshC2()
 			vertices.push_back(pointPos.x);
 			vertices.push_back(pointPos.y);
 			vertices.push_back(pointPos.z);
+			// Now the uv coords
+			vertices.push_back((float)(j - 1) / (float)(m - 3));
+			vertices.push_back((float)(i - 1) / (float)(n - 3));
 			size_t im1 = (i + n - 1) % n;
 			size_t jm1 = (j + m - 1) % m;
 			if (i != 0 || isCylinder)
@@ -1876,8 +1879,16 @@ void BezierSurface::MeshC2()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
+	// Define the stride: Total size of ONE vertex (3 floats for Pos + 2 floats for UV)
+	GLsizei stride = sizeof(float) * 5;
+
+	// Attribute 0: Position (3D Coordinates)
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+
+	// Attribute 1: UV Coordinates (2D Texture Coordinates)
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(sizeof(float) * 3)); // Starts after 3 floats
 
 	glBindVertexArray(netVAO);
 
@@ -2288,7 +2299,7 @@ void Intersection::DrawLine(std::vector<uint8_t>& mask, float x0f, float y0f, fl
 	}
 }
 
-void FloodFill(std::vector<uint8_t>& mask)
+void FloodFill(std::vector<uint8_t>& mask, bool wrapX = false, bool wrapY = false)
 {
 	const int SIZE = (int)std::sqrt(mask.size());
 
@@ -2312,16 +2323,35 @@ void FloodFill(std::vector<uint8_t>& mask)
 		return;
 
 	std::queue<std::pair<int, int>> q;
-
-	q.push({ startX, startY });
+	q.emplace(startX, startY);
 
 	while (!q.empty())
 	{
 		auto [x, y] = q.front();
 		q.pop();
 
-		if (x < 0 || x >= SIZE ||
-			y < 0 || y >= SIZE)
+		// Wrap or reject X
+		if (wrapX)
+		{
+			if (x < 0)
+				x += SIZE;
+			else if (x >= SIZE)
+				x -= SIZE;
+		}
+		else if (x < 0 || x >= SIZE)
+		{
+			continue;
+		}
+
+		// Wrap or reject Y
+		if (wrapY)
+		{
+			if (y < 0)
+				y += SIZE;
+			else if (y >= SIZE)
+				y -= SIZE;
+		}
+		else if (y < 0 || y >= SIZE)
 		{
 			continue;
 		}
@@ -2333,10 +2363,10 @@ void FloodFill(std::vector<uint8_t>& mask)
 
 		pixel = 255;
 
-		q.push({ x + 1, y });
-		q.push({ x - 1, y });
-		q.push({ x, y + 1 });
-		q.push({ x, y - 1 });
+		q.emplace(x + 1, y);
+		q.emplace(x - 1, y);
+		q.emplace(x, y + 1);
+		q.emplace(x, y - 1);
 	}
 }
 
@@ -2392,8 +2422,9 @@ void Intersection::Mesh()
 	std::vector<uint8_t> mask2(SIZE * SIZE, 0);
 
 	Point* pointerPoint;
-	float prevX1 = bestGuess.u1 * SIZE, prevY1 = bestGuess.v1 * SIZE;
-	float prevX2 = bestGuess.u2 * SIZE, prevY2 = bestGuess.v2 * SIZE;
+	float prevX1 = 0.0f, prevY1 = 0.0f;
+	float prevX2 = 0.0f, prevY2 = 0.0f;
+	bool first = true;
 	for (int i = pointsLeft.size() - 1; i >= 0 ; i--)
 	{
 		pointerPoint = new Point(aa::vec3(0.0f));
@@ -2403,12 +2434,23 @@ void Intersection::Mesh()
 		vertices.push_back(pointsLeft[i].point.y);
 		vertices.push_back(pointsLeft[i].point.z);
 		// Parameter-space mask
-		DrawLine(mask1, prevX1, prevY1, pointsLeft[i].u1 * SIZE, pointsLeft[i].v1 * SIZE);
-		prevX1 = pointsLeft[i].u1 * SIZE;
-		prevY1 = pointsLeft[i].v1 * SIZE;
-		DrawLine(mask2, prevX2, prevY2, pointsLeft[i].u2 * SIZE, pointsLeft[i].v2 * SIZE);
-		prevX2 = pointsLeft[i].u2 * SIZE;
-		prevY2 = pointsLeft[i].v2 * SIZE;
+		if (first)
+		{
+			first = false;
+			prevX1 = pointsLeft[i].u1 * SIZE;
+			prevY1 = pointsLeft[i].v1 * SIZE;
+			prevX2 = pointsLeft[i].u2 * SIZE;
+			prevY2 = pointsLeft[i].v2 * SIZE;
+		}
+		else
+		{
+			DrawLine(mask1, prevX1, prevY1, pointsLeft[i].u1 * SIZE, pointsLeft[i].v1 * SIZE);
+			prevX1 = pointsLeft[i].u1 * SIZE;
+			prevY1 = pointsLeft[i].v1 * SIZE;
+			DrawLine(mask2, prevX2, prevY2, pointsLeft[i].u2 * SIZE, pointsLeft[i].v2 * SIZE);
+			prevX2 = pointsLeft[i].u2 * SIZE;
+			prevY2 = pointsLeft[i].v2 * SIZE;
+		}
 	}
 	pointerPoint = new Point(aa::vec3(0.0f));
 	pointerPoint->TranslateAndConfirm(point1);
@@ -2416,6 +2458,8 @@ void Intersection::Mesh()
 	vertices.push_back(point1.x);
 	vertices.push_back(point1.y);
 	vertices.push_back(point1.z);
+	DrawLine(mask1, prevX1, prevY1, bestGuess.u1 * SIZE, bestGuess.v1 * SIZE);
+	DrawLine(mask2, prevX2, prevY2, bestGuess.u2 * SIZE, bestGuess.v2 * SIZE);
 	prevX1 = bestGuess.u1 * SIZE;
 	prevY1 = bestGuess.v1 * SIZE;
 	prevX2 = bestGuess.u2 * SIZE;
@@ -2433,8 +2477,8 @@ void Intersection::Mesh()
 		prevX1 = pointsRight[i].u1 * SIZE;
 		prevY1 = pointsRight[i].v1 * SIZE;
 		DrawLine(mask2, prevX2, prevY2, pointsRight[i].u2 * SIZE, pointsRight[i].v2 * SIZE);
-		prevX2 = pointsLeft[i].u2 * SIZE;
-		prevY2 = pointsLeft[i].v2 * SIZE;
+		prevX2 = pointsRight[i].u2 * SIZE;
+		prevY2 = pointsRight[i].v2 * SIZE;
 	}
 	FloodFill(mask1);
 	FloodFill(mask2);
@@ -2886,40 +2930,48 @@ std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfa
 
 			// Correct the step size
 			distance = aa::distance(candidate.point, previousPoint);
+			distance = std::max(distance, 1e-4f);
 			h *= (0.06f / distance);
 			limit--;
 
 			// Check if we left the surface
-			if (false)//distance < MIN_POINT_DISTANCE || distance > MAX_POINT_DISTANCE)
+			if (distance > MIN_POINT_DISTANCE && distance < MAX_POINT_DISTANCE)
 			{
-				float alpha = 1.0f;
-				if (newState.u1 > 1.0f)
-					alpha = (1.0f - previousPointState.u1) / (newState.u1 - previousPointState.u1);
-				else if (newState.u1 < 0.0f)
-					alpha = (previousPointState.u1) / (newState.u1 - previousPointState.u1);
-				else if (newState.v1 > 1.0f)
-					alpha = (1.0f - previousPointState.v1) / (newState.v1 - previousPointState.v1);
-				else if (newState.v1 < 0.0f)
-					alpha = (previousPointState.v1) / (newState.v1 - previousPointState.v1);
-				else if (newState.u2 > 1.0f)
-					alpha = (1.0f - previousPointState.u2) / (newState.u2 - previousPointState.u2);
-				else if (newState.u2 < 0.0f)
-					alpha = (previousPointState.u2) / (newState.u2 - previousPointState.u2);
-				else if (newState.v2 > 1.0f)
-					alpha = (1.0f - previousPointState.v2) / (newState.v2 - previousPointState.v2);
-				else if (newState.v2 < 0.0f)
-					alpha = (previousPointState.v2) / (newState.v2 - previousPointState.v2);
+				TwoSurfacesState prev = bestGuess; // state before step
+				TwoSurfacesState next = newState;   // state after step
 
+				float alpha = 1.0f;
+
+				auto clampAlpha = [&](float a, float b)
+					{
+						return a / (a - b);
+					};
+
+				if (next.u1 > 1.0f)
+					alpha = clampAlpha(1.0f - prev.u1, next.u1 - prev.u1);
+				else if (next.u1 < 0.0f)
+					alpha = clampAlpha(-prev.u1, next.u1 - prev.u1);
+				else if (next.v1 > 1.0f)
+					alpha = clampAlpha(1.0f - prev.v1, next.v1 - prev.v1);
+				else if (next.v1 < 0.0f)
+					alpha = clampAlpha(-prev.v1, next.v1 - prev.v1);
+				else if (next.u2 > 1.0f)
+					alpha = clampAlpha(1.0f - prev.u2, next.u2 - prev.u2);
+				else if (next.u2 < 0.0f)
+					alpha = clampAlpha(-prev.u2, next.u2 - prev.u2);
+				else if (next.v2 > 1.0f)
+					alpha = clampAlpha(1.0f - prev.v2, next.v2 - prev.v2);
+				else if (next.v2 < 0.0f)
+					alpha = clampAlpha(-prev.v2, next.v2 - prev.v2);
 				if (alpha != 1.0f)
 					lastPoint = true;
 
 				if (lastPoint)
 				{
-					break;
-					newState.u1 += alpha * (predicted.u1 - previousPointState.u1);
-					newState.v1 += alpha * (predicted.v1 - previousPointState.v1);
-					newState.u2 += alpha * (predicted.u2 - previousPointState.u2);
-					newState.v2 += alpha * (predicted.v2 - previousPointState.v2);
+					newState.u1 = prev.u1 + alpha * (next.u1 - prev.u1);
+					newState.v1 = prev.v1 + alpha * (next.v1 - prev.v1);
+					newState.u2 = prev.u2 + alpha * (next.u2 - prev.u2);
+					newState.v2 = prev.v2 + alpha * (next.v2 - prev.v2);
 				}
 
 				// Newton correction
@@ -2934,14 +2986,14 @@ std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfa
 		} while ((distance < 0.045f || distance > 0.075f) && limit > 0);
 		
 		predicted = newState;
+
+		followingPoints.push_back(candidate);
+		previousPoint = candidate.point;
 		
 		// Check if we left one of the surfaces
 
 		if (lastPoint)
 			break;
-
-		followingPoints.push_back(candidate);
-		previousPoint = candidate.point;
 	}
 	return followingPoints;
 }

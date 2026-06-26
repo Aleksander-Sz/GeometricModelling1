@@ -1113,6 +1113,7 @@ void Scene::AddShape()
         ShapeTable::GetShapeByID(shapes[shapes.size() - 1])->TranslateAndConfirm(cursor.getPosition());
     }
     // Debug code
+#ifdef DEBUG_SURFACES
     ISurface* surfacePointer;
     if (surfacePointer = dynamic_cast<ISurface*>(ShapeTable::GetShapeByID(shapes[shapes.size() - 1])))
     {
@@ -1120,6 +1121,7 @@ void Scene::AddShape()
         shapes.push_back(ShapeTable::AddShape(dp));
         dp->setShader(shader);
     }
+#endif
 }
 
 Point* Scene::OtherVertex(SurfaceEdge* e, Point* V)

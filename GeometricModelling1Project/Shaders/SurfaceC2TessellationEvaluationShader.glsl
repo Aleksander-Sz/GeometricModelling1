@@ -36,10 +36,10 @@ void main()
     float v = gl_TessCoord.y;
     
     uvGlobal =
-    uvBase[0] * (1-u)*(1-v) +
-    uvBase[3] * u*(1-v) +
-    uvBase[12] * (1-u)*v +
-    uvBase[15] * u*v;
+    uvBase[5] * (1-u)*(1-v) +
+    uvBase[6] * u*(1-v) +
+    uvBase[9] * (1-u)*v +
+    uvBase[10] * u*v;
     uvLocal = gl_TessCoord.xy;
 
     // Convert rows from de Boor -> Bernstein
