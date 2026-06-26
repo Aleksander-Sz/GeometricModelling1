@@ -387,6 +387,7 @@ public:
 	void Serialize(nlohmann::json& j) override;
 	void Draw() override;
 	void setTessellationShader(Shader& _shader);
+	std::vector<int> ConvertToCurve();
 	bool displayPoints = true;
 private:
 	ISurface* firstSurface;
@@ -397,11 +398,22 @@ private:
 	ParamDirection2D SolveSurfaceTangent(const aa::vec3& Su, const aa::vec3& Sv, const aa::vec3& curveTangent);
 	aa::vec3 previousCurveTangent = aa::vec3(0.0f, 0.0f, 0.0f);
 	TwoSurfacesState NewtonCorrect(TwoSurfacesState state, const ParamDirection& dir);
-	bool SolveGaussNewtonStep(const aa::vec3& Su, const aa::vec3& Sv, const aa::vec3& Tu, const aa::vec3& Tv,
-		const aa::vec3& F, float& du1, float& dv1, float& du2, float& dv2);
+	bool SolveGaussNewtonStep(
+		const aa::vec3& Su,
+		const aa::vec3& Sv,
+		const aa::vec3& Tu,
+		const aa::vec3& Tv,
+		const aa::vec3& F,
+		float G,
+		const ParamDirection& dir,
+		float& du1,
+		float& dv1,
+		float& du2,
+		float& dv2);
 	std::vector<IntersectionPoint> GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse);
 	float distance_uv(float u1, float v1, float u2, float v2);
 	Line* curve = nullptr;
+	std::vector<aa::vec3> linePoints;
 	Shader tessellationShader;
 	unsigned int texture1ID, texture2ID;
 	const int SIZE = 1024;

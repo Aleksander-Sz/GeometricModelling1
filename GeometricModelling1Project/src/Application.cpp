@@ -694,6 +694,26 @@ int main()
 				}
 			}
 			ShapeTable::GetShapeByID(shape)->PrintImGuiOptions();
+			Intersection* intersectionPointer = dynamic_cast<Intersection*>(ShapeTable::GetShapeByID(shape));
+			if (intersectionPointer != nullptr)
+			{
+				if (ImGui::Button("Convert to an interpolating curve"))
+				{
+					std::vector<int> v2 = intersectionPointer->ConvertToCurve();
+					for (size_t i = 0; i < v2.size(); i++)
+					{
+						Shape* spointer = ShapeTable::GetShapeByID(v2[i]);
+						spointer->setShader(scene->shader);
+						InterpolatingCurve* curvep = dynamic_cast<InterpolatingCurve*>(spointer);
+						if (curvep)
+							curvep->setTessellationShader(scene->tessellationShader);
+
+					}
+					scene->shapes.reserve(scene->shapes.size() + v2.size());
+
+					scene->shapes.insert(scene->shapes.end(), v2.begin(), v2.end());
+				}
+			}
 			ImGui::Separator();
 			//scene->shapes[i]->PrintImGuiTransformOptions(); // Temporarily Disabled
 			if (ShapeTable::GetShapeByID(shape)->Name() != "3D Cursor" && ImGui::Button("Delete object"))

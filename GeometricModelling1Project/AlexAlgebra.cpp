@@ -443,4 +443,123 @@ namespace aa {
 			db2 * p2 +
 			db3 * p3;
 	}
+
+	aa::vec4 aa::Mat3ToQuat(const aa::mat4& m)
+	{
+		aa::vec4 q;
+
+		// 1. Extract and normalize columns to strip away the Scale factor
+		aa::vec3 col0(m[0][0], m[0][1], m[0][2]);
+		aa::vec3 col1(m[1][0], m[1][1], m[1][2]);
+		aa::vec3 col2(m[2][0], m[2][1], m[2][2]);
+
+		// Perform vector length normalization (assuming you have a length/normalize helper)
+		float len0 = sqrt(col0.x * col0.x + col0.y * col0.y + col0.z * col0.z);
+		float len1 = sqrt(col1.x * col1.x + col1.y * col1.y + col1.z * col1.z);
+		float len2 = sqrt(col2.x * col2.x + col2.y * col2.y + col2.z * col2.z);
+
+		if (len0 > 1e-6f) { col0.x /= len0; col0.y /= len0; col0.z /= len0; }
+		if (len1 > 1e-6f) { col1.x /= len1; col1.y /= len1; col1.z /= len1; }
+		if (len2 > 1e-6f) { col2.x /= len2; col2.y /= len2; col2.z /= len2; }
+
+		// 2. Compute trace using the pure, unscaled rotation components
+		float trace = col0.x + col1.y + col2.z;
+
+		if (trace > 0.0f)
+		{
+			float s = sqrt(trace + 1.0f) * 2.0f;
+			q.w = 0.25f * s;
+			// Corrected signs for Column-Major matrix (m[col][row])
+			q.x = (col1.z - col2.y) / s; // (m[1][2] - m[2][1])
+			q.y = (col2.x - col0.z) / s; // (m[2][0] - m[0][2])
+			q.z = (col0.y - col1.x) / s; // (m[0][1] - m[1][0])
+		}
+		else
+		{
+			if (col0.x > col1.y && col0.x > col2.z)
+			{
+				float s = sqrt(1.0f + col0.x - col1.y - col2.z) * 2.0f;
+				q.w = (col1.z - col2.y) / s;
+				q.x = 0.25f * s;
+				q.y = (col0.y + col1.x) / s;
+				q.z = (col2.x + col0.z) / s;
+			}
+			else if (col1.y > col2.z)
+			{
+				float s = sqrt(1.0f + col1.y - col0.x - col2.z) * 2.0f;
+				q.w = (col2.x - col0.z) / s;
+				q.x = (col0.y + col1.x) / s;
+				q.y = 0.25f * s;
+				q.z = (col1.z + col2.y) / s;
+			}
+			else
+			{
+				float s = sqrt(1.0f + col2.z - col0.x - col1.y) * 2.0f;
+				q.w = (col0.y - col1.x) / s;
+				q.x = (col2.x + col0.z) / s;
+				q.y = (col1.z + col2.y) / s;
+				q.z = 0.25f * s;
+			}
+		}
+
+		return q;
+	}
+
+	aa::mat4 QuatToMat4(const aa::vec4& q)
+	{
+		aa::mat4 m(1.0f);
+		m[0][3] = 0.0f; m[1][3] = 0.0f; m[2][3] = 0.0f; m[3][3] = 1.0f;
+		m[3][0] = 0.0f; m[3][1] = 0.0f; m[3][2] = 0.0f;
+
+		// 1. Calculate the magnitude to normalize the quaternion safely
+		float n = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+
+		// If it's already zero or completely invalid, return an identity matrix
+		if (n < 1e-6f) {
+			return m;
+		}
+
+		// Normalize components
+		float invLen = 1.0f / sqrt(n);
+		float w = q.w * invLen;
+		float x = q.x * invLen;
+		float y = q.y * invLen;
+		float z = q.z * invLen;
+
+		float xx = q.x * q.x;
+		float yy = q.y * q.y;
+		float zz = q.z * q.z;
+		float xy = q.x * q.y;
+		float xz = q.x * q.z;
+		float yz = q.y * q.z;
+		float wx = q.w * q.x;
+		float wy = q.w * q.y;
+		float wz = q.w * q.z;
+
+		m[0][0] = 1.0f - 2.0f * (yy + zz);
+		m[0][1] = 2.0f * (xy - wz);
+		m[0][2] = 2.0f * (xz + wy);
+
+		m[1][0] = 2.0f * (xy + wz);
+		m[1][1] = 1.0f - 2.0f * (xx + zz);
+		m[1][2] = 2.0f * (yz - wx);
+
+		m[2][0] = 2.0f * (xz - wy);
+		m[2][1] = 2.0f * (yz + wx);
+		m[2][2] = 1.0f - 2.0f * (xx + yy);
+
+		return m;
+	}
+
+	aa::vec4 Multiply(const aa::vec4& a, const aa::vec4& b)
+	{
+		aa::vec4 r;
+
+		r.w = a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z;
+		r.x = a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y;
+		r.y = a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x;
+		r.z = a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w;
+
+		return r;
+	}
 }

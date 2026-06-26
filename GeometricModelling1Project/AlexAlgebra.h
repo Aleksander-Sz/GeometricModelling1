@@ -383,6 +383,10 @@ namespace aa {
 
 	vec3 bspline(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t);
 	vec3 bspline_derivative(vec3 p0, vec3 p1, vec3 p2, vec3 p3, float t);
+
+	vec4 Mat3ToQuat(const aa::mat4& m);
+	mat4 QuatToMat4(const aa::vec4& q);
+	vec4 Multiply(const aa::vec4& a, const aa::vec4& b);
 };
 
 

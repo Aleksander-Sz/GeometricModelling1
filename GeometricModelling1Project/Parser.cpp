@@ -80,16 +80,31 @@ std::vector<int> Parser::LoadScene(const char* filename)
 
 		if (type == "torus")
 		{
-			Torus* newTorus = new Torus(g["largeRadius"], g["smallRadius"], g["samples"]["u"], g["samples"]["v"]);
+			Torus* newTorus = new Torus(
+				g["largeRadius"],
+				g["smallRadius"],
+				g["samples"]["u"],
+				g["samples"]["v"]
+			);
+
 			aa::vec3 pos(
 				g["position"]["x"],
 				g["position"]["y"],
 				g["position"]["z"]
 			);
-			newTorus->Rotate(aa::radians(90.0f), aa::Axis::X);
-			newTorus->ConfirmTransformations();
-			newTorus->TranslateAndConfirm(pos);
-			//newTorus->setModel()
+
+			aa::vec4 rot(
+				g["rotation"]["w"],
+				g["rotation"]["x"],
+				g["rotation"]["y"],
+				g["rotation"]["z"]
+			);
+			aa::mat4 T = aa::translate(pos);
+			aa::mat4 R = QuatToMat4(rot);//; * aa::rotate(aa::mat4(1.0f), aa::Axis::X, aa::radians(90.0f));
+
+			aa::mat4 S = aa::scale(aa::vec3(g["scale"]["x"], g["scale"]["x"], g["scale"]["x"]));
+
+			newTorus->setModel(T * R * S);
 			shapes.push_back(ShapeTable::AddShape(newTorus));
 		}
 		else if ((type == "chain") || (type == "bezierC0") || (type == "bezierC2") || (type == "interpolatedC2"))

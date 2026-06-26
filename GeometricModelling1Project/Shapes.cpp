@@ -511,7 +511,15 @@ void Torus::Serialize(nlohmann::json& j)
 	j["name"] = shapeName;
 	j["objectType"] = "torus";
 	j["position"] = { { "x", model[3][0] }, { "y", model[3][1] }, { "z", model[3][2] } };
-	j["rotation"] = { { "x", aa::degrees(atan2(model[1][0], model[0][0])) }, { "y", aa::degrees(atan2(-model[2][0], sqrt(model[0][0] * model[0][0] + model[1][0] * model[1][0]))) }, { "z", aa::degrees(atan2(model[2][1], model[2][2])) } };
+	aa::vec4 fixX90 = aa::vec4(aa::radians(90.0f), 1.0f, 0.0f, 0.0f);
+	aa::vec4 rotQ = Mat3ToQuat(model);// aa::Multiply(Mat3ToQuat(model), aa::vec4(aa::radians(-90.0f), 1.0f, 0.0f, 0.0f));
+
+	j["rotation"] = {
+		{ "w", rotQ.w },
+		{ "x", rotQ.x },
+		{ "y", rotQ.y },
+		{ "z", rotQ.z }
+	};
 	j["scale"] = { { "x", sqrt(model[0][0] * model[0][0] + model[1][0] * model[1][0] + model[2][0] * model[2][0]) }, { "y", sqrt(model[0][1] * model[0][1] + model[1][1] * model[1][1] + model[2][1] * model[2][1]) }, { "z", sqrt(model[0][2] * model[0][2] + model[1][2] * model[1][2] + model[2][2] * model[2][2]) } };
 	j["samples"] = { { "u", s1 }, { "v", s2 } };
 }
@@ -2274,11 +2282,10 @@ void Intersection::DrawLine(std::vector<uint8_t>& mask, float x0f, float y0f, fl
 
 	while (true)
 	{
-		if (x0 >= 0 && x0 < SIZE &&
-			y0 >= 0 && y0 < SIZE)
-		{
-			mask[y0 * SIZE + x0] = 255;
-		}
+		int x_wrapped = (x0 % SIZE + SIZE) % SIZE;
+		int y_wrapped = (y0 % SIZE + SIZE) % SIZE;
+		
+			mask[y_wrapped * SIZE + x_wrapped] = 255;
 
 		if (x0 == x1 && y0 == y1)
 			break;
@@ -2361,7 +2368,7 @@ void FloodFill(std::vector<uint8_t>& mask, bool wrapX = false, bool wrapY = fals
 		if (pixel != 0)
 			continue;
 
-		pixel = 255;
+		pixel = 170;
 
 		q.emplace(x + 1, y);
 		q.emplace(x - 1, y);
@@ -2430,6 +2437,7 @@ void Intersection::Mesh()
 		pointerPoint = new Point(aa::vec3(0.0f));
 		pointerPoint->TranslateAndConfirm(pointsLeft[i].point);
 		allPoints.push_back(ShapeTable::AddShape(pointerPoint));
+		linePoints.push_back(pointsLeft[i].point);
 		vertices.push_back(pointsLeft[i].point.x);
 		vertices.push_back(pointsLeft[i].point.y);
 		vertices.push_back(pointsLeft[i].point.z);
@@ -2455,6 +2463,7 @@ void Intersection::Mesh()
 	pointerPoint = new Point(aa::vec3(0.0f));
 	pointerPoint->TranslateAndConfirm(point1);
 	allPoints.push_back(ShapeTable::AddShape(pointerPoint));
+	linePoints.push_back(point1);
 	vertices.push_back(point1.x);
 	vertices.push_back(point1.y);
 	vertices.push_back(point1.z);
@@ -2469,6 +2478,7 @@ void Intersection::Mesh()
 		pointerPoint = new Point(aa::vec3(0.0f));
 		pointerPoint->TranslateAndConfirm(pointsRight[i].point);
 		allPoints.push_back(ShapeTable::AddShape(pointerPoint));
+		linePoints.push_back(pointsRight[i].point);
 		vertices.push_back(pointsRight[i].point.x);
 		vertices.push_back(pointsRight[i].point.y);
 		vertices.push_back(pointsRight[i].point.z);
@@ -2480,6 +2490,7 @@ void Intersection::Mesh()
 		prevX2 = pointsRight[i].u2 * SIZE;
 		prevY2 = pointsRight[i].v2 * SIZE;
 	}
+	DrawLine(mask1, 200, 100, 1040, 700);
 	FloodFill(mask1);
 	FloodFill(mask2);
 
@@ -2638,6 +2649,19 @@ void Intersection::setTessellationShader(Shader& _shader)
 	tessellationShader = _shader;
 }
 
+std::vector<int> Intersection::ConvertToCurve()
+{
+	std::vector<int> pointIDs;
+	for (size_t i = 0; i < linePoints.size(); i++)
+	{
+		Point* newPoint = new Point(aa::vec3(0.0f));
+		pointIDs.push_back(ShapeTable::AddShape(newPoint));
+		newPoint->TranslateAndConfirm(linePoints[i]);
+	}
+	pointIDs.push_back(ShapeTable::AddShape(new InterpolatingCurve(pointIDs)));
+	return pointIDs;
+}
+
 float Intersection::MeasureDistance2(TwoSurfacesState state)
 {
 	if (firstSurface == secondSurface)
@@ -2760,18 +2784,29 @@ ParamDirection2D Intersection::SolveSurfaceTangent(const aa::vec3& Su, const aa:
 	return result;
 }
 
-TwoSurfacesState Intersection::NewtonCorrect(TwoSurfacesState state, const ParamDirection& dir)
+TwoSurfacesState Intersection::NewtonCorrect(
+	TwoSurfacesState state,
+	const ParamDirection& dir)
 {
 	float u1 = state.u1;
 	float v1 = state.v1;
 	float u2 = state.u2;
 	float v2 = state.v2;
-	for (int iter = 0; iter < 6; iter++)
+
+	for (int iter = 0; iter < 10; ++iter)
 	{
+		//---------------------------------------
+		// Current surface positions
+		//---------------------------------------
+
 		aa::vec3 P1 = firstSurface->Evaluate(u1, v1);
 		aa::vec3 P2 = secondSurface->Evaluate(u2, v2);
 
 		aa::vec3 F = P1 - P2;
+
+		//---------------------------------------
+		// Surface derivatives
+		//---------------------------------------
 
 		aa::vec3 Su = firstSurface->Du(u1, v1);
 		aa::vec3 Sv = firstSurface->Dv(u1, v1);
@@ -2779,122 +2814,178 @@ TwoSurfacesState Intersection::NewtonCorrect(TwoSurfacesState state, const Param
 		aa::vec3 Tu = secondSurface->Du(u2, v2);
 		aa::vec3 Tv = secondSurface->Dv(u2, v2);
 
+		//---------------------------------------
+		// Continuation equation
+		//---------------------------------------
+
+		float G =
+			(u1 - state.u1) * dir.du1 +
+			(v1 - state.v1) * dir.dv1 +
+			(u2 - state.u2) * dir.du2 +
+			(v2 - state.v2) * dir.dv2;
+
+		//---------------------------------------
+		// Solve 4x4 Newton system
+		//---------------------------------------
+
 		float du1, dv1, du2, dv2;
 
-		if (!SolveGaussNewtonStep(Su, Sv, Tu, Tv, F,
+		if (!SolveGaussNewtonStep(
+			Su, Sv,
+			Tu, Tv,
+			F, G,
+			dir,
 			du1, dv1, du2, dv2))
-			break;
-		// line search / damping to improve convergence and avoid large steps
-		float prevResidual = aa::length(F);
-		float alpha = 1.0f;
-		float newResidual = prevResidual;
-		float bestU1 = u1, bestV1 = v1, bestU2 = u2, bestV2 = v2;
-		for (int ls = 0; ls < 6; ++ls)
 		{
-			float candU1 = aa::clip(u1 + alpha * du1, 0.0f, 1.0f);
-			float candV1 = aa::clip(v1 + alpha * dv1, 0.0f, 1.0f);
-			float candU2 = aa::clip(u2 + alpha * du2, 0.0f, 1.0f);
-			float candV2 = aa::clip(v2 + alpha * dv2, 0.0f, 1.0f);
+			break;
+		}
 
-			aa::vec3 P1c = firstSurface->Evaluate(candU1, candV1);
-			aa::vec3 P2c = secondSurface->Evaluate(candU2, candV2);
-			float res = aa::length(P1c - P2c);
-			if (res < newResidual)
+		//---------------------------------------
+		// Damped Newton
+		//---------------------------------------
+
+		float alpha = 1.0f;
+
+		float currentResidual =
+			aa::length(F) + std::fabs(G);
+
+		bool accepted = false;
+
+		for (int ls = 0; ls < 8; ++ls)
+		{
+			float cu1 = aa::clip(u1 + alpha * du1, 0.0f, 1.0f);
+			float cv1 = aa::clip(v1 + alpha * dv1, 0.0f, 1.0f);
+			float cu2 = aa::clip(u2 + alpha * du2, 0.0f, 1.0f);
+			float cv2 = aa::clip(v2 + alpha * dv2, 0.0f, 1.0f);
+
+			aa::vec3 Q1 = firstSurface->Evaluate(cu1, cv1);
+			aa::vec3 Q2 = secondSurface->Evaluate(cu2, cv2);
+
+			aa::vec3 Fc = Q1 - Q2;
+
+			float Gc =
+				(cu1 - state.u1) * dir.du1 +
+				(cv1 - state.v1) * dir.dv1 +
+				(cu2 - state.u2) * dir.du2 +
+				(cv2 - state.v2) * dir.dv2;
+
+			float newResidual =
+				aa::length(Fc) + std::fabs(Gc);
+
+			if (newResidual < currentResidual)
 			{
-				newResidual = res;
-				bestU1 = candU1; bestV1 = candV1; bestU2 = candU2; bestV2 = candV2;
-				// accept and try larger alpha (not increasing here), break to apply
+				u1 = cu1;
+				v1 = cv1;
+				u2 = cu2;
+				v2 = cv2;
+				accepted = true;
 				break;
 			}
+
 			alpha *= 0.5f;
 		}
 
-		// apply best candidate
-		u1 = bestU1;
-		v1 = bestV1;
-		u2 = bestU2;
-		v2 = bestV2;
-
-		if (newResidual < 1e-5f)
+		if (!accepted)
 			break;
-	}
 
-	TwoSurfacesState out = state;
-	out.u1 = u1;
-	out.v1 = v1;
-	out.u2 = u2;
-	out.v2 = v2;
-	return out;
-}
+		//---------------------------------------
+		// Convergence
+		//---------------------------------------
 
-bool Intersection::SolveGaussNewtonStep(
-	const aa::vec3& Su, const aa::vec3& Sv,
-	const aa::vec3& Tu, const aa::vec3& Tv,
-	const aa::vec3& F,
-	float& du1, float& dv1,
-	float& du2, float& dv2)
-{
-	// J columns
-	aa::vec3 J1 = Su;
-	aa::vec3 J2 = Sv;
-	aa::vec3 J3 = -1.0f * Tu;
-	aa::vec3 J4 = -1.0f * Tv;
-
-	// JT*F
-	float b1 = aa::dot(J1, F);
-	float b2 = aa::dot(J2, F);
-	float b3 = aa::dot(J3, F);
-	float b4 = aa::dot(J4, F);
-
-	// J^T J matrix
-	float A[4][4];
-
-	aa::vec3 cols[4] = { J1, J2, J3, J4 };
-
-	for (int i = 0; i < 4; i++)
-		for (int j = 0; j < 4; j++)
-			A[i][j] = aa::dot(cols[i], cols[j]);
-
-	float B[4] = { -b1, -b2, -b3, -b4 };
-
-	// Gaussian elimination (4x4)
-	float M[4][5];
-
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 4; j++)
-			M[i][j] = A[i][j];
-		M[i][4] = B[i];
-	}
-
-	for (int i = 0; i < 4; i++)
-	{
-		float pivot = M[i][i];
-		if (fabs(pivot) < 1e-8f) return false;
-
-		for (int j = i; j < 5; j++)
-			M[i][j] /= pivot;
-
-		for (int k = 0; k < 4; k++)
+		if (std::fabs(du1) +
+			std::fabs(dv1) +
+			std::fabs(du2) +
+			std::fabs(dv2) < 1e-6f)
 		{
-			if (k == i) continue;
-			float f = M[k][i];
-			for (int j = i; j < 5; j++)
-				M[k][j] -= f * M[i][j];
+			break;
 		}
 	}
 
-	du1 = M[0][4];
-	dv1 = M[1][4];
-	du2 = M[2][4];
-	dv2 = M[3][4];
+	state.u1 = u1;
+	state.v1 = v1;
+	state.u2 = u2;
+	state.v2 = v2;
+
+	return state;
+}
+
+bool Intersection::SolveGaussNewtonStep(
+	const aa::vec3& Su,
+	const aa::vec3& Sv,
+	const aa::vec3& Tu,
+	const aa::vec3& Tv,
+	const aa::vec3& F,
+	float G,
+	const ParamDirection& dir,
+	float& du1,
+	float& dv1,
+	float& du2,
+	float& dv2)
+{
+	float A[4][5] =
+	{
+		{ Su.x, Sv.x, -Tu.x, -Tv.x, -F.x },
+		{ Su.y, Sv.y, -Tu.y, -Tv.y, -F.y },
+		{ Su.z, Sv.z, -Tu.z, -Tv.z, -F.z },
+		{ dir.du1, dir.dv1, dir.du2, dir.dv2, -G }
+	};
+
+	// Gaussian elimination with partial pivoting
+	for (int col = 0; col < 4; ++col)
+	{
+		int pivot = col;
+
+		for (int row = col + 1; row < 4; ++row)
+		{
+			if (std::fabs(A[row][col]) > std::fabs(A[pivot][col]))
+				pivot = row;
+		}
+
+		if (std::fabs(A[pivot][col]) < 1e-8f)
+			return false;
+
+		if (pivot != col)
+		{
+			for (int k = col; k < 5; ++k)
+				std::swap(A[col][k], A[pivot][k]);
+		}
+
+		float inv = 1.0f / A[col][col];
+
+		for (int k = col; k < 5; ++k)
+			A[col][k] *= inv;
+
+		for (int row = col + 1; row < 4; ++row)
+		{
+			float factor = A[row][col];
+
+			for (int k = col; k < 5; ++k)
+				A[row][k] -= factor * A[col][k];
+		}
+	}
+
+	// Back substitution
+	float x[4];
+
+	for (int row = 3; row >= 0; --row)
+	{
+		x[row] = A[row][4];
+
+		for (int col = row + 1; col < 4; ++col)
+			x[row] -= A[row][col] * x[col];
+	}
+
+	du1 = x[0];
+	dv1 = x[1];
+	du2 = x[2];
+	dv2 = x[3];
 
 	return true;
 }
 
 #define MIN_POINT_DISTANCE 0.045f
-#define MAX_POINT_DISTANCE 0.06f
-#define AVG_POINT_DISTANCE 0.075f
+#define MAX_POINT_DISTANCE 0.075f
+#define AVG_POINT_DISTANCE 0.06f
 std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse)
 {
 	std::vector<IntersectionPoint> followingPoints;
@@ -2940,11 +3031,22 @@ std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfa
 				TwoSurfacesState prev = bestGuess; // state before step
 				TwoSurfacesState next = newState;   // state after step
 
+				if (newState.u1 > 1.0f || newState.u1 < 0.0f ||
+					newState.u2>1.0f || newState.u2 < 0.0f ||
+					newState.v1>1.0f || newState.v1 < 0.0f ||
+					newState.v2>1.0f || newState.v2 < 0.0f)
+				{
+					lastPoint = true;
+					break;
+				}
+
 				float alpha = 1.0f;
 
 				auto clampAlpha = [&](float a, float b)
 					{
-						return a / (a - b);
+						if (fabs(b) < 1e-9f)
+							return 1.0f;
+						return a / b;
 					};
 
 				if (next.u1 > 1.0f)
@@ -2977,13 +3079,13 @@ std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfa
 				// Newton correction
 				bestGuess = NewtonCorrect(newState, param);
 				candidate.point = firstSurface->Evaluate(bestGuess.u1, bestGuess.v1);
-				candidate.u1 = newState.u1;
-				candidate.v1 = newState.v1;
-				candidate.u2 = newState.u2;
-				candidate.v2 = newState.v2;
+				candidate.u1 = bestGuess.u1;
+				candidate.v1 = bestGuess.v1;
+				candidate.u2 = bestGuess.u2;
+				candidate.v2 = bestGuess.v2;
 				break;
 			}
-		} while ((distance < 0.045f || distance > 0.075f) && limit > 0);
+		} while ((distance < MIN_POINT_DISTANCE || distance > MAX_POINT_DISTANCE) && limit > 0);
 		
 		predicted = newState;
 
