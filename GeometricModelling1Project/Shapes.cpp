@@ -416,11 +416,11 @@ void Torus::Mesh()
 	vertices.clear();
 	indices.clear();
 	dirty = false;
-	for (int i = 0; i < s1; i++)
+	for (int i = 0; i <= s1; i++)
 	{
 		float phi = (float)i / s1 * 2.0f * 3.14159265359f;
 		float u = (float)i / s1;
-		for (int j = 0; j < s2; j++)
+		for (int j = 0; j <= s2; j++)
 		{
 			// vertices
 			float theta = (float)j / s2 * 2.0f * 3.14159265359f;
@@ -435,11 +435,13 @@ void Torus::Mesh()
 			vertices.push_back(u);
 			vertices.push_back(v);
 			// indices
-			unsigned int nextI = (i + 1) % s1;
-			unsigned int nextJ = (j + 1) % s2;
-			unsigned int v0 = i * s2 + j;
-			unsigned int v1 = i * s2 + nextJ;
-			unsigned int v2 = nextI * s2 + j;
+			if (i == s1 || j == s2)
+				continue; // skip the last row and column to avoid wrapping issues
+			unsigned int nextI = i + 1;
+			unsigned int nextJ = j + 1;
+			unsigned int v0 = i * (s2 + 1) + j;
+			unsigned int v1 = i * (s2 + 1) + nextJ;
+			unsigned int v2 = nextI * (s2 + 1) + j;
 			indices.push_back(v0);
 			indices.push_back(v1);
 			indices.push_back(v0);
@@ -2385,13 +2387,17 @@ void FloodFill(std::vector<uint8_t>& mask, bool wrapX = false, bool wrapY = fals
 		if (pixel != 0)
 			continue;
 
-		pixel = 170;
+		pixel = 200;
 
 		q.emplace(x + 1, y);
 		q.emplace(x - 1, y);
 		q.emplace(x, y + 1);
 		q.emplace(x, y - 1);
 	}
+	/*for (size_t i = 0; i < mask.size(); i++)
+	{
+		mask[i] = 255;
+	}*/
 }
 
 void Intersection::Mesh()
@@ -3075,6 +3081,16 @@ std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfa
 					break;
 				}
 				//break;
+
+				// Let's keep the uv within the [0,1] domain
+				if (newState.u1 < 0.0f || newState.u1>1.0f)
+					newState.u1 = fmod(newState.u1, 1.0f);
+				if (newState.v1 < 0.0f || newState.v1>1.0f)
+					newState.v1 = fmod(newState.v1, 1.0f);
+				if (newState.u2 < 0.0f || newState.u2>1.0f)
+					newState.u2 = fmod(newState.u2, 1.0f);
+				if (newState.v2 < 0.0f || newState.v2>1.0f)
+					newState.v2 = fmod(newState.v2, 1.0f);
 
 				// Let's check if the points are looping
 				float distanceToInitial = aa::distance(candidate.point, initialPoint);
