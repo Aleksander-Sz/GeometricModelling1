@@ -5,6 +5,25 @@ Shape::~Shape() {
 	glDeleteBuffers(1, &VBO);
 	glDeleteVertexArrays(1, &VAO);
 }
+
+void GregoryPatch::RemoveDeletedPoints()
+{
+	// If any of the points this GregoryPatch depends on has been marked for deletion,
+	// mark the GregoryPatch itself for deletion so Scene::RemoveMarkedObjects will remove it.
+	bool deleteThis = false;
+	for (size_t i = 0; i < edgePoints.size(); ++i)
+	{
+		if (ShapeTable::GetShapeByID(edgePoints[i])->isMarkedForDeletion())
+			deleteThis = true;
+	}
+	for (size_t i = 0; i < secondRowPoints.size(); ++i)
+	{
+		if (ShapeTable::GetShapeByID(secondRowPoints[i])->isMarkedForDeletion())
+			deleteThis = true;
+	}
+	if (deleteThis)
+		markedForDeletion = true;
+}
 void Shape::Scale(aa::vec3 s, aa::vec3 origin)
 {
 	//model = aa::scale(model, s);
@@ -1848,6 +1867,7 @@ void BezierSurface::MeshC2()
 		}
 	}
 	// indices
+	WrapU = isCylinder;
 	if (isCylinder)
 	{
 		for (size_t i = 0; i < n; i += 1)
@@ -2277,22 +2297,28 @@ void Intersection::DrawLine(std::vector<uint8_t>& mask, float x0f, float y0f, fl
 
 	std::cout << "x0: " << x0 << " y0: " << y0 << "\nx1: " << x1 << " y1: " << y1 << "\n";
 
-	int dx = std::abs(x1 - x0);
-	if (std::abs(dx) > SIZE / 2)
+	int deltaX = x1 - x0;
+
+	if (std::abs(deltaX) > SIZE / 2)
 	{
-		if (dx > 0)
+		if (deltaX > 0)
 			x1 -= SIZE;
 		else
 			x1 += SIZE;
 	}
-	int dy = std::abs(y1 - y0);
-	if (std::abs(dy) > SIZE / 2)
+
+	int deltaY = y1 - y0;
+
+	if (std::abs(deltaY) > SIZE / 2)
 	{
-		if (dy > 0)
+		if (deltaY > 0)
 			y1 -= SIZE;
 		else
 			y1 += SIZE;
 	}
+
+	int dx = std::abs(x1 - x0);
+	int dy = std::abs(y1 - y0);
 
 	int sx = (x0 < x1) ? 1 : -1;
 	int sy = (y0 < y1) ? 1 : -1;

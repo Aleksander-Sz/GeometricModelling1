@@ -315,7 +315,7 @@ struct EdgeKeyHash
 	}
 };
 
-class GregoryPatch : public Meshable
+class GregoryPatch : public Meshable, public IDependentOnOtherShapes
 {
 public:
 	GregoryPatch(std::vector<int> edge, std::vector<int> secondRow);
@@ -327,6 +327,7 @@ public:
 	void Translate(aa::vec3 t) override;
 	void ConfirmTransformations() override;
 	void CancelTransformations() override;
+	void RemoveDeletedPoints() override;
 	void Serialize(nlohmann::json& j) override;
 	void Draw() override;
 	std::vector<int> edgePoints;
