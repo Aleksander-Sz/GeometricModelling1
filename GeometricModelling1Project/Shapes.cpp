@@ -426,8 +426,8 @@ void Torus::Mesh()
 			float theta = (float)j / s2 * 2.0f * 3.14159265359f;
 			float v = (float)j / s2;
 			float x = (R + r * cos(theta)) * cos(phi);
-			float y = (R + r * cos(theta)) * sin(phi);
-			float z = r * sin(theta);
+			float z = (R + r * cos(theta)) * sin(phi);
+			float y = r * sin(theta);
 			vertices.push_back(x);
 			vertices.push_back(y);
 			vertices.push_back(z);
@@ -446,6 +446,8 @@ void Torus::Mesh()
 			indices.push_back(v2);
 		}
 	}
+	WrapU = true;
+	WrapV = true;
 	//prepare for drawing
 	glBindVertexArray(VAO);
 
@@ -529,8 +531,8 @@ aa::vec3 Torus::Evaluate(float u, float v)
 	float phi = u * 2.0f * 3.14159265359f;
 	float theta = v * 2.0f * 3.14159265359f;
 	float x = (R + r * cos(theta)) * cos(phi);
-	float y = (R + r * cos(theta)) * sin(phi);
-	float z = r * sin(theta);
+	float z = (R + r * cos(theta)) * sin(phi);
+	float y = r * sin(theta);
 	aa::vec4 localPos = aa::vec4(x, y, z, 1.0f);
 	return (model * localPos).xyz;
 }
@@ -540,8 +542,8 @@ aa::vec3 Torus::Du(float u, float v)
 	float phi = u * 2.0f * 3.14159265359f;
 	float theta = v * 2.0f * 3.14159265359f;
 	float x = -(R + r * cos(theta)) * sin(phi);
-	float y = (R + r * cos(theta)) * cos(phi);
-	float z = 0.0f;
+	float z = (R + r * cos(theta)) * cos(phi);
+	float y = 0.0f;
 	aa::vec4 localDu = aa::vec4(x, y, z, 0.0f) * (2.0f * 3.14159265359f);
 	return (model * localDu).xyz;
 }
@@ -551,8 +553,8 @@ aa::vec3 Torus::Dv(float u, float v)
 	float phi = u * 2.0f * 3.14159265359f;
 	float theta = v * 2.0f * 3.14159265359f;
 	float x = -r * sin(theta) * cos(phi);
-	float y = -r * sin(theta) * sin(phi);
-	float z = r * cos(theta);
+	float z = -r * sin(theta) * sin(phi);
+	float y = r * cos(theta);
 	aa::vec4 localDv = aa::vec4(x, y, z, 0.0f) * (2.0f * 3.14159265359f);
 	return (model * localDv).xyz;
 }
@@ -1325,6 +1327,7 @@ BezierSurface::BezierSurface(std::vector<std::vector<int>> _controlPoints, bool 
 {
 	isC2 = _isC2;
 	isCylinder = _isCylinder;
+	WrapU = _isCylinder;
 	shapeName = "BezierSurface ";
 	shapeName += (isC2 ? "C2" : "C0");
 	controlPoints = _controlPoints;
@@ -2273,7 +2276,21 @@ void Intersection::DrawLine(std::vector<uint8_t>& mask, float x0f, float y0f, fl
 	std::cout << "x0: " << x0 << " y0: " << y0 << "\nx1: " << x1 << " y1: " << y1 << "\n";
 
 	int dx = std::abs(x1 - x0);
+	if (std::abs(dx) > SIZE / 2)
+	{
+		if (dx > 0)
+			x1 -= SIZE;
+		else
+			x1 += SIZE;
+	}
 	int dy = std::abs(y1 - y0);
+	if (std::abs(dy) > SIZE / 2)
+	{
+		if (dy > 0)
+			y1 -= SIZE;
+		else
+			y1 += SIZE;
+	}
 
 	int sx = (x0 < x1) ? 1 : -1;
 	int sy = (y0 < y1) ? 1 : -1;
@@ -2380,6 +2397,7 @@ void FloodFill(std::vector<uint8_t>& mask, bool wrapX = false, bool wrapY = fals
 void Intersection::Mesh()
 {
 	dirty = false;
+	isIntersectionLooped = false;
 	// First let's use Monte Carlo to find our initial guess
 	float distance = 1.0f;
 	TwoSurfacesState bestGuess;
@@ -2399,7 +2417,8 @@ void Intersection::Mesh()
 		counter++;
 		if (counter > 20) // some limit for Monte Carlo iterations
 		{
-			break;
+			markedForDeletion = true;
+			return;
 		}
 	}
 	// We have the initial guess
@@ -2409,8 +2428,8 @@ void Intersection::Mesh()
 	float v = bestGuess.v1; // I need to add Newton here!!! TODO
 	float s = bestGuess.u2;
 	float t = bestGuess.v2;
-	std::cout << "Point1: " << point1.x << ", " << point1.y << ", " << point1.z << ", u: " << bestGuess.u1 << ", v: " << bestGuess.v1 << "\n";
-	std::cout << "Point1: " << point2.x << ", " << point2.y << ", " << point2.z << ", u: " << bestGuess.u2 << ", v: " << bestGuess.v2 << "\n";
+	//std::cout << "Point1: " << point1.x << ", " << point1.y << ", " << point1.z << ", u: " << bestGuess.u1 << ", v: " << bestGuess.v1 << "\n";
+	//std::cout << "Point1: " << point2.x << ", " << point2.y << ", " << point2.z << ", u: " << bestGuess.u2 << ", v: " << bestGuess.v2 << "\n";
 	vertices.push_back(point1.x);
 	vertices.push_back(point1.y);
 	vertices.push_back(point1.z);
@@ -2490,9 +2509,17 @@ void Intersection::Mesh()
 		prevX2 = pointsRight[i].u2 * SIZE;
 		prevY2 = pointsRight[i].v2 * SIZE;
 	}
-	DrawLine(mask1, 200, 100, 1040, 700);
-	FloodFill(mask1);
-	FloodFill(mask2);
+
+	// If the intersection is looped, we have to draw the line between its ends as well
+	if (isIntersectionLooped)
+	{
+		IntersectionPoint firstPointLoop = pointsRight[pointsRight.size() - 1];
+		IntersectionPoint secondPointLoop = pointsLeft[pointsLeft.size() - 1];
+		DrawLine(mask1, firstPointLoop.u1* SIZE, firstPointLoop.v1* SIZE, secondPointLoop.u1* SIZE, secondPointLoop.v1* SIZE);
+		DrawLine(mask2, firstPointLoop.u2* SIZE, firstPointLoop.v2* SIZE, secondPointLoop.u2* SIZE, secondPointLoop.v2* SIZE);
+	}
+	FloodFill(mask1, firstSurface->WrapU, firstSurface->WrapV);
+	FloodFill(mask2, secondSurface->WrapU, secondSurface->WrapV);
 
 	glGenTextures(1, &texture1ID);
 	glBindTexture(GL_TEXTURE_2D, texture1ID);
@@ -2561,6 +2588,8 @@ void Intersection::PrintImGuiOptions()
 	ImGui::Checkbox("Display intersection points", &displayPoints);
 	static int c1 = 0;
 	static int c2 = 0;
+	if (firstSurface == secondSurface)
+		return;
 	if (ImGui::Button("Display first clipping texture"))
 	{
 		c1 = 1000;
@@ -2624,6 +2653,8 @@ void Intersection::Serialize(nlohmann::json& j)
 
 void Intersection::Draw()
 {
+	if (markedForDeletion)
+		return;
 	if (dirty)
 		Mesh();
 	if (displayPoints)
@@ -2666,7 +2697,7 @@ float Intersection::MeasureDistance2(TwoSurfacesState state)
 {
 	if (firstSurface == secondSurface)
 	{
-		if (distance_uv(state.u1, state.v1, state.u2, state.v2) < 0.01f)
+		if (distance_uv(fmod(state.u1, 1.0f), fmod(state.v1, 1.0f), fmod(state.u2, 1.0f), fmod(state.v2, 1.0f)) < 0.1f)
 			return std::numeric_limits<float>::max();
 	}
 	aa::vec3 point1 = state.first->Evaluate(state.u1, state.v1);
@@ -2988,6 +3019,9 @@ bool Intersection::SolveGaussNewtonStep(
 #define AVG_POINT_DISTANCE 0.06f
 std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfacesState bestGuess, aa::vec3 previousPoint, bool reverse)
 {
+	bool skipPoint = false;
+	aa::vec3 initialPoint = previousPoint;
+	float increasingDistance = 0.0f;
 	std::vector<IntersectionPoint> followingPoints;
 	float h = 0.01f;
 	IntersectionPoint candidate;
@@ -3025,22 +3059,35 @@ std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfa
 			h *= (0.06f / distance);
 			limit--;
 
-			// Check if we left the surface
+			// If the guess is withing the acceptable range, we can accept it and move on
 			if (distance > MIN_POINT_DISTANCE && distance < MAX_POINT_DISTANCE)
 			{
 				TwoSurfacesState prev = bestGuess; // state before step
-				TwoSurfacesState next = newState;   // state after step
+				TwoSurfacesState next = newState;  // state after step
 
-				if (newState.u1 > 1.0f || newState.u1 < 0.0f ||
-					newState.u2>1.0f || newState.u2 < 0.0f ||
-					newState.v1>1.0f || newState.v1 < 0.0f ||
-					newState.v2>1.0f || newState.v2 < 0.0f)
+				if (((newState.u1>1.0f || newState.u1 < 0.0f) && firstSurface->WrapU==false ) ||
+					((newState.u2>1.0f || newState.u2 < 0.0f) && secondSurface->WrapU==false ) ||
+					((newState.v1>1.0f || newState.v1 < 0.0f) && firstSurface->WrapV==false ) ||
+					((newState.v2>1.0f || newState.v2 < 0.0f) && secondSurface->WrapV==false )
+					)
 				{
 					lastPoint = true;
 					break;
 				}
+				//break;
 
-				float alpha = 1.0f;
+				// Let's check if the points are looping
+				float distanceToInitial = aa::distance(candidate.point, initialPoint);
+				increasingDistance = std::max(aa::distance(candidate.point, initialPoint), increasingDistance);
+				if (distanceToInitial < 0.07f && distanceToInitial < increasingDistance)
+				{
+					isIntersectionLooped = true;
+					lastPoint = true;
+					skipPoint = true;
+					break;
+				}
+
+/*				float alpha = 1.0f;
 
 				auto clampAlpha = [&](float a, float b)
 					{
@@ -3083,13 +3130,14 @@ std::vector<IntersectionPoint> Intersection::GetThePointsInOneDirection(TwoSurfa
 				candidate.v1 = bestGuess.v1;
 				candidate.u2 = bestGuess.u2;
 				candidate.v2 = bestGuess.v2;
-				break;
+				break;*/
 			}
 		} while ((distance < MIN_POINT_DISTANCE || distance > MAX_POINT_DISTANCE) && limit > 0);
 		
 		predicted = newState;
 
-		followingPoints.push_back(candidate);
+		if(!skipPoint)
+			followingPoints.push_back(candidate);
 		previousPoint = candidate.point;
 		
 		// Check if we left one of the surfaces

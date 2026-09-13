@@ -102,10 +102,8 @@ public:
 
 	bool reverseClip = false;
 
-	//bool WrapU;
-	//bool WrapV;
-
-	//ParamDomain Domain { get; }
+	bool WrapU = false;
+	bool WrapV = false;
 };
 
 class Torus : public Meshable, public ISurface
@@ -418,6 +416,7 @@ private:
 	unsigned int texture1ID, texture2ID;
 	const int SIZE = 1024;
 	void DrawLine(std::vector<uint8_t>& mask, float x0f, float y0f, float x1f, float y1f);
+	bool isIntersectionLooped = false;
 };
 
 class DerivativePreview : public Meshable // For debug purposes only

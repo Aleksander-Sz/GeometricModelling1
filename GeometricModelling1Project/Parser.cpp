@@ -50,36 +50,32 @@ std::vector<int> Parser::LoadScene(const char* filename)
 			throw(std::runtime_error("Could not open file"));
 		file >> j;
 		file.close();
-	}
-	catch (const std::exception& e)
-	{
-		std::cerr << "Error loading scene: " << e.what() << std::endl;
-		return shapes;
-	}
+	
+		// Parsing points
+		for (auto& p : j["points"])
+		{
+			uint32_t id = p["id"];
+			aa::vec3 pos(
+				p["position"]["x"],
+				p["position"]["y"],
+				p["position"]["z"]
+			);
 
-	// Parsing points
-	for (auto& p : j["points"])
-	{
-		uint32_t id = p["id"];
-		aa::vec3 pos(
-			p["position"]["x"],
-			p["position"]["y"],
-			p["position"]["z"]
-		);
-
-		points[id] = ShapeTable::AddShape(new Point(pos));
-		shapes.push_back(points[id]);
-	}
+			points[id] = ShapeTable::AddShape(new Point(pos));
+			shapes.push_back(points[id]);
+		}
 
 	//Parsing geometry
-	for (auto& g : j["geometry"])
-	{
+		for (auto& g : j["geometry"])
+		{
+			
 		if (g == NULL)
 			continue;
 		std::string type = g["objectType"];
 
 		if (type == "torus")
 		{
+
 			Torus* newTorus = new Torus(
 				g["largeRadius"],
 				g["smallRadius"],
@@ -183,6 +179,14 @@ std::vector<int> Parser::LoadScene(const char* filename)
 			std::cerr << "Unknown object type: " << type << "\n";
 		}
 	}
+
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "Error loading scene: " << e.what() << std::endl;
+		return shapes;
+	}
+
 
 	return shapes;
 }
