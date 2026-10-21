@@ -583,15 +583,9 @@ int main()
 	glGetIntegerv(GL_MAX_TESS_GEN_LEVEL, &maxLevel);
 	std::cout << "Maximum tessellation level: " << maxLevel << "\n";
 
-	// Rendering commands here
-	
-	//Torus* torus = new Torus(1.0f, 0.3f, 50, 50);
-	//torus->setShader(scene->shader);
-	//scene->shapes.push_back(ShapeTable::GetShapeID(torus));
-	//Point point(aa::vec3(0.0f, 0.1f, 0.0f));
-	//scene->shapes.push_back(&point);
-	//torus->Rotate(aa::radians(90.0f),aa::Axis::X);
-	//torus->ConfirmTransformations();
+	// Creating the Machining object
+
+	Machining machining = Machining();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -798,6 +792,22 @@ int main()
 				scene->SaveFile(sceneSavePathBuffer);
 			}
 		}
+
+		// Machining Menu
+		ImGui::Separator();
+		if (ImGui::CollapsingHeader("Machining Menu"))
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.8f, 1.0f), "Machining Menu");
+			static char gcodeLoadPathBuffer[256] = "GCode/1.gcode";
+			ImGui::InputText("Gcode Path", gcodeLoadPathBuffer, IM_ARRAYSIZE(gcodeLoadPathBuffer));
+			if (ImGui::Button("Load GCode"))
+			{
+				machining.Simulator.LoadGCode(gcodeLoadPathBuffer);
+			}
+		}
+
+
+
 		ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
 
 		ImGui::End();
@@ -824,6 +834,8 @@ int main()
 		{
 			scene->DrawScene(window);
 		}
+		// Drawing the Machining Sim
+		machining.Simulator.Draw(scene->shader);
 
 		// -----
 		float currentFrame = glfwGetTime();

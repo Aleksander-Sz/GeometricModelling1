@@ -147,6 +147,7 @@
     <ClCompile Include="..\Dependencies\GLAD\src\gl.c" />
     <ClCompile Include="AlexAlgebra.cpp" />
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Machining.cpp" />
     <ClCompile Include="Parser.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
@@ -175,6 +176,7 @@
   <ItemGroup>
     <ClInclude Include="AlexAlgebra.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Machining.h" />
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="Shader.h" />

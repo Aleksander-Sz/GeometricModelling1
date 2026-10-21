@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include "Shapes.h"
 #include "Parser.h"
+#include "Machining.h"
 #include <GLFW/glfw3.h>
 #include <algorithm>
 #include <set>
@@ -102,6 +103,7 @@ public:
 	void LoadFile(const char* filename);
 	void SaveFile(const char* filename);
 	bool useCursorForIntersectionAdding = false;
+	Machining machiningTools;
 private:
 	aa::mat4 sceneMatrix = aa::mat4(1.0f);
 	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);
