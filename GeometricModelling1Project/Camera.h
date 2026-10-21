@@ -31,6 +31,8 @@ public:
 	aa::mat4 view();
 	aa::mat4 projection();
 	aa::mat4 inverseViewProjection();
+
+	aa::vec2 worldToScreen(aa::vec3 worldPos);
 };
 
 #endif

@@ -374,7 +374,7 @@ struct IntersectionPoint
 class Intersection : public Meshable
 {
 public:
-	Intersection(ISurface* first, ISurface* second);
+	Intersection(ISurface* first, ISurface* second, Camera* _camera = nullptr, aa::vec2 _cursorPos = aa::vec2(0.0f, 0.0f));
 	~Intersection();
 	void Mesh() override;
 	void PrintImGuiOptions() override;
@@ -418,6 +418,9 @@ private:
 	const int SIZE = 1024;
 	void DrawLine(std::vector<uint8_t>& mask, float x0f, float y0f, float x1f, float y1f);
 	bool isIntersectionLooped = false;
+	bool trackCursor = false;
+	Camera* camera;
+	aa::vec2 cursorPos;
 };
 
 class DerivativePreview : public Meshable // For debug purposes only

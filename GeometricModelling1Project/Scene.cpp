@@ -1087,15 +1087,22 @@ void Scene::AddShape()
         if (selectedSurfaces.size() <= 0)
             break; // no surfaces selected, can't create an intersection
         Intersection* newIntersection;
+        Camera* cameraT= nullptr;
+        aa::vec2 posT;
+        if (useCursorForIntersectionAdding)
+        {
+            cameraT = &camera;
+            posT = cursor.getScreenSpacePosition(camera);
+        }
         if (selectedSurfaces.size() == 1)
         {
             // Self intersection
-            newIntersection = new Intersection(selectedSurfaces[0], selectedSurfaces[0]);
+            newIntersection = new Intersection(selectedSurfaces[0], selectedSurfaces[0], cameraT, posT);
         }
         else
         {
             // Intersection between two shapes
-            newIntersection = new Intersection(selectedSurfaces[0], selectedSurfaces[1]);
+            newIntersection = new Intersection(selectedSurfaces[0], selectedSurfaces[1], cameraT, posT);
         }
         shapes.push_back(ShapeTable::AddShape(newIntersection));
         newIntersection->setTessellationShader(tessellationShader);

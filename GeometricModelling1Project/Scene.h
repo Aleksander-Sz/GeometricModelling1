@@ -101,6 +101,7 @@ public:
 	Point* OtherVertex(SurfaceEdge* e, Point* V);
 	void LoadFile(const char* filename);
 	void SaveFile(const char* filename);
+	bool useCursorForIntersectionAdding = false;
 private:
 	aa::mat4 sceneMatrix = aa::mat4(1.0f);
 	aa::mat4 inverseSceneMatrix = aa::mat4(1.0f);

@@ -775,6 +775,10 @@ int main()
 				ImGui::SliderFloat("Height", &(scene->newSurfaceV), 0.1f, 20.0f);
 			}
 		}
+		else if (scene->currentItemSelectedForAdding == 10)
+		{
+			ImGui::Checkbox("Cursor whereabouts", &(scene->useCursorForIntersectionAdding));
+		}
 		if (ImGui::Button("Add Shape"))
 		{
 			scene->AddShape();

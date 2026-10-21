@@ -2271,11 +2271,14 @@ aa::vec3 GregoryPatch::getPosition()
 
 // Intersection class functions
 
-Intersection::Intersection(ISurface* first, ISurface* second)
+Intersection::Intersection(ISurface* first, ISurface* second, Camera* _camera, aa::vec2 _cursorPos)
 {
 	firstSurface = first;
 	secondSurface = second;
 	shapeName = "Intersection Curve";
+	trackCursor = (_camera != nullptr);
+	camera = _camera;
+	cursorPos = _cursorPos;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -2440,6 +2443,18 @@ void Intersection::Mesh()
 	bestGuess.u2 = 0.5f;
 	bestGuess.v2 = 0.5f;
 	float width = 0.5f;
+	// Cursor approximation for initial guess
+	/*if (trackCursor)
+	{
+		float minDistance = std::numeric_limits<float>::max();
+		for (size_t i = 0; i < 10; i++)
+		{
+			for (size_t j = 0; j < 10; j++)
+			{
+				
+			}
+		}
+	}*/
 	size_t counter = 0;
 	while (distance > 0.0000005f)
 	{
@@ -2766,7 +2781,10 @@ TwoSurfacesState Intersection::RunMonteCarlo(TwoSurfacesState state, float width
 	TwoSurfacesState newGuess = bestGuess;
 	Cursor cursor = Cursor::getInstance();
 	//float lambda = 0.4f;
-	float minDistance = std::numeric_limits<float>::max();
+	float minSurfaceDistance = std::numeric_limits<float>::max();
+	float minCursorDistance2 = std::numeric_limits<float>::max();
+	bool foundCandidateNearCursor = false;
+	float cursorRadius = 25.0f; // pixels
 	for (size_t i = 0; i < 500; i++)
 	{
 		newGuess.u1 = static_cast <float>(rand()) / static_cast <float>(RAND_MAX) * u1range + u1min;
@@ -2779,12 +2797,66 @@ TwoSurfacesState Intersection::RunMonteCarlo(TwoSurfacesState state, float width
 				swap(newGuess.u1, newGuess.v1, newGuess.u2, newGuess.v2);
 		}
 		float newDistance = MeasureDistance2(newGuess);
-		// Include the cursor heuristic
-		//newDistance += lambda * aa::distance_2((firstSurface->Evaluate(newGuess.u1, newGuess.v1) + firstSurface->Evaluate(newGuess.u1, newGuess.v1)) / 2.0f, cursor.getPosition());
-		if (newDistance < minDistance)
+		// Cursor heuristic
+		if (trackCursor)
 		{
-			minDistance = newDistance;
-			bestGuess = newGuess;
+			aa::vec3 p1 =
+				firstSurface->Evaluate(newGuess.u1, newGuess.v1);
+
+			aa::vec3 p2 =
+				secondSurface->Evaluate(newGuess.u2, newGuess.v2);
+
+			aa::vec3 midpoint = (p1 + p2) / 2.0f;
+
+			aa::vec2 candidateScreenPos =
+				camera->worldToScreen(midpoint);
+
+			aa::vec2 screenDelta = candidateScreenPos - cursorPos;
+
+			float cursorDistance2 =
+				screenDelta.x * screenDelta.x +
+				screenDelta.y * screenDelta.y;
+
+			bool insideCursorRadius =
+				cursorDistance2 <= cursorRadius * cursorRadius;
+
+			// Include the cursor heuristic
+			//newDistance += lambda * aa::distance_2((firstSurface->Evaluate(newGuess.u1, newGuess.v1) + firstSurface->Evaluate(newGuess.u1, newGuess.v1)) / 2.0f, cursor.getPosition());
+			bool betterCandidate = false;
+
+			if (insideCursorRadius && !foundCandidateNearCursor)
+			{
+				// First candidate inside the cursor neighborhood.
+				betterCandidate = true;
+			}
+			else if (insideCursorRadius && foundCandidateNearCursor)
+			{
+				// Both candidates are near the cursor:
+				// prioritize actual surface intersection quality.
+				betterCandidate = newDistance < minSurfaceDistance;
+			}
+			else if (!insideCursorRadius && !foundCandidateNearCursor)
+			{
+				// Neither candidate is near the cursor:
+				// move the search toward the cursor.
+				betterCandidate = cursorDistance2 < minCursorDistance2;
+			}
+
+			if (betterCandidate)
+			{
+				bestGuess = newGuess;
+				minSurfaceDistance = newDistance;
+				minCursorDistance2 = cursorDistance2;
+				foundCandidateNearCursor = insideCursorRadius;
+			}
+		}
+		else
+		{
+			if (newDistance < minSurfaceDistance)
+			{
+				minSurfaceDistance = newDistance;
+				bestGuess = newGuess;
+			}
 		}
 	}
 	return bestGuess;

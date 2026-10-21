@@ -77,3 +77,21 @@ aa::mat4 Camera::inverseViewProjection()
 	aa::mat4 invVP = aa::inverse(VP);
 	return invVP;
 }
+
+aa::vec2 Camera::worldToScreen(aa::vec3 worldPos)
+{
+	// clip space transform
+	aa::vec4 clipSpacePos = this->projection() * this->view() * aa::vec4(worldPos, 1.0f);
+
+	// Perspective Division
+	if (clipSpacePos.w != 0.0f) {
+		aa::vec3 ndc = clipSpacePos.xyz / clipSpacePos.w;
+
+		float screenX = ((ndc.x + 1.0f) / 2.0f) * this->windowWidth;
+		float screenY = ((1.0f - ndc.y) / 2.0f) * this->windowHeight;
+
+		return aa::vec2(screenX, screenY);
+	}
+
+	return aa::vec2(-1.0f);
+}
