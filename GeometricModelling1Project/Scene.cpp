@@ -555,6 +555,7 @@ void Scene::DrawScene(GLFWwindow* window)
 
     shader.use();
     shader.setMat4("view", camera.view());
+    shader.setInt("useHeight", 0);
 
     tessellationShader.use();
 	tessellationShader.setMat4("view", camera.view());

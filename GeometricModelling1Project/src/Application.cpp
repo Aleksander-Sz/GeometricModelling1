@@ -804,6 +804,13 @@ int main()
 			{
 				machining.Simulator.LoadGCode(gcodeLoadPathBuffer);
 			}
+			if (ImGui::Button("Start Simulation"))
+			{
+				machining.Simulator.StartSimulation();
+			}
+			ImGui::Checkbox("Display material", &machining.Simulator.displayMaterial);
+			ImGui::SliderFloat("Starting Material Height", &machining.Simulator.materialHeight, 0.1f, 2.0f);
+			ImGui::SliderFloat("Mill diameter", &machining.Simulator.toolDiameter, 0.05f, 0.5f);
 		}
 
 
